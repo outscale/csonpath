@@ -1,0 +1,5 @@
+JSON_C_CFLAGS=$(shell pkg-config --cflags json-c)
+JSON_C_LDFLAGS=$(shell pkg-config --libs json-c)
+
+test-json-c-get-a: tests/json-c/get-a.c csonpath_json-c.h csonpath.h
+	cc tests/json-c/get-a.c $(JSON_C_CFLAGS) $(JSON_C_LDFLAGS) -g -I./ -o test-json-c-get-a
