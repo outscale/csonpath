@@ -53,9 +53,10 @@ int main(void)
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "ah"));
 
-  /* csonpath_set_path(&p, "$.array[*]"); */
-  /* ret = csonpath_find_direct(&p, jobj); */
-  /* assert(ret); */
+  csonpath_set_path(&p, "$.array[*]");
+  ret = csonpath_find_direct(&p, jobj);
+  assert(ret);
+  printf("%s\n", json_object_to_json_string(ret));
   /* assert(!strcmp(json_object_get_string(ret), "ah")); */
 
   json_object_put(jobj);

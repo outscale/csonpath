@@ -195,11 +195,12 @@ int csonpath_compile(struct csonpath *cjp)
 
 #define csonpath_find_direct(cjp, val) csonpath_find(cjp, val).value
 
-struct csonpath_ret csonpath_find(struct csonpath *cjp, CSONPATH_JSON value)
+static struct csonpath_ret csonpath_find_internal(struct csonpath *cjp,
+						  CSONPATH_JSON value,
+						  int idx,
+						  char *walker)
 {
-  char *walker = cjp->path;
   CSONPATH_JSON tmp = value;
-  int idx = 1;
 
   csonpath_compile(cjp);
   if (cjp->inst_lst[0].inst == CSONPATH_INST_BROKEN) {
@@ -214,17 +215,21 @@ struct csonpath_ret csonpath_find(struct csonpath *cjp, CSONPATH_JSON value)
     case CSONPATH_INST_GET_ALL:
       {
 	int nb_res = 0;
-	CSONPATH_FOERACH(tmp, el, {
+	CSONPATH_JSON good_ret = CSONPATH_NEW_ARRAY();
+	json_object *el;
+
+	CSONPATH_FOREACH(tmp, el, {
 	    struct csonpath_ret tret =
 	      csonpath_find_internal(cjp, el, idx + 1,
 				     walker + cjp->inst_lst[idx].next);
-	    CSONPATH_JSON good_ret = CSONPATH_NEW_ARRAY();
 
 	    if (tret.value != CSONPATH_NULL) {
-	      if (tret->number == 1) {
+	      if (tret.number == 1) {
 		CSONPATH_ARRAY_APPEND(good_ret, tret.value);
 	      } else {
-		CSONPATH_FOERACH(tret.value, hel, {
+		json_object *hel;
+
+		CSONPATH_FOREACH(tret.value, hel, {
 		    CSONPATH_ARRAY_APPEND(good_ret, hel);
 		  });
 		++nb_res;
@@ -262,4 +267,12 @@ struct csonpath_ret csonpath_find(struct csonpath *cjp, CSONPATH_JSON value)
     ++idx;
   }
   return (struct csonpath_ret){tmp, 1};
+}
+
+static struct csonpath_ret csonpath_find(struct csonpath *cjp, CSONPATH_JSON value)
+{
+  char *walker = cjp->path;
+  int idx = 1;
+  
+  return csonpath_find_internal(cjp, value, idx, walker);
 }
