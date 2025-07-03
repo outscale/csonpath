@@ -9,6 +9,8 @@ const char *json_str = "{"
   " \"array\": [0, \"ah\", \"oh\"]"
   "}";
 
+#define csonpath_find_direct(cjp, val) csonpath_find(cjp, val).value
+
 int main(void)
 {
   struct csonpath p;

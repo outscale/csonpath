@@ -24,8 +24,14 @@ struct csonpath {
   int inst_size;
 };
 
+/*
+ * field contain an array of:
+ * CSONPATH_JSON value;
+ * CSONPATH_JSON context;
+ * CSONPATH_JSON (int) index | CSONPATH_JSON (str) key
+ */
 struct csonpath_ret {
-  CSONPATH_JSON value;
+  CSONPATH_JSON fields;
   int number;
 };
 
@@ -191,72 +197,103 @@ int csonpath_compile(struct csonpath *cjp)
   return -1;  
 }
 
-#define CSONPATH_NONE_FOUND_RET (struct csonpath_ret){CSONPATH_NULL, 0};
+#define CSONPATH_NONE_FOUND_RET(last_idx) ({			\
+      struct csonpath_ret r;					\
+      r.number = 0;						\
+      r.fields = CSONPATH_NEW_ARRAY();				\
+      CSONPATH_JSON rr = CSONPATH_APPEND_NEW_OBJECT(r.fields);	\
+      CSONPATH_APPEND_PUSH_OBJECT(rr, "value", CSONPATH_NULL);	\
+      CSONPATH_APPEND_PUSH_OBJECT(rr, "ctx", ctx);		\
+      _Generic(last_idx, int: CSONPATH_SET_INT_AT,		\
+	       char *: CSONPATH_SET_STR_AT,			\
+	       const char *: CSONPATH_SET_STR_AT,		\
+	       )(rr, "key", last_idx);				\
+      CSONPATH_APPEND_PUSH_OBJECT(rr, "", CSONPATH_NULL);	\
+      r;							\
+    })
 
-#define csonpath_find_direct(cjp, val) csonpath_find(cjp, val).value
+// (struct csonpath_ret){CSONPATH_NULL, ctx, 0};
+
+static void csonpath_destroy_ret(struct csonpath_ret *r)
+{
+  if (r->number) {
+    CSONPATH_REMOVE(r->value);
+  }
+  r->number = 0;
+  r->value = CSONPATH_NULL;
+}
 
 static struct csonpath_ret csonpath_find_internal(struct csonpath *cjp,
 						  CSONPATH_JSON value,
+						  CSONPATH_JSON ctx,
 						  int idx,
 						  char *walker)
 {
   CSONPATH_JSON tmp = value;
 
-  csonpath_compile(cjp);
-  if (cjp->inst_lst[0].inst == CSONPATH_INST_BROKEN) {
-    CSONPATH_GETTER_ERR("fail to compile\n");
-    return CSONPATH_NONE_FOUND_RET;
-  }
-
-  walker += cjp->inst_lst[0].next;
 
   while (cjp->inst_lst[idx].inst != CSONPATH_INST_END) {
     switch (cjp->inst_lst[idx].inst) {
+    case CSONPATH_INST_ROOT:
+        walker += cjp->inst_lst[0].next;
+	break;
     case CSONPATH_INST_GET_ALL:
       {
 	int nb_res = 0;
 	CSONPATH_JSON good_ret = CSONPATH_NEW_ARRAY();
-	json_object *el;
+	CSONPATH_JSON good_ctxs = CSONPATH_NEW_ARRAY();
+	CSONPATH_JSON el;
 
 	CSONPATH_FOREACH(tmp, el, {
 	    struct csonpath_ret tret =
-	      csonpath_find_internal(cjp, el, idx + 1,
+	      csonpath_find_internal(cjp, el, tmp, idx + 1,
 				     walker + cjp->inst_lst[idx].next);
 
-	    if (tret.value != CSONPATH_NULL) {
-	      if (tret.number == 1) {
-		CSONPATH_ARRAY_APPEND(good_ret, tret.value);
-	      } else {
-		json_object *hel;
+	    if (tret.number == 1) {
+	      CSONPATH_ARRAY_APPEND(good_ret, tret.value);
+	      CSONPATH_ARRAY_APPEND(good_ctxs, tret.context);
+	      ++nb_res;
+	    } else if (tret.number > 1) {
+	      CSONPATH_JSON hel;
 
-		CSONPATH_FOREACH(tret.value, hel, {
-		    CSONPATH_ARRAY_APPEND(good_ret, hel);
-		  });
-		++nb_res;
-	      }
+	      CSONPATH_FOREACH(tret.value, hel, {
+		  CSONPATH_ARRAY_APPEND(good_ret, hel);
+		  ++nb_res;
+		});
+
+	      CSONPATH_FOREACH(tret.context, hel, {
+		  CSONPATH_ARRAY_APPEND(good_ctxs, hel);
+		});
+
+	      CSONPATH_REMOVE(tret.value);
 	    }
 	  });
-	return (struct csonpath_ret){good_ret, nb_res};
+	if (!nb_res)
+	  CSONPATH_NONE_FOUND_RET;
+	return (struct csonpath_ret){good_ret, good_ctxs, nb_res};
 	break;
       }
     case CSONPATH_INST_GET_OBJ:
+      ctx = tmp;
       tmp = CSONPATH_GET(tmp, walker);
-      if (!tmp)
+      if (tmp == CSONPATH_NULL)
 	return CSONPATH_NONE_FOUND_RET;
       walker += cjp->inst_lst[idx].next;
       break;
     case CSONPATH_INST_GET_ARRAY_SMALL:
+      ctx = tmp;
       tmp = CSONPATH_AT(tmp, (int)*walker);
-      if (!tmp)
+      if (tmp == CSONPATH_NULL)
 	return CSONPATH_NONE_FOUND_RET;
       walker += cjp->inst_lst[idx].next;
       break;
     case CSONPATH_INST_GET_ARRAY_BIG:
+      ctx = tmp;
       {
 	union {int n; char c[4];} to_num =
 	  { .c= { walker[0], walker[1], walker[2], walker[3] } }; 
 	tmp = CSONPATH_AT(tmp, to_num.n);
-	if (!tmp)
+	if (tmp == CSONPATH_NULL)
 	  return CSONPATH_NONE_FOUND_RET;
 	walker += cjp->inst_lst[idx].next;
 	break;
@@ -266,13 +303,19 @@ static struct csonpath_ret csonpath_find_internal(struct csonpath *cjp,
     }
     ++idx;
   }
-  return (struct csonpath_ret){tmp, 1};
+  return (struct csonpath_ret){tmp, ctx, 1};
 }
 
 static struct csonpath_ret csonpath_find(struct csonpath *cjp, CSONPATH_JSON value)
 {
   char *walker = cjp->path;
-  int idx = 1;
-  
-  return csonpath_find_internal(cjp, value, idx, walker);
+  CSONPATH_JSON ctx = CSONPATH_NULL;
+
+  csonpath_compile(cjp);
+  if (cjp->inst_lst[0].inst == CSONPATH_INST_BROKEN) {
+    CSONPATH_GETTER_ERR("fail to compile\n");
+    return CSONPATH_NONE_FOUND_RET;
+  }
+
+  return csonpath_find_internal(cjp, value, CSONPATH_NULL, 0, walker);
 }

@@ -12,6 +12,8 @@
 
 #define CSONPATH_AT csonpath_json_c_at
 
+#define CSONPATH_REMOVE(o) json_object_put(o)
+
 #define CSONPATH_FOREACH(obj, el, code)				\
   if (json_object_is_type(obj, json_type_object)) {		\
     json_object_object_foreach(obj, key_, val) { code }		\
@@ -23,8 +25,6 @@
     }								\
   }
 
-
-
 #define CSONPATH_NEW_ARRAY() json_object_new_array()
 
 #define CSONPATH_ARRAY_APPEND(array, el) json_object_array_add(array, el)
@@ -32,12 +32,16 @@
 static struct json_object *csonpath_json_c_get(struct json_object *obj,
 					       const char *key)
 {
+  if (!json_object_is_type(obj, json_type_object))
+    return NULL;
   return json_object_object_get(obj, key);
 }
 
 static struct json_object *csonpath_json_c_at(struct json_object *obj,
 					      int at)
 {
+  if (!json_object_is_type(obj, json_type_array))
+    return NULL;
   return json_object_array_get_idx(obj, at);
 }
 
