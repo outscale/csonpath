@@ -29,6 +29,11 @@
 
 #define CSONPATH_ARRAY_APPEND(array, el) json_object_array_add(array, el)
 
+#define CSONPATH_ARRAY_APPEND_INCREF(array, el) ({	\
+      json_object_get(el);				\
+      json_object_array_add(array, el);			\
+    })
+
 static struct json_object *csonpath_json_c_get(struct json_object *obj,
 					       const char *key)
 {

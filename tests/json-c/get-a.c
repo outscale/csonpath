@@ -9,8 +9,6 @@ const char *json_str = "{"
   " \"array\": [0, \"ah\", \"oh\"]"
   "}";
 
-#define csonpath_find_direct(cjp, val) csonpath_find(cjp, val).value
-
 int main(void)
 {
   struct csonpath p;
@@ -18,48 +16,60 @@ int main(void)
   struct json_object *ret;
 
   csonpath_init(&p, "$.a");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'A"));
 
   csonpath_set_path(&p, "$['0']");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "this is ZERO"));
 
   csonpath_set_path(&p, "$['b'].B");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
   csonpath_set_path(&p, "$.b.B");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
   csonpath_set_path(&p, "$.b[\"B\"]");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
   csonpath_set_path(&p, "$.c.B");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(!ret);
 
   csonpath_set_path(&p, "$.array[1]");
-  ret = csonpath_find_direct(&p, jobj);
+  ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "ah"));
 
-  csonpath_set_path(&p, "$.array[*]");
-  ret = csonpath_find_direct(&p, jobj);
+  csonpath_set_path(&p, "$.array[1]");
+  ret = csonpath_find_all(&p, jobj);
   assert(ret);
-  printf("%s\n", json_object_to_json_string(ret));
+  assert(json_object_array_get_idx(ret, 0));
+  assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 0)), "ah"));
+  json_object_put(ret);
+
+  csonpath_set_path(&p, "$.array[*]");
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+
+  assert(!json_object_get_int(json_object_array_get_idx(ret, 0)));
+  assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 1)), "ah"));
+  assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 2)), "oh"));
+
   /* assert(!strcmp(json_object_get_string(ret), "ah")); */
+  json_object_put(ret);
 
   json_object_put(jobj);
   csonpath_destroy(&p);
