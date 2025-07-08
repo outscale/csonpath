@@ -68,8 +68,23 @@ int main(void)
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 1)), "ah"));
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 2)), "oh"));
 
-  /* assert(!strcmp(json_object_get_string(ret), "ah")); */
   json_object_put(ret);
+
+  /* redoall to check lib doesn't mess jobj */
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+
+  assert(!json_object_get_int(json_object_array_get_idx(ret, 0)));
+  assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 1)), "ah"));
+  assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 2)), "oh"));
+  json_object_put(ret);
+
+  printf("%s\n", json_object_to_json_string(jobj));
+
+  printf("will rm\n");
+  int iret = csonpath_remove(&p, jobj);
+  printf("rm: %d\n", iret);
+  printf("%s\n", json_object_to_json_string(jobj));
 
   json_object_put(jobj);
   csonpath_destroy(&p);

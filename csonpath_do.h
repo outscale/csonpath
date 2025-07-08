@@ -1,3 +1,31 @@
+#ifndef CSONPATH_DO_POST_FIND_OBJ
+#define CSONPATH_DO_POST_FIND_OBJ
+#endif
+
+#ifndef CSONPATH_DO_POST_FIND_ARRAY
+#define CSONPATH_DO_POST_FIND_ARRAY
+#endif
+
+#ifndef CSONPATH_DO_EXTRA_DECLATION
+#define CSONPATH_DO_EXTRA_DECLATION
+#endif
+
+#ifndef CSONPATH_DO_EXTRA_ARGS_NEESTED
+#define CSONPATH_DO_EXTRA_ARGS_NEESTED
+#endif
+
+#ifndef CSONPATH_DO_EXTRA_ARGS_IN
+#define CSONPATH_DO_EXTRA_ARGS_IN
+#endif
+
+#ifndef CSONPATH_DO_POST_OPERATION
+#define CSONPATH_DO_POST_OPERATION
+#endif
+
+#ifndef CSONPATH_DO_PRE_OPERATION
+#define CSONPATH_DO_PRE_OPERATION
+#endif
+
 #ifndef CAT
 # define CATCAT(a, b, c) a ## b ## c
 # define CAT(a, b) a ## b
@@ -10,7 +38,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
 						 int idx,
-						 char *walker)
+						 char *walker CSONPATH_DO_EXTRA_DECLATION)
 {
   CSONPATH_JSON tmp = value;
   CSONPATH_DO_DECLARATION;
@@ -29,7 +57,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 	CSONPATH_FOREACH(tmp, el, {
 	    CSONPATH_DO_RET_TYPE tret =
 	      csonpath_do_internal(cjp, el, tmp, idx + 1,
-				     walker + cjp->inst_lst[idx].next);
+				     walker + cjp->inst_lst[idx].next CSONPATH_DO_EXTRA_ARGS_NEESTED);
 
 	    CSONPATH_DO_FIND_ALL;
 	  })
@@ -42,24 +70,34 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
       tmp = CSONPATH_GET(tmp, walker);
       if (tmp == CSONPATH_NULL)
 	return CSONPATH_NONE_FOUND_RET;
+      CSONPATH_DO_POST_FIND_OBJ
       walker += cjp->inst_lst[idx].next;
       break;
     case CSONPATH_INST_GET_ARRAY_SMALL:
-      ctx = tmp;
-      tmp = CSONPATH_AT(tmp, (int)*walker);
-      if (tmp == CSONPATH_NULL)
-	return CSONPATH_NONE_FOUND_RET;
-      walker += cjp->inst_lst[idx].next;
-      break;
+      {
+	int idx;
+
+	ctx = tmp;
+	idx =  (int)*walker;
+	tmp = CSONPATH_AT(tmp, idx);
+	if (tmp == CSONPATH_NULL)
+	  return CSONPATH_NONE_FOUND_RET;
+	walker += cjp->inst_lst[idx].next;
+	CSONPATH_DO_POST_FIND_ARRAY
+	break;
+      }
     case CSONPATH_INST_GET_ARRAY_BIG:
       ctx = tmp;
       {
+	int idx;
 	union {int n; char c[4];} to_num =
-	  { .c= { walker[0], walker[1], walker[2], walker[3] } }; 
+	  { .c= { walker[0], walker[1], walker[2], walker[3] } };
+	idx = to_num.n;
 	tmp = CSONPATH_AT(tmp, to_num.n);
 	if (tmp == CSONPATH_NULL)
 	  return CSONPATH_NONE_FOUND_RET;
 	walker += cjp->inst_lst[idx].next;
+	CSONPATH_DO_POST_FIND_ARRAY
 	break;
       }
     default:
@@ -85,12 +123,25 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath *cjp, CSONPATH_JSON val
     return CSONPATH_NONE_FOUND_RET;
   }
 
-  return csonpath_do_internal(cjp, value, CSONPATH_NULL, 0, walker);
+  CSONPATH_DO_PRE_OPERATION;
+
+  CSONPATH_DO_RET_TYPE =  csonpath_do_internal(cjp, value, CSONPATH_NULL, 0, walker CSONPATH_DO_EXTRA_ARGS_IN);
+
+  CSONPATH_DO_POST_OPERATION;
+
+  return CSONPATH_DO_RET_TYPE;
 }
 
+#undef CSONPATH_DO_PRE_OPERATION
+#undef CSONPATH_DO_POST_OPERATION
 #undef CSONPATH_DO_FUNC_NAME
 #undef CSONPATH_DO_RET_TYPE
 #undef CSONPATH_DO_RETURN
 #undef CSONPATH_DO_DECLARATION
 #undef CSONPATH_DO_FIND_ALL
 #undef CSONPATH_DO_FIND_ALL_OUT
+#undef CSONPATH_DO_POST_FIND_ARRAY
+#undef CSONPATH_DO_POST_FIND_OBJ
+#undef CSONPATH_DO_EXTRA_ARGS_NEESTED
+#undef CSONPATH_DO_EXTRA_ARGS_IN
+#undef CSONPATH_DO_EXTRA_DECLATION

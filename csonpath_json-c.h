@@ -12,6 +12,8 @@
 
 #define CSONPATH_AT csonpath_json_c_at
 
+#define CSONPATH_NEW_INT()
+
 #define CSONPATH_REMOVE(o) json_object_put(o)
 
 #define CSONPATH_FOREACH(obj, el, code)				\
@@ -23,6 +25,15 @@
       el = json_object_array_get_idx(obj, idx_);		\
       code							\
     }								\
+  }
+
+#define CSONPATH_REMOVE_CHILD(obj, child_info)				\
+  if (child_info.type == CSONPATH_INTEGER) {				\
+    printf("SPLIT ! %d\n", child_info.idx);			\
+    json_object_array_put_idx(obj, child_info.idx, NULL);		\
+  } else {								\
+    printf("rm key %s\n", child_info.key);				\
+    json_object_object_del(obj, child_info.key);			\
   }
 
 #define CSONPATH_NEW_ARRAY() json_object_new_array()

@@ -8,20 +8,29 @@
 
 #define CSONPATH_AT csonpath_python_at
 
-#define CSONPATH_REMOVE(o) PyList_Clear(o)
+#define CSONPATH_REMOVE(o) // PyList_Clear(o)
 
 #define CSONPATH_NEW_ARRAY() PyList_New(0)
 
-#define CSONPATH_NEW_INT(obj, at, i)			\
-  PyDict_SetItemString(obj, at, PyLong_FromLong(i))
+#define CSONPATH_NEW_INT(i)			\
+  PyLong_FromLong(i)
 
-#define CSONPATH_NEW_STR(obj, at, key)			\
-  PyDict_SetItemString(obj, at, PyUnicode_FromString(key))
+#define CSONPATH_NEW_STR(key)			\
+  PyUnicode_FromString(key)
+
+#define CSONPATH_REMOVE_CHILD(obj, child_info)				\
+  if (child_info.type == CSONPATH_INTEGER) {				\
+    PyList_SetSlice(obj, child_info.idx - 1, child_info.idx + 1, NULL);	\
+  } else if (child_info.type == CSONPATH_STR) {				\
+    PyDict_DelItemString(obj, child_info.key);				\
+  }
 
 #define CSONPATH_ARRAY_APPEND(list, el) PyList_Append(list, el)
 
 /* I don't think incrref is needed with python */
-#define CSONPATH_ARRAY_APPEND_INCREF(array, el) PyList_Append(array, el)
+#define CSONPATH_ARRAY_APPEND_INCREF(array, el) ({	\
+      PyList_Append(array, el);				\
+    })
 
 #define CSONPATH_FOREACH(obj, el, code)				\
   if (PyDict_Check(obj)) {					\
@@ -96,7 +105,11 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
 
   if (!PyArg_ParseTuple(args, "O", &json))
     return Py_None;
-  return csonpath_find_first(self->cp, json);
+  PyObject *ret =  csonpath_find_all(self->cp, json);
+  if (ret != Py_None) {
+      Py_INCREF(ret);
+  }
+  return ret;
 }
 
 static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
@@ -107,6 +120,16 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
     return Py_None;
   PyObject *ret = csonpath_find_first(self->cp, json);
   return ret;
+}
+
+static PyObject *remove(PyCsonPathObject *self, PyObject* args)
+{
+  PyObject *json;
+
+  if (!PyArg_ParseTuple(args, "O", &json))
+    return Py_None;
+  int ret = csonpath_remove(self->cp, json);
+  return PyLong_FromLong(ret);
 }
 
 static void PyCsonPath_dealloc(PyCsonPathObject *self) {
@@ -133,6 +156,7 @@ static int PyCsonPath_set_path(PyCsonPathObject *self, PyObject *value, void *cl
 static PyMethodDef csonpath_py_method[] = {
     {"find_first", (PyCFunction)find_first, METH_VARARGS, "find first elems"},
     {"find_all", (PyCFunction)find_all, METH_VARARGS, "find all elems, if one found, pout it in an array"},
+    {"remove", (PyCFunction)remove, METH_VARARGS, "remove all elems found"},    
     {NULL, NULL, 0, NULL}
 };
 
