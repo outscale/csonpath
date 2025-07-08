@@ -38,14 +38,6 @@ struct csonpath_child_info {
   };
 };
 
-struct csonpath_to_rm {
-  int nb;
-  struct {
-    struct csonpath_child_info to_rm;
-    CSONPATH_JSON container;
-  } to_rms[];
-}
-
 #define CSONPATH_CLASSIC_ERR(__VA_ARGS__...) do {	\
     fprintf(stderr, __VA_ARGS__);			\
     goto error;						\
@@ -260,7 +252,7 @@ int csonpath_compile(struct csonpath *cjp)
   
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME remove
-#define CSONPATH_DO_RETURN ({CSONPATH_REMOVE_CHILD(ctx, child_info); return 1;})
+#define CSONPATH_DO_RETURN ({if (ctx == in_ctx && need_reloop) *need_reloop = 1;  CSONPATH_REMOVE_CHILD(ctx, child_info); return 1;})
 
 #define CSONPATH_DO_POST_FIND_ARRAY		\
   child_info.type = CSONPATH_INTEGER;		\
@@ -270,30 +262,21 @@ int csonpath_compile(struct csonpath *cjp)
   child_info.type = CSONPATH_STR;		\
   child_info.key = walker;
 
-#define CSONPATH_DO_DECLARATION  int nb_res = 0;
+#define CSONPATH_DO_DECLARATION  int nb_res = 0; \
+  CSONPATH_JSON in_ctx = ctx;
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
-#define CSONPATH_DO_FIND_ALL ({ if (tret < 0) return -1; nb_res += tret; })
+#define CSONPATH_DO_FIND_ALL ({if (need_reloop_in) goto again; if (tret < 0) return -1; nb_res += tret; })
 
-#define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, \
-    struct csonpath_to_rm *to_rm
+#define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
 
-#define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, to_rm
+#define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, NULL
 
-#define CSONPATH_DO_EXTRA_ARGS_NEESTED , child_info, to_rm
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP int need_reloop_in;	\
+  again:
 
-#define CSONPATH_DO_PRE_OPERATION					\
-  struct csonpath_child_info *to_rm = malloc(((1 << 24) * sizeof to_rm->to_rm) + \
-					     sizeof(int));		\
-  to_rm->nb = 0;
-
-#define CSONPATH_DO_POST_OPERATION		\
-  for (int i = 0; i < to_rm->nb; ++i) {		\
-    CSONPATH_REMOVE_CHILD(to_rm->to_rm[i]);	\
-  }
-
-  free(to_rm);
+#define CSONPATH_DO_EXTRA_ARGS_NEESTED , child_info, &need_reloop_in
 
 #include "csonpath_do.h"
 

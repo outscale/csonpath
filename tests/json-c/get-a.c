@@ -79,6 +79,7 @@ int main(void)
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 2)), "oh"));
   json_object_put(ret);
 
+  
   printf("%s\n", json_object_to_json_string(jobj));
 
   printf("will rm\n");
