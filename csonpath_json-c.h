@@ -12,27 +12,32 @@
 
 #define CSONPATH_AT csonpath_json_c_at
 
+#define CSONPATH_NEED_FOREACH_REDO(o)		\
+  json_object_is_type(o, json_type_object)
+
 #define CSONPATH_NEW_INT()
 
 #define CSONPATH_REMOVE(o) json_object_put(o)
 
-#define CSONPATH_FOREACH(obj, el, code)				\
-  if (json_object_is_type(obj, json_type_object)) {		\
-    json_object_object_foreach(obj, key_, val) { code }		\
-  } else if (json_object_is_type(obj, json_type_array)) {	\
-    int array_len_ = json_object_array_length(obj);		\
-    for (int idx_ = 0; idx_ < array_len_; ++idx_) {		\
-      el = json_object_array_get_idx(obj, idx_);		\
-      code							\
-    }								\
+#define CSONPATH_IS_OBJ(o) json_object_is_type(o, json_type_object)
+
+#define CSONPATH_IS_ARRAY(o) json_object_is_type(o, json_type_array)
+
+#define CSONPATH_FOREACH(obj, el, code)					\
+  if (json_object_is_type(obj, json_type_object)) {			\
+    json_object_object_foreach(obj, key_idx, val) { code }		\
+  } else if (json_object_is_type(obj, json_type_array)) {		\
+    int array_len_ = json_object_array_length(obj);			\
+    for (int key_idx = 0; key_idx < array_len_; ++key_idx) {		\
+      el = json_object_array_get_idx(obj, key_idx);			\
+      code								\
+	}								\
   }
 
 #define CSONPATH_REMOVE_CHILD(obj, child_info)				\
   if (child_info.type == CSONPATH_INTEGER) {				\
-    printf("SPLIT ! %d\n", child_info.idx);			\
     json_object_array_put_idx(obj, child_info.idx, NULL);		\
   } else {								\
-    printf("rm key %s\n", child_info.key);				\
     json_object_object_del(obj, child_info.key);			\
   }
 

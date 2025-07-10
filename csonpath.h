@@ -19,7 +19,7 @@ struct csonpath_instruction {
   char unused;
   short int next;
 };
-  
+
 #define CSONPATH_INST_MIN_ALLOC (1 << 7)
 
 struct csonpath {
@@ -38,8 +38,8 @@ struct csonpath_child_info {
   };
 };
 
-#define CSONPATH_CLASSIC_ERR(__VA_ARGS__...) do {	\
-    fprintf(stderr, __VA_ARGS__);			\
+#define CSONPATH_CLASSIC_ERR(args...) do {	\
+    fprintf(stderr, args);			\
     goto error;						\
 } while (0)
 
@@ -144,7 +144,7 @@ int csonpath_compile(struct csonpath *cjp)
 	  csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_BIG);
 	}
 	cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
-	walker = next;	
+	walker = next;
 	to_check = *walker;
 	goto again;
       }
@@ -192,14 +192,14 @@ int csonpath_compile(struct csonpath *cjp)
   }
  error:
   cjp->inst_lst[0] = (struct csonpath_instruction){CSONPATH_INST_BROKEN};
-  return -1;  
+  return -1;
 }
 
 #define CSONPATH_NONE_FOUND_RET CSONPATH_NULL
 
-#define CSONPATH_GETTER_ERR(__VA_ARGS__...) do {		\
-    fprintf(stderr, __VA_ARGS__);				\
-    return CSONPATH_NULL;					\
+#define CSONPATH_GETTER_ERR(args...) do {		\
+    fprintf(stderr, args);				\
+    return CSONPATH_NULL;				\
 } while (0)
 
 #define CSONPATH_DO_RET_TYPE CSONPATH_JSON
@@ -234,7 +234,7 @@ int csonpath_compile(struct csonpath *cjp)
   if (!nb_res)					\
     CSONPATH_NONE_FOUND_RET;			\
   return good_ret;
-  
+
 
 #include "csonpath_do.h"
 
@@ -243,16 +243,20 @@ int csonpath_compile(struct csonpath *cjp)
 
 #define CSONPATH_NONE_FOUND_RET 0
 
-#define CSONPATH_GETTER_ERR(__VA_ARGS__...) do {		\
-    fprintf(stderr, __VA_ARGS__);				\
+#define CSONPATH_GETTER_ERR(args...) do {			\
+    fprintf(stderr, args);					\
     return -1;							\
 } while (0)
 
-#define CSONPATH_DO_ON_FOUND			\
-  
+#define CSONPATH_DO_ON_FOUND
+
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME remove
-#define CSONPATH_DO_RETURN ({if (ctx == in_ctx && need_reloop) *need_reloop = 1;  CSONPATH_REMOVE_CHILD(ctx, child_info); return 1;})
+#define CSONPATH_DO_RETURN						\
+  ({if (ctx == in_ctx && need_reloop &&					\
+	CSONPATH_NEED_FOREACH_REDO(ctx))				\
+      *need_reloop = 1;							\
+    CSONPATH_REMOVE_CHILD(ctx, child_info); return 1;})
 
 #define CSONPATH_DO_POST_FIND_ARRAY		\
   child_info.type = CSONPATH_INTEGER;		\
@@ -267,14 +271,29 @@ int csonpath_compile(struct csonpath *cjp)
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
-#define CSONPATH_DO_FIND_ALL ({if (need_reloop_in) goto again; if (tret < 0) return -1; nb_res += tret; })
+#define CSONPATH_DO_FIND_ALL ({					\
+      if (need_reloop_in){ printf("again\n"); goto again; };	\
+      if (tret < 0) return -1;					\
+      nb_res += tret;						\
+    })
 
 #define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, NULL
 
-#define CSONPATH_DO_FIND_ALL_PRE_LOOP int need_reloop_in;	\
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
   again:
+
+
+#define CSONPATH_DO_FOREACH_PRE_SET			\
+  int need_reloop_in = 0;				\
+  if (CSONPATH_IS_OBJ(tmp)) {				\
+    child_info.key = (void *)(intptr_t)key_idx;		\
+    child_info.type = CSONPATH_STR;			\
+  } else {						\
+    child_info.idx = (intptr_t)key_idx;			\
+    child_info.type = CSONPATH_INTEGER;			\
+  }
 
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , child_info, &need_reloop_in
 

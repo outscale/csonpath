@@ -79,13 +79,14 @@ int main(void)
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 2)), "oh"));
   json_object_put(ret);
 
-  
   printf("%s\n", json_object_to_json_string(jobj));
 
-  printf("will rm\n");
   int iret = csonpath_remove(&p, jobj);
-  printf("rm: %d\n", iret);
-  printf("%s\n", json_object_to_json_string(jobj));
+  printf("%d - %s\n", iret, json_object_to_json_string(jobj));
+
+  csonpath_set_path(&p, "$.array");
+  iret = csonpath_remove(&p, jobj);
+  printf("%d - %s\n", iret, json_object_to_json_string(jobj));
 
   json_object_put(jobj);
   csonpath_destroy(&p);

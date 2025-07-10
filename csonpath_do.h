@@ -30,6 +30,10 @@
 #define CSONPATH_DO_FIND_ALL_PRE_LOOP
 #endif
 
+#ifndef CSONPATH_DO_FOREACH_PRE_SET
+#define CSONPATH_DO_FOREACH_PRE_SET
+#endif
+
 #ifndef CAT
 # define CATCAT(a, b, c) a ## b ## c
 # define CAT(a, b) a ## b
@@ -60,11 +64,12 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 
 	CSONPATH_DO_FIND_ALL_PRE_LOOP;
 	CSONPATH_FOREACH(tmp, el, {
+	    CSONPATH_DO_FOREACH_PRE_SET
 	    CSONPATH_DO_RET_TYPE tret =
 	      csonpath_do_internal(cjp, el, tmp, idx + 1,
-				     walker + cjp->inst_lst[idx].next CSONPATH_DO_EXTRA_ARGS_NEESTED);
+				     walker + cjp->inst_lst[idx].next
+				   CSONPATH_DO_EXTRA_ARGS_NEESTED);
 
-	    printf("find all out\n");
 	    CSONPATH_DO_FIND_ALL;
 	  })
 
@@ -152,3 +157,4 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath *cjp, CSONPATH_JSON val
 #undef CSONPATH_DO_EXTRA_ARGS_IN
 #undef CSONPATH_DO_EXTRA_DECLATION
 #undef CSONPATH_DO_FIND_ALL_PRE_LOOP
+#undef CSONPATH_DO_FOREACH_PRE_SET
