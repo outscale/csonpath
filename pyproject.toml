@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "csonpath"
+version = "0.0.1"
+
+[tool.setuptools]
+packages = []  # no Python packages, just an extension
+ext-modules = [
+	 {name="csonpath", sources = ["csonpath_python.c"]}
+]
