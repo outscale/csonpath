@@ -202,16 +202,17 @@ int csonpath_compile(struct csonpath *cjp)
     return CSONPATH_NULL;				\
 } while (0)
 
+/* Find First */
+
 #define CSONPATH_DO_RET_TYPE CSONPATH_JSON
 #define CSONPATH_DO_FUNC_NAME find_first
 #define CSONPATH_DO_RETURN return tmp
 
-#define CSONPATH_DO_DECLARATION
-#define CSONPATH_DO_FIND_ALL_OUT
-
 #define CSONPATH_DO_FIND_ALL return tret
 
 #include "csonpath_do.h"
+
+/* Find All */
 
 #define CSONPATH_DO_DECLARATION				\
   CSONPATH_JSON good_ret = CSONPATH_NEW_ARRAY();	\
@@ -235,8 +236,9 @@ int csonpath_compile(struct csonpath *cjp)
     CSONPATH_NONE_FOUND_RET;			\
   return good_ret;
 
-
 #include "csonpath_do.h"
+
+/* Delete */
 
 #undef CSONPATH_NONE_FOUND_RET
 #undef CSONPATH_GETTER_ERR
@@ -298,4 +300,3 @@ int csonpath_compile(struct csonpath *cjp)
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , child_info, &need_reloop_in
 
 #include "csonpath_do.h"
-

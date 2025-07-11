@@ -8,6 +8,10 @@ r = o.find_first(d)
 
 print(r)
 
+r = o.find_all(d)
+
+print(r)
+
 o = csonpath.CsonPath("$.C")
 r = o.find_first(d)
 
@@ -23,7 +27,9 @@ o = csonpath.CsonPath("$[*].a")
 r = o.find_all(d)
 print(r)
 
-o.remove(o)
+print(d)
+o.remove(d)
+print("after remove:")
 print(d)
 #r["context"][0]['a'] = "a new one"
 #print(r)
