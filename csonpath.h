@@ -4,6 +4,7 @@ enum csonpath_instuction_raw {
   CSONPATH_INST_GET_ARRAY_SMALL,
   CSONPATH_INST_GET_ARRAY_BIG,
   CSONPATH_INST_GET_ALL,
+  CSONPATH_INST_FIND_ALL,
   CSONPATH_INST_END,
   CSONPATH_INST_BROKEN
 };
@@ -173,13 +174,20 @@ int csonpath_compile(struct csonpath *cjp)
     }
   case '.':
     {
+      int inst = CSONPATH_INST_GET_OBJ;
+
       cjp->inst_lst[cjp->inst_idx - 1].next += 1;
       ++walker;
+      if (*walker == '.') {
+	inst = CSONPATH_INST_FIND_ALL;
+	cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	++walker;
+      }
       for (next = walker; *next && *next != '[' && *next != '.'; ++next);
       to_check = *next;
       *next = 0;
 
-      csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ);
+      csonpath_push_inst(cjp, inst);
       cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
       walker = next;
       goto again;
@@ -209,6 +217,8 @@ int csonpath_compile(struct csonpath *cjp)
 #define CSONPATH_DO_RETURN return tmp
 
 #define CSONPATH_DO_FIND_ALL return tret
+
+#define CSONPATH_DO_FIND_ALL_OUT
 
 #include "csonpath_do.h"
 
@@ -274,10 +284,10 @@ int csonpath_compile(struct csonpath *cjp)
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
 #define CSONPATH_DO_FIND_ALL ({					\
-      if (need_reloop_in){ printf("again\n"); goto again; };	\
-      if (tret < 0) return -1;					\
-      nb_res += tret;						\
-    })
+			if (need_reloop_in){ goto again; };	\
+			if (tret < 0) return -1;		\
+			nb_res += tret;				\
+		})
 
 #define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
 

@@ -22,12 +22,13 @@
 
 #define CSONPATH_IS_ARRAY(o) PyList_Check(o)
 
+
 /* assuming each modification of the object need to go out of the loop */
 #define CSONPATH_NEED_FOREACH_REDO(o)	1
 
 #define CSONPATH_REMOVE_CHILD(obj, child_info)				\
   if (child_info.type == CSONPATH_INTEGER) {				\
-    PyList_SetSlice(obj, child_info.idx - 1, child_info.idx + 1, NULL);	\
+    PyList_SetSlice(obj, child_info.idx, child_info.idx + 1, NULL);	\
   } else if (child_info.type == CSONPATH_STR) {				\
     PyDict_DelItemString(obj, child_info.key);				\
   }
@@ -51,7 +52,7 @@
 	}								\
   } else if (PyList_Check(obj)) {					\
     int array_len_ = PyList_Size(obj);					\
-    for (int key_idx = 0; key_idx < array_len_; ++key_idx) {		\
+    for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {		\
       el = PyList_GetItem(obj, key_idx);				\
       code								\
 	}								\

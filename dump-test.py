@@ -27,10 +27,42 @@ o = csonpath.CsonPath("$[*].a")
 r = o.find_all(d)
 print(r)
 
+o = csonpath.CsonPath("$..a")
+r = o.find_all(d)
+print(".. find")
+print(r)
+
 print(d)
 o.remove(d)
 print("after remove:")
 print(d)
+
+d["C"]["la"] = "lo"
+print(d)
+o = csonpath.CsonPath("$.C[*]")
+o.remove(d)
+print("after remove 2:")
+print(d)
+
+o = csonpath.CsonPath("$.C")
+o.remove(d)
+print("after remove 3:")
+print(d)
+
+d["ar"] = [1,2,3]
+
+print(d)
+o = csonpath.CsonPath("$.ar[1]")
+o.remove(d)
+print("after remove 4:")
+print(d)
+
+o = csonpath.CsonPath("$.ar[*]")
+o.remove(d)
+print("after remove 5:")
+print(d)
+
+
 #r["context"][0]['a'] = "a new one"
 #print(r)
 #print(d)

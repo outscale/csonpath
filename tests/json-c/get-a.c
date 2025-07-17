@@ -35,6 +35,16 @@ int main(void)
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
+  csonpath_set_path(&p, "$..B");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
+
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 0)),
+		 "la y'a l'B"));
+
   csonpath_set_path(&p, "$.b[\"B\"]");
   ret = csonpath_find_first(&p, jobj);
   assert(ret);

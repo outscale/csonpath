@@ -25,10 +25,10 @@
 
 #define CSONPATH_FOREACH(obj, el, code)					\
   if (json_object_is_type(obj, json_type_object)) {			\
-    json_object_object_foreach(obj, key_idx, val) { code }		\
+    json_object_object_foreach(obj, key_idx, el) { code }		\
   } else if (json_object_is_type(obj, json_type_array)) {		\
     int array_len_ = json_object_array_length(obj);			\
-    for (int key_idx = 0; key_idx < array_len_; ++key_idx) {		\
+    for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {		\
       el = json_object_array_get_idx(obj, key_idx);			\
       code								\
 	}								\
