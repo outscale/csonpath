@@ -63,8 +63,3 @@ print("after remove 5:")
 print(d)
 
 
-#r["context"][0]['a'] = "a new one"
-#print(r)
-#print(d)
-#del r["context"][0]['a']
-#print(d)

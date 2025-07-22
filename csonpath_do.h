@@ -50,7 +50,8 @@
 #define csonpath_do_internal__(name) CATCAT(csonpath_, name, _internal)
 #define csonpath_do_internal csonpath_do_internal__(CSONPATH_DO_FUNC_NAME)
 
-static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
+static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
+						 CSONPATH_JSON origin,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
 						 int idx,
@@ -60,7 +61,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 #define csonpath_do_dotdot csonpath_do_dotdot__(CSONPATH_DO_FUNC_NAME)
 
 
-static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath *cjp,
+static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
+					       CSONPATH_JSON origin,
 					       CSONPATH_JSON tmp,
 					       CSONPATH_JSON ctx,
 					       int idx,
@@ -69,27 +71,29 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath *cjp,
   	CSONPATH_JSON el;
 	CSONPATH_DO_DECLARATION;
 	const int is_obj = CSONPATH_IS_OBJ(tmp);
-	CSONPATH_DO_RET_TYPE tret;
+	CSONPATH_DO_RET_TYPE tret = CSONPATH_NONE_FOUND_RET;
 
 	CSONPATH_DO_FIND_ALL_PRE_LOOP;
 	CSONPATH_FOREACH(tmp, el, {
 	    CSONPATH_DO_FOREACH_PRE_SET;
 	    if (is_obj && !strcmp((char *)key_idx, walker)) {
-	      tret = csonpath_do_internal(cjp, el, tmp, idx,
+	      tret = csonpath_do_internal(cjp, origin, el, tmp, idx,
 					  walker + cjp->inst_lst[idx].next
 					  CSONPATH_DO_EXTRA_ARGS_NEESTED);
 	      CSONPATH_DO_FIND_ALL;
 	    }
 	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
-	      tret = csonpath_do_dotdot(cjp, el, tmp, idx, walker
+	      tret = csonpath_do_dotdot(cjp, origin, el, tmp, idx, walker
 					CSONPATH_DO_EXTRA_ARGS_NEESTED);
 	      CSONPATH_DO_FIND_ALL;
 	    }
 	  });
 	CSONPATH_DO_FIND_ALL_OUT;
+	return tret;
 }
 
-static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
+static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
+						 CSONPATH_JSON origin,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
 						 int idx,
@@ -111,7 +115,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 
 	(void)need_reloop_in;
 	CSONPATH_DO_RET_TYPE tret =
-	  csonpath_do_dotdot(cjp, tmp, ctx, idx + 1,
+	  csonpath_do_dotdot(cjp, origin, tmp, ctx, idx + 1,
 			     walker
 			     CSONPATH_DO_EXTRA_ARGS_NEESTED);
 	return tret;
@@ -124,7 +128,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 	CSONPATH_FOREACH(tmp, el, {
 	    CSONPATH_DO_FOREACH_PRE_SET
 	    CSONPATH_DO_RET_TYPE tret =
-	      csonpath_do_internal(cjp, el, tmp, idx + 1,
+	      csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
 				     walker + cjp->inst_lst[idx].next
 				   CSONPATH_DO_EXTRA_ARGS_NEESTED);
 
@@ -137,8 +141,20 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
     case CSONPATH_INST_GET_OBJ:
       ctx = tmp;
       tmp = CSONPATH_GET(tmp, walker);
-      if (tmp == CSONPATH_NULL)
+      if (tmp == CSONPATH_NULL) {
+	printf("failt to find: %s\n", walker);
+	walker += cjp->inst_lst[idx].next;
+	while (cjp->inst_lst[++idx].inst != CSONPATH_INST_END) {
+	  if (cjp->inst_lst[idx].inst == CSONPATH_INST_OR) {
+	    printf("in the OR: %s\n", walker);
+	    value = origin;
+	    ctx = CSONPATH_NULL;
+	    break;
+	  }
+	  walker += cjp->inst_lst[idx].next;
+	}
 	return CSONPATH_NONE_FOUND_RET;
+      }
       CSONPATH_DO_POST_FIND_OBJ
       walker += cjp->inst_lst[idx].next;
       break;
@@ -180,7 +196,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath *cjp,
 #define csonpath_do__(name) CAT(csonpath_, name)
 #define csonpath_do_ csonpath_do__(CSONPATH_DO_FUNC_NAME)
 
-static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath *cjp, CSONPATH_JSON value)
+static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1], CSONPATH_JSON value)
 {
   char *walker = cjp->path;
   CSONPATH_JSON ctx = CSONPATH_NULL;
@@ -194,7 +210,9 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath *cjp, CSONPATH_JSON val
 
   CSONPATH_DO_PRE_OPERATION;
 
-  CSONPATH_DO_RET_TYPE ret =  csonpath_do_internal(cjp, value, CSONPATH_NULL, 0, walker CSONPATH_DO_EXTRA_ARGS_IN);
+  CSONPATH_DO_RET_TYPE ret =  csonpath_do_internal(cjp, value, value,
+						   CSONPATH_NULL, 0,
+						   walker CSONPATH_DO_EXTRA_ARGS_IN);
 
   CSONPATH_DO_POST_OPERATION;
 

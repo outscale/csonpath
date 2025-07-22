@@ -5,6 +5,7 @@ enum csonpath_instuction_raw {
   CSONPATH_INST_GET_ARRAY_BIG,
   CSONPATH_INST_GET_ALL,
   CSONPATH_INST_FIND_ALL,
+  CSONPATH_INST_OR,
   CSONPATH_INST_END,
   CSONPATH_INST_BROKEN
 };
@@ -44,25 +45,26 @@ struct csonpath_child_info {
     goto error;						\
 } while (0)
 
-static inline void csonpath_destroy(struct csonpath *cjp)
+static inline void csonpath_destroy(struct csonpath cjp[static 1])
 {
   free(cjp->path);
   free(cjp->inst_lst);
   cjp->path = NULL;
 }
 
-static inline int csonpath_init(struct csonpath *cjp, const char *path) {
-  cjp->path = strdup(path);
-  cjp->inst_size = CSONPATH_INST_MIN_ALLOC;
-  cjp->compiled = 0;
-  cjp->inst_lst = malloc(CSONPATH_INST_MIN_ALLOC);
-  cjp->inst_idx = 0;
+static inline int csonpath_init(struct csonpath cjp[static 1],
+				const char path[static 1]) {
+  *cjp = (struct csonpath) {.path=strdup(path),
+			    .inst_size = CSONPATH_INST_MIN_ALLOC,
+			    .inst_lst = malloc(CSONPATH_INST_MIN_ALLOC)};
   return 0;
 }
 
-static inline void csonpath_set_path(struct csonpath *cjp, const char *path)
+static inline void csonpath_set_path(struct csonpath cjp[static 1],
+				     const char path[static 1])
 {
   free(cjp->path);
+  free(cjp->inst_lst);
   csonpath_init(cjp, path);
 }
 
@@ -72,17 +74,17 @@ int csonpath_update_or_create(struct csonpath *cjp, CSONPATH_JSON value)
   return -1;
 }
 
-void csonpath_push_inst(struct csonpath *cjp, int inst)
+void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
 {
   if (cjp->inst_idx + 1 > cjp->inst_size) {
     cjp->inst_size = cjp->inst_size << 1;
     cjp->inst_lst = realloc(cjp->inst_lst, cjp->inst_size);
   }
-  cjp->inst_lst[cjp->inst_idx] = (struct csonpath_instruction){inst};
+  cjp->inst_lst[cjp->inst_idx] = (struct csonpath_instruction){.inst=inst};
   ++cjp->inst_idx;
 }
 
-int csonpath_compile(struct csonpath *cjp)
+int csonpath_compile(struct csonpath cjp[static 1])
 {
   char *walker = cjp->path;
   char *next;
@@ -199,7 +201,7 @@ int csonpath_compile(struct csonpath *cjp)
     return 0;
   }
  error:
-  cjp->inst_lst[0] = (struct csonpath_instruction){CSONPATH_INST_BROKEN};
+  cjp->inst_lst[0] = (struct csonpath_instruction){.inst=CSONPATH_INST_BROKEN};
   return -1;
 }
 
@@ -279,7 +281,8 @@ int csonpath_compile(struct csonpath *cjp)
   child_info.key = walker;
 
 #define CSONPATH_DO_DECLARATION  int nb_res = 0; \
-  CSONPATH_JSON in_ctx = ctx;
+  CSONPATH_JSON in_ctx = ctx;			 \
+  (void)in_ctx;
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
