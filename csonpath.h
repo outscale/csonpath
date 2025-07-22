@@ -10,6 +10,18 @@ enum csonpath_instuction_raw {
   CSONPATH_INST_BROKEN
 };
 
+static const char *csonpath_instuction_str[] = {
+  "ROOT",
+  "GET_OBJ",
+  "GET_ARRAY_SMALL",
+  "GET_ARRAY_BIG",
+  "GET_ALL",
+  "FIND_ALL",
+  "OR",
+  "END",
+  "BROKEN"
+};
+
 enum {
   CSONPATH_NONE,
   CSONPATH_INTEGER,
@@ -92,12 +104,13 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
   if (cjp->compiled)
     return 0;
+ root_again:
   if (*walker != '$') {
     CSONPATH_CLASSIC_ERR("'$' needed");
   }
   ++walker;
   csonpath_push_inst(cjp, CSONPATH_INST_ROOT);
-  cjp->inst_lst[0].next = 1;
+  cjp->inst_lst[cjp->inst_idx - 1].next = 1;
   to_check = *walker;
 
  again:
@@ -185,7 +198,8 @@ int csonpath_compile(struct csonpath cjp[static 1])
 	cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 	++walker;
       }
-      for (next = walker; *next && *next != '[' && *next != '.'; ++next);
+      for (next = walker; *next && *next != '[' && *next != '.' && *next != '|';
+	   ++next);
       to_check = *next;
       *next = 0;
 
@@ -194,6 +208,12 @@ int csonpath_compile(struct csonpath cjp[static 1])
       walker = next;
       goto again;
     }
+  case '|':
+    /* cjp->inst_lst[cjp->inst_idx - 1].next += 1; */
+    csonpath_push_inst(cjp, CSONPATH_INST_OR);
+    ++walker;
+    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+    goto root_again;
   }
   if (*walker == 0) {
     csonpath_push_inst(cjp, CSONPATH_INST_END);

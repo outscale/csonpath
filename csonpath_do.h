@@ -104,11 +104,15 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 
   (void)ctx; /* maybe unused */
 
-  while (cjp->inst_lst[idx].inst != CSONPATH_INST_END) {
+  while (cjp->inst_lst[idx].inst != CSONPATH_INST_END &&
+	 cjp->inst_lst[idx].inst != CSONPATH_INST_OR) {
     switch (cjp->inst_lst[idx].inst) {
     case CSONPATH_INST_ROOT:
-        walker += cjp->inst_lst[0].next;
-	break;
+      value = origin;
+      tmp = value;
+      ctx = CSONPATH_NULL;
+      walker += cjp->inst_lst[idx].next;
+      break;
     case CSONPATH_INST_FIND_ALL:
       {
 	int need_reloop_in;
@@ -142,14 +146,11 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
       ctx = tmp;
       tmp = CSONPATH_GET(tmp, walker);
       if (tmp == CSONPATH_NULL) {
-	printf("failt to find: %s\n", walker);
 	walker += cjp->inst_lst[idx].next;
 	while (cjp->inst_lst[++idx].inst != CSONPATH_INST_END) {
 	  if (cjp->inst_lst[idx].inst == CSONPATH_INST_OR) {
-	    printf("in the OR: %s\n", walker);
-	    value = origin;
-	    ctx = CSONPATH_NULL;
-	    break;
+	    walker += cjp->inst_lst[idx].next;
+	    goto next_inst;
 	  }
 	  walker += cjp->inst_lst[idx].next;
 	}
@@ -188,6 +189,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
     default:
       CSONPATH_GETTER_ERR("unimplemented %d\n", cjp->inst_lst[idx].inst);
     }
+  next_inst:
     ++idx;
   }
   CSONPATH_DO_RETURN;

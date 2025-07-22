@@ -58,6 +58,7 @@
 	}								\
   }
 
+
 static PyObject *csonpath_python_get(PyObject *obj, const char *key) {
     if (PyDict_Check(obj)) {
         PyObject *value = PyDict_GetItemString(obj, key);
