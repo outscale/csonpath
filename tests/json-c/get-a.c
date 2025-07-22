@@ -16,26 +16,36 @@ int main(void)
   struct json_object *ret;
 
   csonpath_init(&p, "$.a");
-  /* ret = csonpath_find_first(&p, jobj); */
-  /* assert(ret); */
-  /* assert(!strcmp(json_object_get_string(ret), "la y'a l'A")); */
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'A"));
 
-  /* csonpath_set_path(&p, "$['0']"); */
-  /* ret = csonpath_find_first(&p, jobj); */
-  /* assert(ret); */
-  /* assert(!strcmp(json_object_get_string(ret), "this is ZERO")); */
+  csonpath_set_path(&p, "$['0']");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "this is ZERO"));
 
-  /* csonpath_set_path(&p, "$['b'].B"); */
-  /* ret = csonpath_find_first(&p, jobj); */
-  /* assert(ret); */
-  /* assert(!strcmp(json_object_get_string(ret), "la y'a l'B")); */
+  csonpath_set_path(&p, "$['b'].B");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
-  /* csonpath_set_path(&p, "$.b.B"); */
-  /* ret = csonpath_find_first(&p, jobj); */
-  /* assert(ret); */
-  /* assert(!strcmp(json_object_get_string(ret), "la y'a l'B")); */
+  csonpath_set_path(&p, "$.b.B");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
   csonpath_set_path(&p, "$.z|$.b.B");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
+
+  csonpath_set_path(&p, "$.z.a|$.b.B");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
+
+  csonpath_set_path(&p, "$[0]|$.b.B");
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));

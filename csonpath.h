@@ -1,3 +1,5 @@
+#define CSONPATH_UNUSED __attribute__((unused))
+
 enum csonpath_instuction_raw {
   CSONPATH_INST_ROOT,
   CSONPATH_INST_GET_OBJ,
@@ -10,7 +12,7 @@ enum csonpath_instuction_raw {
   CSONPATH_INST_BROKEN
 };
 
-static const char *csonpath_instuction_str[] = {
+CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
   "ROOT",
   "GET_OBJ",
   "GET_ARRAY_SMALL",
@@ -78,12 +80,6 @@ static inline void csonpath_set_path(struct csonpath cjp[static 1],
   free(cjp->path);
   free(cjp->inst_lst);
   csonpath_init(cjp, path);
-}
-
-int csonpath_update_or_create(struct csonpath *cjp, CSONPATH_JSON value)
-{
-  printf("csonpath_update_or_create not implemented\n");
-  return -1;
 }
 
 void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
@@ -159,8 +155,8 @@ int csonpath_compile(struct csonpath cjp[static 1])
 	  walker[3] = u.c[3];
 	  csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_BIG);
 	}
-	cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
-	walker = next;
+	cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
+	walker = next + 1;
 	to_check = *walker;
 	goto again;
       }
@@ -294,7 +290,7 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 #define CSONPATH_DO_POST_FIND_ARRAY		\
   child_info.type = CSONPATH_INTEGER;		\
-  child_info.idx = idx;
+  child_info.idx = this_idx;
 
 #define CSONPATH_DO_POST_FIND_OBJ		\
   child_info.type = CSONPATH_STR;		\
@@ -333,3 +329,12 @@ int csonpath_compile(struct csonpath cjp[static 1])
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , child_info, &need_reloop_in
 
 #include "csonpath_do.h"
+
+/* update_or_create */
+
+#define CSONPATH_DO_RET_TYPE int
+#define CSONPATH_DO_FUNC_NAME update_or_ceate
+#define CSONPATH_DO_RETURN return nb_res
+#define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
+#define CSONPATH_DO_EXTRA_ARGS_IN , to_update
+#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS
