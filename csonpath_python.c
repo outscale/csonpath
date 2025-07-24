@@ -10,6 +10,8 @@
 
 #define CSONPATH_REMOVE(o) // PyList_Clear(o)
 
+#define CSONPATH_NEW_OBJECT() PyDict_New()
+
 #define CSONPATH_NEW_ARRAY() PyList_New(0)
 
 #define CSONPATH_NEW_INT(i)			\
@@ -40,6 +42,19 @@
       PyList_Append(array, el);				\
       Py_INCREF(el);					\
     })
+
+#define CSONPATH_APPEND_AT(array, at, el)			\
+	_Generic((at),						\
+		 int: PyList_Insert,				\
+		 unsigned int: PyList_Insert,			\
+		 long: PyList_Insert,				\
+		 unsigned long: PyList_Insert,			\
+		 long long: PyList_Insert,			\
+		 unsigned long long: PyList_Insert,		\
+		 const char *: PyDict_SetItemString,		\
+		 char *: PyDict_SetItemString			\
+		 ) (array, at, el)
+
 
 #define CSONPATH_FOREACH(obj, el, code)					\
   if (PyDict_Check(obj)) {						\
@@ -146,6 +161,18 @@ static PyObject *do_remove(PyCsonPathObject *self, PyObject* args)
   return PyLong_FromLong(ret);
 }
 
+static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
+{
+  PyObject *json;
+  PyObject *value;
+
+  if (!PyArg_ParseTuple(args, "OO", &json, &value))
+    return Py_None;
+  int ret = csonpath_update_or_ceate(self->cp, json, value);
+  return PyLong_FromLong(ret);
+}
+
+
 static void PyCsonPath_dealloc(PyCsonPathObject *self) {
   if (self->cp) {
     csonpath_destroy(self->cp);
@@ -155,22 +182,27 @@ static void PyCsonPath_dealloc(PyCsonPathObject *self) {
 }
 
 
-static PyObject *PyCsonPath_get_path(PyCsonPathObject *self, void *closure) {
+static PyObject *PyCsonPath_get_path(PyCsonPathObject *self) {
     return PyUnicode_FromString(self->cp->path);
 }
 
-static int PyCsonPath_set_path(PyCsonPathObject *self, PyObject *value, void *closure) {
-    const char *new_path = PyUnicode_AsUTF8(value);
-    if (!new_path) return -1;
+static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
+    const char *new_path;
+    if (!PyArg_ParseTuple(args, "s", new_path))
+      return Py_False;
+    if (!new_path) return Py_False;
 
     csonpath_set_path(self->cp, new_path);
-    return 0;
+    return Py_True;
 }
 
 static PyMethodDef csonpath_py_method[] = {
+    {"get_path", (PyCFunction)PyCsonPath_get_path, METH_VARARGS, "get_path"},
+    {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
     {"find_first", (PyCFunction)find_first, METH_VARARGS, "find first elems"},
     {"find_all", (PyCFunction)find_all, METH_VARARGS, "find all elems, if one found, pout it in an array"},
     {"remove", (PyCFunction)do_remove, METH_VARARGS, "remove all elems found"},
+    {"update_or_create", (PyCFunction)update_or_create, METH_VARARGS, "update or create"},
     {NULL, NULL, 0, NULL}
 };
 
