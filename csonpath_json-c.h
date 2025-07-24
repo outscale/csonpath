@@ -43,7 +43,19 @@
 
 #define CSONPATH_NEW_ARRAY() json_object_new_array()
 
-#define CSONPATH_ARRAY_APPEND(array, el) json_object_array_add(array, el)
+#define CSONPATH_NEW_OBJECT() json_object_new_object()
+
+#define CSONPATH_APPEND_AT(array, at, el)			\
+	_Generic((at),						\
+		 int: json_object_array_put_idx,		\
+		 unsigned int: json_object_array_put_idx,	\
+		 long: json_object_array_put_idx,		\
+		 unsigned long: json_object_array_put_idx,	\
+		 long long: json_object_array_put_idx,		\
+		 unsigned long long: json_object_array_put_idx,	\
+		 const char *: json_object_object_add,		\
+		 char *: json_object_object_add			\
+		) (array, at, el)
 
 #define CSONPATH_ARRAY_APPEND_INCREF(array, el) ({	\
       json_object_get(el);				\

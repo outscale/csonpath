@@ -332,9 +332,37 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 /* update_or_create */
 
+#define CSONPATH_DO_DECLARATION				\
+	int nb_res = 0;
+
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME update_or_ceate
-#define CSONPATH_DO_RETURN return nb_res
+#define CSONPATH_DO_RETURN return 0;
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
 #define CSONPATH_DO_EXTRA_ARGS_IN , to_update
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS
+#define CSONPATH_DO_FIND_ALL nb_res += tret;
+#define CSONPATH_DO_FIND_ALL_OUT return nb_res;
+
+#define CSONPATH_DO_GET_NOTFOUND(this_idx)				\
+	int check_at = idx + 1;						\
+	int to_check;							\
+	do {								\
+		to_check = cjp->inst_lst[check_at].inst;		\
+		++check_at;						\
+	} while (to_check == CSONPATH_INST_GET_ALL || to_check == CSONPATH_INST_FIND_ALL); \
+	if (to_check == CSONPATH_INST_GET_OBJ) {			\
+		tmp = CSONPATH_NEW_OBJECT();				\
+		CSONPATH_APPEND_AT(ctx, this_idx, tmp);			\
+	} else if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
+		CSONPATH_APPEND_AT(ctx, this_idx, to_update);		\
+		return 1;						\
+	} else {							\
+		tmp = CSONPATH_NEW_ARRAY();				\
+		CSONPATH_APPEND_AT(ctx, this_idx, tmp);			\
+	}								\
+	goto next_inst;
+
+
+
+#include "csonpath_do.h"
