@@ -259,6 +259,8 @@ int csonpath_compile(struct csonpath cjp[static 1])
     });							\
   CSONPATH_REMOVE(tret);
 
+#define CSONPATH_DO_FIND_ALL_CLEAUP CSONPATH_REMOVE(good_ret);
+
 #define CSONPATH_DO_FIND_ALL_OUT		\
   if (!nb_res)					\
     CSONPATH_NONE_FOUND_RET;			\

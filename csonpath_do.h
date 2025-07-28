@@ -29,6 +29,10 @@
 #define CSONPATH_DO_EXTRA_DECLATION
 #endif
 
+#ifndef CSONPATH_DO_FIND_ALL_CLEAUP
+#define CSONPATH_DO_FIND_ALL_CLEAUP
+#endif
+
 #ifndef CSONPATH_DO_EXTRA_ARGS
 #define CSONPATH_DO_EXTRA_ARGS
 #endif
@@ -145,6 +149,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	  csonpath_do_dotdot(cjp, origin, tmp, ctx, idx + 1,
 			     walker
 			     CSONPATH_DO_EXTRA_ARGS_NEESTED);
+	CSONPATH_DO_FIND_ALL_CLEAUP;
 	return tret;
       }
     case CSONPATH_INST_GET_ALL:
@@ -257,3 +262,4 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_FOREACH_PRE_SET
 #undef CSONPATH_DO_GET_ALL_OUT
 #undef CSONPATH_DO_GET_NOTFOUND
+#undef CSONPATH_DO_FIND_ALL_CLEAUP
