@@ -71,15 +71,18 @@ static inline int csonpath_init(struct csonpath cjp[static 1],
   *cjp = (struct csonpath) {.path=strdup(path),
 			    .inst_size = CSONPATH_INST_MIN_ALLOC,
 			    .inst_lst = malloc(CSONPATH_INST_MIN_ALLOC)};
+  if (!cjp->path || !cjp->inst_lst) {
+	  return -ENOMEM;
+  }
   return 0;
 }
 
-static inline void csonpath_set_path(struct csonpath cjp[static 1],
-				     const char path[static 1])
+static inline int csonpath_set_path(struct csonpath cjp[static 1],
+				    const char path[static 1])
 {
   free(cjp->path);
   free(cjp->inst_lst);
-  csonpath_init(cjp, path);
+  return csonpath_init(cjp, path);
 }
 
 void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
@@ -87,6 +90,7 @@ void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
   if (cjp->inst_idx + 1 > cjp->inst_size) {
     cjp->inst_size = cjp->inst_size << 1;
     cjp->inst_lst = realloc(cjp->inst_lst, cjp->inst_size);
+    assert(cjp->inst_lst);
   }
   cjp->inst_lst[cjp->inst_idx] = (struct csonpath_instruction){.inst=inst};
   ++cjp->inst_idx;

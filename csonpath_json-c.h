@@ -1,6 +1,8 @@
 #ifndef CSONPATH_JSON_C_H_
 #define CSONPATH_JSON_C_H_
 
+#include <errno.h>
+#include <assert.h>
 #include <string.h>
 #include "json.h"
 

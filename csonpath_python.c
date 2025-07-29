@@ -101,31 +101,34 @@ typedef struct {
 
 #define CAPSULE_NAME "csonpath_capsule"
 
+#define BAD_ARG() ({PyErr_BadArgument(); return NULL;})
+
 static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 				PyObject* dont_care)
 {
   PyCsonPathObject *self = (PyCsonPathObject *)subtype->tp_alloc(subtype, 0);
-    const char *s;
+  const char *s;
 
-    if (!self)
-      return Py_None;
+  if (!self)
+    BAD_ARG();
 
-    if (!PyArg_ParseTuple(args, "s", &s))
-        return Py_None;
+  if (!PyArg_ParseTuple(args, "s", &s))
+    BAD_ARG();
 
-    struct csonpath *ret = malloc(sizeof *ret);
-    if (!self)
-      return Py_None;
+  struct csonpath *ret = malloc(sizeof *ret);
+  if (!self)
+    return PyErr_NoMemory();
 
-    if (csonpath_init(ret, s) < 0)
-      return Py_None;
+  if (csonpath_init(ret, s) < 0)
+    return PyErr_NoMemory();
 
-    if (csonpath_compile(ret) < 0)
-      return Py_None;
+  if (csonpath_compile(ret) < 0) {
+    PyErr_Format(PyExc_ValueError, "Fail to compile %s", s);
+    return NULL;
+  }
+  self->cp = ret;
 
-    self->cp = ret;
-
-    return (PyObject *)self;
+  return (PyObject *)self;
 }
 
 static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
@@ -133,7 +136,7 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
   PyObject *json;
 
   if (!PyArg_ParseTuple(args, "O", &json))
-    return Py_None;
+    BAD_ARG();
   PyObject *ret =  csonpath_find_all(self->cp, json);
   if (ret != Py_None) {
       Py_INCREF(ret);
@@ -146,7 +149,7 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
   PyObject *json;
 
   if (!PyArg_ParseTuple(args, "O", &json))
-    return Py_None;
+    BAD_ARG();
   PyObject *ret = csonpath_find_first(self->cp, json);
   return ret;
 }
@@ -156,7 +159,7 @@ static PyObject *do_remove(PyCsonPathObject *self, PyObject* args)
   PyObject *json;
 
   if (!PyArg_ParseTuple(args, "O", &json))
-    return Py_None;
+    BAD_ARG();
   int ret = csonpath_remove(self->cp, json);
   return PyLong_FromLong(ret);
 }
@@ -167,7 +170,7 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
   PyObject *value;
 
   if (!PyArg_ParseTuple(args, "OO", &json, &value))
-    return Py_None;
+    BAD_ARG();
   int ret = csonpath_update_or_ceate(self->cp, json, value);
   if (ret) {
     for (int i = 0; i < ret; ++i) {
