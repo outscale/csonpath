@@ -1,10 +1,15 @@
 #define CSONPATH_UNUSED __attribute__((unused))
+#define MAY_ALIAS __attribute__((__may_alias__))
 
 enum csonpath_instuction_raw {
   CSONPATH_INST_ROOT,
   CSONPATH_INST_GET_OBJ,
   CSONPATH_INST_GET_ARRAY_SMALL,
   CSONPATH_INST_GET_ARRAY_BIG,
+  CSONPATH_INST_FILTER_KEY_EQ,
+  CSONPATH_INST_FILTER_OPERAND_STR,
+  CSONPATH_INST_FILTER_OPERAND_BYTE, /* store the same way it's in ARRAY_SMALL  */
+  CSONPATH_INST_FILTER_OPERAND_INT, /* store the same way it's in ARRAY_BIG  */
   CSONPATH_INST_GET_ALL,
   CSONPATH_INST_FIND_ALL,
   CSONPATH_INST_OR,
@@ -48,7 +53,7 @@ struct csonpath {
 
 struct csonpath_child_info {
   int type;
-  union {
+  MAY_ALIAS union {
     int idx;
     const char *key;
   };
@@ -130,6 +135,61 @@ int csonpath_compile(struct csonpath cjp[static 1])
 	walker += 2;
 	to_check = *walker;
 	goto again;
+      } else if (*walker == '?') {
+	      cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	      printf("filter\n");
+	      ++walker;
+	      for (next = walker; isalnum(*next); ++next);
+	      if (!*next) {
+		      goto error;
+	      }
+	      to_check = *next;
+	      *next = 0;
+	      for (++next; isblank(*next); ++next);
+	      if (!*next)
+		      goto error;
+	      /* = and == are the same here */
+	      if (to_check == '=') {
+		      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ);
+		      ++next;
+		      if (next[0] == '=')
+			      ++next;
+	      } else {
+		      goto error;
+	      }
+	      printf("walker here %s\n", walker);
+	      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
+	      walker = next;
+	      if (*walker != '"' && *walker != '\'') {
+		      char end = *walker;
+		      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_STR);
+		      for (next = walker; *next && *next != end; ++next);
+	      } else {
+		      int n;
+
+		      for (next = walker; isdigit(*next); ++next);
+		      if (next == walker)
+			      goto error;
+		      n = atoi(walker);
+		      if (n < 100) {
+			      *walker = n;
+			      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_BYTE);
+		      } else {
+			      MAY_ALIAS int *walk_int = (void *)walker;
+			      *walk_int = n;
+			      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT);
+		      }
+	      }
+	      if (!*next) {
+		      goto error;
+	      }
+	      to_check = *next;
+	      *next = 0;
+	      /* skipp space */
+	      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
+	      printf("walker there %s\n", walker);
+	      walker = next + 1;
+	      goto again;
       } else if (*walker != '"' && *walker != '\'') {
 	int num;
 
@@ -163,29 +223,30 @@ int csonpath_compile(struct csonpath cjp[static 1])
 	walker = next + 1;
 	to_check = *walker;
 	goto again;
+      } else {
+	      end = *walker;
+	      cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+
+	      ++walker;
+	      next = walker;
+	      while (*next++ != end) {
+		      /* \" should be ignored */
+		      while (*next == '\\')
+			      ++next;
+	      }
+	      --next;
+	      *next = 0;
+	      ++next;
+	      if (*next != ']')
+		      CSONPATH_CLASSIC_ERR("']' require instead of '%c'\n", *next);
+
+	      csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ);
+	      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
+
+	      walker = next + 1;
+	      to_check = *walker;
+	      goto again;
       }
-
-      end = *walker;
-      cjp->inst_lst[cjp->inst_idx - 1].next += 1;
-      ++walker;
-      next = walker;
-      while (*next++ != end) {
-	/* \" should be ignored */
-	while (*next == '\\')
-	  ++next;
-      }
-      --next;
-      *next = 0;
-      ++next;
-      if (*next != ']')
-	CSONPATH_CLASSIC_ERR("']' require instead of '%c'\n", *next);
-
-      csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ);
-      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
-
-      walker = next + 1;
-      to_check = *walker;
-      goto again;
     }
   case '.':
     {
@@ -350,19 +411,23 @@ int csonpath_compile(struct csonpath cjp[static 1])
 #define CSONPATH_DO_FIND_ALL nb_res += tret;
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
-#define CSONPATH_DO_GET_NOTFOUND(this_idx)				\
+#define CSONPATH_PRE_GET(this_idx)		\
 	int check_at = idx + 1;						\
 	int to_check;							\
 	do {								\
 		to_check = cjp->inst_lst[check_at].inst;		\
 		++check_at;						\
 	} while (to_check == CSONPATH_INST_GET_ALL || to_check == CSONPATH_INST_FIND_ALL); \
+	if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
+		CSONPATH_APPEND_AT(ctx, this_idx, to_update);		\
+		return 1;						\
+	}
+
+
+#define CSONPATH_DO_GET_NOTFOUND(this_idx)				\
 	if (to_check == CSONPATH_INST_GET_OBJ) {			\
 		tmp = CSONPATH_NEW_OBJECT();				\
 		CSONPATH_APPEND_AT(ctx, this_idx, tmp);			\
-	} else if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
-		CSONPATH_APPEND_AT(ctx, this_idx, to_update);		\
-		return 1;						\
 	} else {							\
 		tmp = CSONPATH_NEW_ARRAY();				\
 		CSONPATH_APPEND_AT(ctx, this_idx, tmp);			\

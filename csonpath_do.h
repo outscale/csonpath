@@ -13,6 +13,10 @@
 	} while (0)
 #endif
 
+#ifndef CSONPATH_PRE_GET
+#define CSONPATH_PRE_GET(this_idx)
+#endif
+
 #ifndef CSONPATH_DO_DECLARATION
 #define CSONPATH_DO_DECLARATION
 #endif
@@ -172,6 +176,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
       }
     case CSONPATH_INST_GET_OBJ:
       ctx = tmp;
+      CSONPATH_PRE_GET(walker);
       tmp = CSONPATH_GET(tmp, walker);
       if (tmp == CSONPATH_NULL) {
 	CSONPATH_DO_GET_NOTFOUND(walker);
@@ -185,6 +190,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 
 	ctx = tmp;
 	this_idx =  (int)*walker;
+	CSONPATH_PRE_GET(this_idx);
 	tmp = CSONPATH_AT(tmp, this_idx);
 	if (tmp == CSONPATH_NULL) {
 	  CSONPATH_DO_GET_NOTFOUND(this_idx);
@@ -200,6 +206,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	union {int n; char c[4];} to_num =
 	  { .c= { walker[0], walker[1], walker[2], walker[3] } };
 	this_idx = to_num.n;
+	CSONPATH_PRE_GET(this_idx);
 	tmp = CSONPATH_AT(tmp, to_num.n);
 	if (tmp == CSONPATH_NULL) {
 	  CSONPATH_DO_GET_NOTFOUND(this_idx);
@@ -244,6 +251,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
   return ret;
 }
 
+#undef CSONPATH_PRE_GET
 #undef CSONPATH_DO_PRE_OPERATION
 #undef CSONPATH_DO_POST_OPERATION
 #undef CSONPATH_DO_FUNC_NAME

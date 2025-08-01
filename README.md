@@ -33,8 +33,6 @@ make
 See examples in [`tests/json-c/get-a.c`](tests/json-c/get-a.c):
 
 ```c
-#include <stdio.h>
-#include <assert.h>
 #include "csonpath_json-c.h"
 
 const char *json_str = "{ \"a\": \"value\", \"array\": [1,2,3] }";

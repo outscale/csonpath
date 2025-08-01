@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #include "json.h"
 
 #define CSONPATH_JSON struct json_object *
