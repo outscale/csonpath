@@ -6,7 +6,25 @@
 
 **csonpath** is a partial [JSONPath](https://goessner.net/articles/JsonPath/) implementation in C, with Python bindings. It allows you to query, update, and remove data from JSON objects using path expressions.
 
-## Features
+## 🌐 Links
+
+- Project website: https://github.com/outscale/csonpath
+- Join our community on [Discord](https://discord.gg/HUVtY5gT6s)
+
+
+## 📄 Table of Contents
+
+- [Overview](#-overview)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Usage](#-usage)
+- [Examples](#-examples)
+- [License](#-license)
+- [Contributing](#-contributing)
+
+
+## 🚀 Features
 
 - **Find First**: Retrieve the first value matching a path.
 - **Find All**: Retrieve all values matching a path.
@@ -14,7 +32,7 @@
 - **Remove**: Remove values matching a path.
 - **Supports both C (using json-c) and Python objects.**
 
-## Getting Started
+## ✅ Getting Started
 
 ### Prerequisites
 
@@ -73,9 +91,14 @@ To use csonpath with a different data type or library, simply define the require
 - `tests/` - Contains C tests using json-c
 - `dump-test.py` - Python usage examples
 
-## Contributing
+## 🤝 Contributing
+
+We welcome contributions!
+
+Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a pull request.
 
 Feel free to open issues or pull requests!
 
-## License
+## 📜 License
 BSD 3-Clause. See [LICENSE](LICENSE).
+
