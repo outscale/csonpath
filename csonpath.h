@@ -137,7 +137,6 @@ int csonpath_compile(struct csonpath cjp[static 1])
 	goto again;
       } else if (*walker == '?') {
 	      cjp->inst_lst[cjp->inst_idx - 1].next += 1;
-	      printf("filter\n");
 	      ++walker;
 	      for (next = walker; isalnum(*next); ++next);
 	      if (!*next) {
@@ -151,19 +150,24 @@ int csonpath_compile(struct csonpath cjp[static 1])
 	      /* = and == are the same here */
 	      if (to_check == '=') {
 		      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ);
-		      ++next;
 		      if (next[0] == '=')
 			      ++next;
 	      } else {
 		      goto error;
 	      }
-	      printf("walker here %s\n", walker);
 	      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
 	      walker = next;
-	      if (*walker != '"' && *walker != '\'') {
+	      if (*walker == '"' || *walker == '\'') {
 		      char end = *walker;
+		      ++walker;
+		      cjp->inst_lst[cjp->inst_idx - 1].next++;
 		      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_STR);
 		      for (next = walker; *next && *next != end; ++next);
+		      if (!*next)
+			      goto error;
+		      *next = 0;
+		      ++next;
+		      to_check = *next;
 	      } else {
 		      int n;
 
@@ -179,16 +183,23 @@ int csonpath_compile(struct csonpath cjp[static 1])
 			      *walk_int = n;
 			      csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT);
 		      }
+		      if (!*next) {
+			      goto error;
+		      }
+		      to_check = *next;
+		      *next = 0;
 	      }
-	      if (!*next) {
+	      if (isblank(to_check)) {
+		      for (next++; isblank(*next); ++next);
+		      to_check = *next;
+	      }
+	      if (to_check != ']')
 		      goto error;
-	      }
-	      to_check = *next;
-	      *next = 0;
 	      /* skipp space */
 	      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
 	      printf("walker there %s\n", walker);
 	      walker = next + 1;
+	      to_check = *walker;
 	      goto again;
       } else if (*walker != '"' && *walker != '\'') {
 	int num;
@@ -301,7 +312,9 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 #define CSONPATH_DO_FIND_ALL return tret
 
-#define CSONPATH_DO_FIND_ALL_OUT
+#define CSONPATH_DO_FILTER_FIND return tret
+
+#define CSONPATH_DO_FIND_ALL_OUT return CSONPATH_NULL
 
 #include "csonpath_do.h"
 
@@ -323,6 +336,8 @@ int csonpath_compile(struct csonpath cjp[static 1])
       ++nb_res;						\
     });							\
   CSONPATH_REMOVE(tret);
+
+#define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL
 
 #define CSONPATH_DO_FIND_ALL_CLEAUP CSONPATH_REMOVE(good_ret);
 
@@ -369,6 +384,8 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
+#define CSONPATH_DO_FILTER_FIND nb_res += tret;
+
 #define CSONPATH_DO_FIND_ALL ({					\
 			if (need_reloop_in){ goto again; };	\
 			if (tret < 0) return -1;		\
@@ -381,7 +398,6 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 #define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
   again:
-
 
 #define CSONPATH_DO_FOREACH_PRE_SET			\
   int need_reloop_in = 0;				\
@@ -409,9 +425,11 @@ int csonpath_compile(struct csonpath cjp[static 1])
 #define CSONPATH_DO_EXTRA_ARGS_IN , to_update
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS
 #define CSONPATH_DO_FIND_ALL nb_res += tret;
+#define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
-#define CSONPATH_PRE_GET(this_idx)		\
+
+#define CSONPATH_PRE_GET(this_idx)					\
 	int check_at = idx + 1;						\
 	int to_check;							\
 	do {								\

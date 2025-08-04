@@ -73,6 +73,14 @@
 #define CSONPATH_DO_GET_ALL_OUT CSONPATH_DO_FIND_ALL_OUT
 #endif
 
+#ifndef CSONPATH_DO_FILTER_OUT
+#define CSONPATH_DO_FILTER_OUT CSONPATH_DO_FIND_ALL_OUT
+#endif
+
+#ifndef CSONPATH_DO_FILTER_PRE_LOOP
+#define CSONPATH_DO_FILTER_PRE_LOOP
+#endif
+
 #ifndef CAT
 # define CATCAT(a, b, c) a ## b ## c
 # define CAT(a, b) a ## b
@@ -144,6 +152,43 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
       ctx = CSONPATH_NULL;
       walker += cjp->inst_lst[idx].next;
       break;
+    case CSONPATH_INST_FILTER_KEY_EQ:
+      {
+	CSONPATH_JSON el;
+	char *filter_key = walker;
+	CSONPATH_UNUSED int need_reloop_in;
+	walker += cjp->inst_lst[idx].next;
+	++idx;
+
+	CSONPATH_DO_FILTER_PRE_LOOP;
+	CSONPATH_FOREACH(tmp, el, {
+	    if (CSONPATH_IS_OBJ(el)) {
+	      CSONPATH_JSON el2;
+
+	      if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
+		CSONPATH_GETTER_ERR("filter support only comparaiso with STR");
+
+	      CSONPATH_FOREACH(el, el2, {
+		  printf("comp %s - %s\n", (char *)key_idx, filter_key);
+		  if (!strcmp((char *)key_idx, filter_key)) {
+		    printf("look for %s\n", walker);
+		    if (CSONPATH_EQUAL_STR(el2, walker)) {
+		      printf("ok for %s\n", walker);
+		      CSONPATH_DO_RET_TYPE tret =
+			csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
+					     walker + cjp->inst_lst[idx].next
+					     CSONPATH_DO_EXTRA_ARGS_NEESTED);
+
+		      CSONPATH_DO_FILTER_FIND;
+		    }
+		  }
+		})
+	    }
+	  });
+	CSONPATH_DO_FILTER_OUT;
+	printf("filter: %s\n", walker);
+	break;
+      }
     case CSONPATH_INST_FIND_ALL:
       {
 	int need_reloop_in;
@@ -169,9 +214,9 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 				   CSONPATH_DO_EXTRA_ARGS_NEESTED);
 
 	    CSONPATH_DO_FIND_ALL;
-	  })
+	  });
 
-	  CSONPATH_DO_GET_ALL_OUT;
+	CSONPATH_DO_GET_ALL_OUT;
 	break;
       }
     case CSONPATH_INST_GET_OBJ:
@@ -271,3 +316,6 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_GET_ALL_OUT
 #undef CSONPATH_DO_GET_NOTFOUND
 #undef CSONPATH_DO_FIND_ALL_CLEAUP
+#undef CSONPATH_DO_FILTER_OUT
+#undef CSONPATH_DO_FILTER_PRE_LOOP
+#undef CSONPATH_DO_FILTER_FIND

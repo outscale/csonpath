@@ -26,6 +26,13 @@
 
 #define CSONPATH_IS_ARRAY(o) json_object_is_type(o, json_type_array)
 
+#define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
+      _Bool r = 0;						\
+      if (json_object_is_type(obj, json_type_string))		\
+	r = !strcmp(json_object_get_string(obj), to_cmp);	\
+      r;							\
+    })
+
 #define CSONPATH_FOREACH(obj, el, code)					\
   if (json_object_is_type(obj, json_type_object)) {			\
     json_object_object_foreach(obj, key_idx, el) { (void) key_idx; code } \
