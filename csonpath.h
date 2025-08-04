@@ -75,7 +75,7 @@ static inline int csonpath_init(struct csonpath cjp[static 1],
 				const char path[static 1]) {
   *cjp = (struct csonpath) {.path=strdup(path),
 			    .inst_size = CSONPATH_INST_MIN_ALLOC,
-			    .inst_lst = malloc(CSONPATH_INST_MIN_ALLOC)};
+			    .inst_lst = malloc(sizeof(*cjp->inst_lst) * CSONPATH_INST_MIN_ALLOC)};
   if (!cjp->path || !cjp->inst_lst) {
 	  return -ENOMEM;
   }
