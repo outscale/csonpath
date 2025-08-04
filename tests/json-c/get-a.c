@@ -112,14 +112,16 @@ int main(void)
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 2)), "oh"));
   json_object_put(ret);
 
-  printf("%s\n", json_object_to_json_string(jobj));
-
   int iret = csonpath_remove(&p, jobj);
-  printf("%d - %s\n", iret, json_object_to_json_string(jobj));
+  assert(iret == 3);
+  struct json_object *array = json_object_object_get(jobj, "array");
+  assert(array);
+  assert(json_object_is_type(json_object_array_get_idx(array, 1), json_type_null));
 
   TRY(csonpath_set_path(&p, "$.array"));
   iret = csonpath_remove(&p, jobj);
-  printf("%d - %s\n", iret, json_object_to_json_string(jobj));
+  assert(iret == 1);
+  assert(!json_object_object_get(jobj, "array"));
 
   json_object_put(jobj);
   csonpath_destroy(&p);
