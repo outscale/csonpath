@@ -56,7 +56,7 @@
 		 ) (array, at, el)
 
 
-#define CSONPATH_FOREACH(obj, el, code)					\
+#define CSONPATH_FOREACH_EXT(obj, el, code, key_idx)				\
   if (PyDict_Check(obj)) {						\
     PyObject *key_;							\
     Py_ssize_t pos_ = 0;						\
@@ -72,7 +72,6 @@
       code								\
 	}								\
   }
-
 
 static PyObject *csonpath_python_get(PyObject *obj, const char *key) {
     if (PyDict_Check(obj)) {

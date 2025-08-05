@@ -33,13 +33,13 @@
       r;							\
     })
 
-#define CSONPATH_FOREACH(obj, el, code)					\
+#define CSONPATH_FOREACH_EXT(obj, el, code, key_idx_)				\
   if (json_object_is_type(obj, json_type_object)) {			\
-    json_object_object_foreach(obj, key_idx, el) { (void) key_idx; code } \
+    json_object_object_foreach(obj, key_idx_, el) { (void) key_idx_; code } \
   } else if (json_object_is_type(obj, json_type_array)) {		\
     int array_len_ = json_object_array_length(obj);			\
-    for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {	\
-      el = json_object_array_get_idx(obj, key_idx);			\
+    for (intptr_t key_idx_ = 0; key_idx_ < array_len_; ++key_idx_) {	\
+      el = json_object_array_get_idx(obj, key_idx_);			\
       code								\
 	}								\
   }

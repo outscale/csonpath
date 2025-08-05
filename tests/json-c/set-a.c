@@ -35,7 +35,7 @@ int main(void)
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'D"));
 
-  csonpath_set_path(&p, "$['ar2'][0].o");
+  csonpath_set_path(&p, "$.ar2[0].o");
   assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'E")) == 1);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);

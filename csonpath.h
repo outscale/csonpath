@@ -1,6 +1,10 @@
 #define CSONPATH_UNUSED __attribute__((unused))
 #define MAY_ALIAS __attribute__((__may_alias__))
 
+#define CSONPATH_FOREACH(obj, el, code)		\
+	CSONPATH_FOREACH_EXT(obj, el, code, key_idx)
+
+
 enum csonpath_instuction_raw {
   CSONPATH_INST_ROOT,
   CSONPATH_INST_GET_OBJ,
@@ -63,6 +67,17 @@ struct csonpath_child_info {
     fprintf(stderr, args);			\
     goto error;						\
 } while (0)
+
+static inline struct csonpath_child_info *csonpath_child_info_set(struct csonpath_child_info *child_info,
+								  const CSONPATH_JSON j, const intptr_t key)
+{
+	if (CSONPATH_IS_OBJ(j)) {
+		*child_info = (struct csonpath_child_info){.key=(const char *)key, .type=CSONPATH_STR};
+	} else {
+		*child_info = (struct csonpath_child_info){.idx=key, .type=CSONPATH_INTEGER};
+	}
+	return child_info;
+}
 
 static inline void csonpath_destroy(struct csonpath cjp[static 1])
 {
@@ -197,7 +212,6 @@ int csonpath_compile(struct csonpath cjp[static 1])
 		      goto error;
 	      /* skipp space */
 	      cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
-	      printf("walker there %s\n", walker);
 	      walker = next + 1;
 	      to_check = *walker;
 	      goto again;
@@ -396,20 +410,21 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, NULL
 
-#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
-  again:
+#define CSONPATH_DO_FILTER_PRE_LOOP		\
+	int need_reloop_in;
 
-#define CSONPATH_DO_FOREACH_PRE_SET			\
-  int need_reloop_in = 0;				\
-  if (CSONPATH_IS_OBJ(tmp)) {				\
-    child_info.key = (void *)(intptr_t)key_idx;		\
-    child_info.type = CSONPATH_STR;			\
-  } else {						\
-    child_info.idx = (intptr_t)key_idx;			\
-    child_info.type = CSONPATH_INTEGER;			\
-  }
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
+	int need_reloop_in;			\
+again:
+
+#define CSONPATH_DO_FOREACH_PRE_SET				\
+	need_reloop_in = 0;					\
+	csonpath_child_info_set(&child_info, tmp, (intptr_t)key_idx);
 
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , child_info, &need_reloop_in
+
+#define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , child_info, need_reloop
+
 
 #include "csonpath_do.h"
 
@@ -420,12 +435,36 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME update_or_ceate
-#define CSONPATH_DO_RETURN return 0;
+#define CSONPATH_DO_RETURN						\
+	if (tmp == value) {						\
+		*need_reloop = 1;					\
+		printf("should update %d - %d !!\n", child_info->type == CSONPATH_INTEGER, child_info->idx); \
+		if (child_info->type == CSONPATH_INTEGER)		\
+			CSONPATH_APPEND_AT(ctx, child_info->idx, to_update); \
+		else							\
+			CSONPATH_APPEND_AT(ctx, child_info->key, to_update); \
+	}								\
+	return 0;
+
+#define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , to_update, NULL, need_reloop
+#define CSONPATH_DO_EXTRA_ARGS_NEESTED , to_update,			\
+		csonpath_child_info_set(&(struct csonpath_child_info ){}, tmp, (intptr_t)key_idx), &need_reloop_in
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
-#define CSONPATH_DO_EXTRA_ARGS_IN , to_update
-#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS
-#define CSONPATH_DO_FIND_ALL nb_res += tret;
-#define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL
+#define CSONPATH_DO_EXTRA_ARGS_IN , to_update, NULL, NULL
+#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
+#define CSONPATH_DO_FIND_ALL if (need_reloop_in) goto find_again; nb_res += tret;
+#define CSONPATH_DO_FILTER_FIND if (need_reloop_in) goto filter_again; nb_res += tret;
+
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
+	int need_reloop_in;			\
+find_again:					\
+	need_reloop_in = 0;
+
+#define CSONPATH_DO_FILTER_PRE_LOOP		\
+	int need_reloop_in;			\
+filter_again:					\
+	need_reloop_in = 0;
+
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
 
