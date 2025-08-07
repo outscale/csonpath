@@ -21,8 +21,7 @@ jobs:
     - name: Build and test json-c
       run: |
         make
-        make tests
+        make tests-c
     - name: build and test python
       run: |
-        pip install .
-        pytest .
+        make tests-py
