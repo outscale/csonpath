@@ -21,11 +21,17 @@ enum csonpath_instuction_raw {
   CSONPATH_INST_BROKEN
 };
 
+/* this should be in an include, but doing so, would break the
+ * "no more than 2 file", for single header lib */
 CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
   "ROOT",
   "GET_OBJ",
   "GET_ARRAY_SMALL",
   "GET_ARRAY_BIG",
+  "FILTER_KEY_EQ",
+  "FILTER_OPERAND_STR",
+  "FILTER_OPERAND_BYTE",
+  "FILTER_OPERAND_INT",
   "GET_ALL",
   "FIND_ALL",
   "OR",
