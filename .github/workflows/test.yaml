@@ -10,15 +10,19 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - name: ⬇️ Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
     - name: install dependancies
       run: |
         sudo apt-get update --fix-missing
         sudo apt-get install -y -f -o Acquire::Retries=3 libjson-c-dev  pkg-config
-    - name: Build and test
+    - name: Build and test json-c
       run: |
         make
         make tests
-      env:
-        OSC_ACCESS_KEY: ${{secrets.OSC_ACCESS_KEY}}
-        OSC_SECRET_KEY: ${{secrets.OSC_SECRET_KEY}}
-        OSC_REGION: ${{secrets.OSC_REGION}}
+    - name: build and test python
+      run: |
+        pip install .
+        pytest .

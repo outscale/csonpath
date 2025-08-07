@@ -11,3 +11,11 @@ packages = []  # no Python packages, just an extension
 ext-modules = [
 	 {name="csonpath", sources = ["csonpath_python.c"]}
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.5"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
