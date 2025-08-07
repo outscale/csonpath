@@ -25,6 +25,15 @@
 #define CSONPATH_IS_ARRAY(o) PyList_Check(o)
 
 
+#define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
+    _Bool r = 0;						\
+      if (PyUnicode_Check(obj))	{				\
+	const char *py_str = PyUnicode_AsUTF8(obj);		\
+	r = !strcmp(py_str, to_cmp);				\
+      }								\
+      r;							\
+    })
+
 /* assuming each modification of the object need to go out of the loop */
 #define CSONPATH_NEED_FOREACH_REDO(o)	1
 
