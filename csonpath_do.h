@@ -1,16 +1,16 @@
 #ifndef CSONPATH_DO_GET_NOTFOUND
 #define CSONPATH_DO_GET_NOTFOUND(this_idx)				\
-	do {								\
+    do {								\
+	walker += cjp->inst_lst[idx].next;				\
+	while (cjp->inst_lst[++idx].inst != CSONPATH_INST_END) {	\
+	    if (cjp->inst_lst[idx].inst == CSONPATH_INST_OR) {		\
 		walker += cjp->inst_lst[idx].next;			\
-		while (cjp->inst_lst[++idx].inst != CSONPATH_INST_END) { \
-			if (cjp->inst_lst[idx].inst == CSONPATH_INST_OR) { \
-				walker += cjp->inst_lst[idx].next;	\
-				goto next_inst;				\
-			}						\
-			walker += cjp->inst_lst[idx].next;		\
-		}							\
-		return CSONPATH_NONE_FOUND_RET;				\
-	} while (0)
+		goto next_inst;						\
+	    }								\
+	    walker += cjp->inst_lst[idx].next;				\
+	}								\
+	return CSONPATH_NONE_FOUND_RET;					\
+    } while (0)
 #endif
 
 #ifndef CSONPATH_PRE_GET
@@ -111,28 +111,28 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
 					       int idx,
 					       char *walker CSONPATH_DO_EXTRA_DECLATION)
 {
-  	CSONPATH_JSON el;
-	CSONPATH_DO_DECLARATION;
-	const int is_obj = CSONPATH_IS_OBJ(tmp);
-	CSONPATH_DO_RET_TYPE tret = CSONPATH_NONE_FOUND_RET;
+    CSONPATH_JSON el;
+    CSONPATH_DO_DECLARATION;
+    const int is_obj = CSONPATH_IS_OBJ(tmp);
+    CSONPATH_DO_RET_TYPE tret = CSONPATH_NONE_FOUND_RET;
 
-	CSONPATH_DO_FIND_ALL_PRE_LOOP;
-	CSONPATH_FOREACH(tmp, el, {
+    CSONPATH_DO_FIND_ALL_PRE_LOOP;
+    CSONPATH_FOREACH(tmp, el, {
 	    CSONPATH_DO_FOREACH_PRE_SET;
 	    if (is_obj && !strcmp((char *)key_idx, walker)) {
-	      tret = csonpath_do_internal(cjp, origin, el, tmp, idx,
-					  walker + cjp->inst_lst[idx].next
-					  CSONPATH_DO_EXTRA_ARGS_NEESTED);
-	      CSONPATH_DO_FIND_ALL;
+		tret = csonpath_do_internal(cjp, origin, el, tmp, idx,
+					    walker + cjp->inst_lst[idx].next
+					    CSONPATH_DO_EXTRA_ARGS_NEESTED);
+		CSONPATH_DO_FIND_ALL;
 	    }
 	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
-	      tret = csonpath_do_dotdot(cjp, origin, el, tmp, idx, walker
-					CSONPATH_DO_EXTRA_ARGS_NEESTED);
-	      CSONPATH_DO_FIND_ALL;
+		tret = csonpath_do_dotdot(cjp, origin, el, tmp, idx, walker
+					  CSONPATH_DO_EXTRA_ARGS_NEESTED);
+		CSONPATH_DO_FIND_ALL;
 	    }
-	  });
-	CSONPATH_DO_FIND_ALL_OUT;
-	return tret;
+	});
+    CSONPATH_DO_FIND_ALL_OUT;
+    return tret;
 }
 
 static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
@@ -142,126 +142,126 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 						 int idx,
 						 char *walker CSONPATH_DO_EXTRA_DECLATION)
 {
-  CSONPATH_JSON tmp = value;
-  CSONPATH_DO_DECLARATION;
+    CSONPATH_JSON tmp = value;
+    CSONPATH_DO_DECLARATION;
 
-  (void)ctx; /* maybe unused */
+    (void)ctx; /* maybe unused */
 
-  while (cjp->inst_lst[idx].inst != CSONPATH_INST_END &&
-	 cjp->inst_lst[idx].inst != CSONPATH_INST_OR) {
-    switch (cjp->inst_lst[idx].inst) {
-    case CSONPATH_INST_ROOT:
-      value = origin;
-      tmp = value;
-      ctx = CSONPATH_NULL;
-      walker += cjp->inst_lst[idx].next;
-      break;
-    case CSONPATH_INST_FILTER_KEY_EQ:
-      {
-	CSONPATH_JSON el;
-	char *filter_key = walker;
-	walker += cjp->inst_lst[idx].next;
-	++idx;
+    while (cjp->inst_lst[idx].inst != CSONPATH_INST_END &&
+	   cjp->inst_lst[idx].inst != CSONPATH_INST_OR) {
+	switch (cjp->inst_lst[idx].inst) {
+	case CSONPATH_INST_ROOT:
+	    value = origin;
+	    tmp = value;
+	    ctx = CSONPATH_NULL;
+	    walker += cjp->inst_lst[idx].next;
+	    break;
+	case CSONPATH_INST_FILTER_KEY_EQ:
+	{
+	    CSONPATH_JSON el;
+	    char *filter_key = walker;
+	    walker += cjp->inst_lst[idx].next;
+	    ++idx;
 
-	CSONPATH_DO_FILTER_PRE_LOOP;
-	CSONPATH_FOREACH(tmp, el, {
-	    if (CSONPATH_IS_OBJ(el)) {
-	      CSONPATH_JSON el2;
+	    CSONPATH_DO_FILTER_PRE_LOOP;
+	    CSONPATH_FOREACH(tmp, el, {
+		    if (CSONPATH_IS_OBJ(el)) {
+			CSONPATH_JSON el2;
 
-	      if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
-		CSONPATH_GETTER_ERR("filter support only comparaiso with STR");
+			if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
+			    CSONPATH_GETTER_ERR("filter support only comparaiso with STR");
 
-	      CSONPATH_FOREACH_EXT(el, el2, {
-		  if (!strcmp((char *)neested_key, filter_key)) {
-		    if (CSONPATH_EQUAL_STR(el2, walker)) {
-		      CSONPATH_DO_RET_TYPE tret =
+			CSONPATH_FOREACH_EXT(el, el2, {
+				if (!strcmp((char *)neested_key, filter_key)) {
+				    if (CSONPATH_EQUAL_STR(el2, walker)) {
+					CSONPATH_DO_RET_TYPE tret =
+					    csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
+								 walker + cjp->inst_lst[idx].next
+								 CSONPATH_DO_EXTRA_ARGS_NEESTED);
+
+					CSONPATH_DO_FILTER_FIND;
+				    }
+				}
+			    }, neested_key)
+			    }
+		});
+	    CSONPATH_DO_FILTER_OUT;
+	    break;
+	}
+	case CSONPATH_INST_FIND_ALL:
+	{
+	    CSONPATH_DO_RET_TYPE tret =
+		csonpath_do_dotdot(cjp, origin, tmp, ctx, idx + 1,
+				   walker CSONPATH_DO_EXTRA_ARGS_FIND_ALL);
+	    CSONPATH_DO_FIND_ALL_CLEAUP;
+	    return tret;
+	}
+	case CSONPATH_INST_GET_ALL:
+	{
+	    CSONPATH_JSON el;
+
+	    CSONPATH_DO_FIND_ALL_PRE_LOOP;
+	    CSONPATH_FOREACH(tmp, el, {
+		    CSONPATH_DO_FOREACH_PRE_SET
+			CSONPATH_DO_RET_TYPE tret =
 			csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
 					     walker + cjp->inst_lst[idx].next
 					     CSONPATH_DO_EXTRA_ARGS_NEESTED);
 
-		      CSONPATH_DO_FILTER_FIND;
-		    }
-		  }
-		}, neested_key)
+		    CSONPATH_DO_FIND_ALL;
+		});
+
+	    CSONPATH_DO_GET_ALL_OUT;
+	    break;
+	}
+	case CSONPATH_INST_GET_OBJ:
+	    ctx = tmp;
+	    CSONPATH_PRE_GET(walker);
+	    tmp = CSONPATH_GET(tmp, walker);
+	    if (tmp == CSONPATH_NULL) {
+		CSONPATH_DO_GET_NOTFOUND(walker);
 	    }
-	  });
-	CSONPATH_DO_FILTER_OUT;
-	break;
-      }
-    case CSONPATH_INST_FIND_ALL:
-      {
-	CSONPATH_DO_RET_TYPE tret =
-	  csonpath_do_dotdot(cjp, origin, tmp, ctx, idx + 1,
-			     walker CSONPATH_DO_EXTRA_ARGS_FIND_ALL);
-	CSONPATH_DO_FIND_ALL_CLEAUP;
-	return tret;
-      }
-    case CSONPATH_INST_GET_ALL:
-      {
-	CSONPATH_JSON el;
+	    CSONPATH_DO_POST_FIND_OBJ
+		walker += cjp->inst_lst[idx].next;
+	    break;
+	case CSONPATH_INST_GET_ARRAY_SMALL:
+	{
+	    int this_idx;
 
-	CSONPATH_DO_FIND_ALL_PRE_LOOP;
-	CSONPATH_FOREACH(tmp, el, {
-	    CSONPATH_DO_FOREACH_PRE_SET
-	    CSONPATH_DO_RET_TYPE tret =
-	      csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
-				     walker + cjp->inst_lst[idx].next
-				   CSONPATH_DO_EXTRA_ARGS_NEESTED);
-
-	    CSONPATH_DO_FIND_ALL;
-	  });
-
-	CSONPATH_DO_GET_ALL_OUT;
-	break;
-      }
-    case CSONPATH_INST_GET_OBJ:
-      ctx = tmp;
-      CSONPATH_PRE_GET(walker);
-      tmp = CSONPATH_GET(tmp, walker);
-      if (tmp == CSONPATH_NULL) {
-	CSONPATH_DO_GET_NOTFOUND(walker);
-      }
-      CSONPATH_DO_POST_FIND_OBJ
-      walker += cjp->inst_lst[idx].next;
-      break;
-    case CSONPATH_INST_GET_ARRAY_SMALL:
-      {
-	int this_idx;
-
-	ctx = tmp;
-	this_idx =  (int)*walker;
-	CSONPATH_PRE_GET(this_idx);
-	tmp = CSONPATH_AT(tmp, this_idx);
-	if (tmp == CSONPATH_NULL) {
-	  CSONPATH_DO_GET_NOTFOUND(this_idx);
+	    ctx = tmp;
+	    this_idx =  (int)*walker;
+	    CSONPATH_PRE_GET(this_idx);
+	    tmp = CSONPATH_AT(tmp, this_idx);
+	    if (tmp == CSONPATH_NULL) {
+		CSONPATH_DO_GET_NOTFOUND(this_idx);
+	    }
+	    walker += cjp->inst_lst[idx].next;
+	    CSONPATH_DO_POST_FIND_ARRAY
+		break;
 	}
-	walker += cjp->inst_lst[idx].next;
-	CSONPATH_DO_POST_FIND_ARRAY
-	break;
-      }
-    case CSONPATH_INST_GET_ARRAY_BIG:
-      ctx = tmp;
-      {
-	CSONPATH_UNUSED int this_idx;
-	union {int n; char c[4];} to_num =
-	  { .c= { walker[0], walker[1], walker[2], walker[3] } };
-	this_idx = to_num.n;
-	CSONPATH_PRE_GET(this_idx);
-	tmp = CSONPATH_AT(tmp, to_num.n);
-	if (tmp == CSONPATH_NULL) {
-	  CSONPATH_DO_GET_NOTFOUND(this_idx);
+	case CSONPATH_INST_GET_ARRAY_BIG:
+	    ctx = tmp;
+	    {
+		CSONPATH_UNUSED int this_idx;
+		union {int n; char c[4];} to_num =
+		    { .c= { walker[0], walker[1], walker[2], walker[3] } };
+		this_idx = to_num.n;
+		CSONPATH_PRE_GET(this_idx);
+		tmp = CSONPATH_AT(tmp, to_num.n);
+		if (tmp == CSONPATH_NULL) {
+		    CSONPATH_DO_GET_NOTFOUND(this_idx);
+		}
+		walker += cjp->inst_lst[idx].next;
+		CSONPATH_DO_POST_FIND_ARRAY
+		    break;
+	    }
+	default:
+	    CSONPATH_GETTER_ERR("unimplemented %d\n", cjp->inst_lst[idx].inst);
 	}
-	walker += cjp->inst_lst[idx].next;
-	CSONPATH_DO_POST_FIND_ARRAY
-	break;
-      }
-    default:
-      CSONPATH_GETTER_ERR("unimplemented %d\n", cjp->inst_lst[idx].inst);
+      next_inst:
+	++idx;
     }
-  next_inst:
-    ++idx;
-  }
-  CSONPATH_DO_RETURN;
+    CSONPATH_DO_RETURN;
 }
 
 #define csonpath_do__(name) CAT(csonpath_, name)
@@ -270,25 +270,25 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 					 CSONPATH_JSON value CSONPATH_DO_EXTRA_ARGS)
 {
-  char *walker = cjp->path;
-  CSONPATH_JSON ctx = CSONPATH_NULL;
+    char *walker = cjp->path;
+    CSONPATH_JSON ctx = CSONPATH_NULL;
 
-  (void)ctx;
-  csonpath_compile(cjp);
-  if (cjp->inst_lst[0].inst == CSONPATH_INST_BROKEN) {
-    CSONPATH_GETTER_ERR("fail to compile\n");
-    return CSONPATH_NONE_FOUND_RET;
-  }
+    (void)ctx;
+    csonpath_compile(cjp);
+    if (cjp->inst_lst[0].inst == CSONPATH_INST_BROKEN) {
+	CSONPATH_GETTER_ERR("fail to compile\n");
+	return CSONPATH_NONE_FOUND_RET;
+    }
 
-  CSONPATH_DO_PRE_OPERATION;
+    CSONPATH_DO_PRE_OPERATION;
 
-  CSONPATH_DO_RET_TYPE ret =  csonpath_do_internal(cjp, value, value,
-						   CSONPATH_NULL, 0,
-						   walker CSONPATH_DO_EXTRA_ARGS_IN);
+    CSONPATH_DO_RET_TYPE ret =  csonpath_do_internal(cjp, value, value,
+						     CSONPATH_NULL, 0,
+						     walker CSONPATH_DO_EXTRA_ARGS_IN);
 
-  CSONPATH_DO_POST_OPERATION;
+    CSONPATH_DO_POST_OPERATION;
 
-  return ret;
+    return ret;
 }
 
 #undef CSONPATH_PRE_GET
