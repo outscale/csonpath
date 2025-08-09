@@ -52,14 +52,21 @@
       Py_INCREF(el);					\
     })
 
+static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
+{
+	Py_INCREF(el);
+	if (PyList_SetItem(array, at, el) < 0)
+		PyList_Insert(array, at, el);
+}
+
 #define CSONPATH_APPEND_AT(array, at, el)			\
 	_Generic((at),						\
-		 int: PyList_Insert,				\
-		 unsigned int: PyList_Insert,			\
-		 long: PyList_Insert,				\
-		 unsigned long: PyList_Insert,			\
-		 long long: PyList_Insert,			\
-		 unsigned long long: PyList_Insert,		\
+		 int: python_set_or_insert_item,				\
+		 unsigned int: python_set_or_insert_item,			\
+		 long: python_set_or_insert_item,				\
+		 unsigned long: python_set_or_insert_item,			\
+		 long long: python_set_or_insert_item,			\
+		 unsigned long long: python_set_or_insert_item,		\
 		 const char *: PyDict_SetItemString,		\
 		 char *: PyDict_SetItemString			\
 		 ) (array, at, el)
@@ -76,7 +83,7 @@
 	}								\
   } else if (PyList_Check(obj)) {					\
     int array_len_ = PyList_Size(obj);					\
-    for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {		\
+    for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {	\
       el = PyList_GetItem(obj, key_idx);				\
       code								\
 	}								\
@@ -110,6 +117,7 @@ typedef struct {
 #define CAPSULE_NAME "csonpath_capsule"
 
 #define BAD_ARG() ({PyErr_BadArgument(); return NULL;})
+
 
 static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 				PyObject* dont_care)
@@ -204,7 +212,7 @@ static PyObject *PyCsonPath_get_path(PyCsonPathObject *self) {
 
 static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
     const char *new_path;
-    if (!PyArg_ParseTuple(args, "s", new_path))
+    if (!PyArg_ParseTuple(args, "s", &new_path))
       return Py_False;
     if (!new_path) return Py_False;
 

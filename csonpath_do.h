@@ -85,6 +85,10 @@
 #define CSONPATH_DO_FILTER_PRE_LOOP
 #endif
 
+#ifndef CSONPATH_DO_FILTER_LOOP_PRE_SET
+#define CSONPATH_DO_FILTER_LOOP_PRE_SET
+#endif
+
 #ifndef CAT
 # define CATCAT(a, b, c) a ## b ## c
 # define CAT(a, b) a ## b
@@ -168,6 +172,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 		    if (CSONPATH_IS_OBJ(el)) {
 			CSONPATH_JSON el2;
 
+			CSONPATH_DO_FILTER_LOOP_PRE_SET
 			if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
 			    CSONPATH_GETTER_ERR("filter support only comparaiso with STR");
 
@@ -315,3 +320,4 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_FILTER_OUT
 #undef CSONPATH_DO_FILTER_PRE_LOOP
 #undef CSONPATH_DO_FILTER_FIND
+#undef CSONPATH_DO_FILTER_LOOP_PRE_SET

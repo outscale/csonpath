@@ -227,7 +227,7 @@ again:
 			next = walker;
 			do {
 				if (*next < '0' || *next > '9') {
-					CSONPATH_CLASSIC_ERR("unexpected '%c', sting or number require\n", *next);
+					CSONPATH_CLASSIC_ERR("unexpected '%c', sting, filter or number require\n", *next);
 				}
 				next++;
 			} while (*next && *next != ']');
@@ -370,6 +370,8 @@ error:
 
 /* Delete */
 
+#define CSONPATH_DO_FUNC_NAME remove
+
 #undef CSONPATH_NONE_FOUND_RET
 #undef CSONPATH_GETTER_ERR
 
@@ -383,7 +385,6 @@ error:
 #define CSONPATH_DO_ON_FOUND
 
 #define CSONPATH_DO_RET_TYPE int
-#define CSONPATH_DO_FUNC_NAME remove
 #define CSONPATH_DO_RETURN						\
 	({if (ctx == in_ctx && need_reloop &&				\
 	      CSONPATH_NEED_FOREACH_REDO(ctx))				\
@@ -407,9 +408,9 @@ error:
 #define CSONPATH_DO_FILTER_FIND nb_res += tret;
 
 #define CSONPATH_DO_FIND_ALL ({					\
-			if (need_reloop_in){ goto again; };	\
 			if (tret < 0) return -1;		\
 			nb_res += tret;				\
+			if (need_reloop_in){ goto again; };	\
 		})
 
 #define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
@@ -422,6 +423,9 @@ error:
 #define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
 	int need_reloop_in;			\
 again:
+
+#define CSONPATH_DO_FILTER_LOOP_PRE_SET					\
+	csonpath_child_info_set(&child_info, tmp, (intptr_t)key_idx);
 
 #define CSONPATH_DO_FOREACH_PRE_SET					\
 	need_reloop_in = 0;						\
@@ -444,11 +448,11 @@ again:
 #define CSONPATH_DO_RETURN						\
 	if (tmp == value) {						\
 		*need_reloop = 1;					\
-		printf("should update %d - %d !!\n", child_info->type == CSONPATH_INTEGER, child_info->idx); \
 		if (child_info->type == CSONPATH_INTEGER)		\
 			CSONPATH_APPEND_AT(ctx, child_info->idx, to_update); \
 		else							\
 			CSONPATH_APPEND_AT(ctx, child_info->key, to_update); \
+		return 1;						\
 	}								\
 	return 0;
 
@@ -458,8 +462,8 @@ again:
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
 #define CSONPATH_DO_EXTRA_ARGS_IN , to_update, NULL, NULL
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
-#define CSONPATH_DO_FIND_ALL if (need_reloop_in) goto find_again; nb_res += tret;
-#define CSONPATH_DO_FILTER_FIND if (need_reloop_in) goto filter_again; nb_res += tret;
+#define CSONPATH_DO_FIND_ALL nb_res += tret; if (need_reloop_in) goto find_again;
+#define CSONPATH_DO_FILTER_FIND nb_res += tret; if (need_reloop_in) goto filter_again;
 
 #define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
 	int need_reloop_in;			\
