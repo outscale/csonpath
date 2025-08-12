@@ -226,8 +226,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	    if (tmp == CSONPATH_NULL) {
 		CSONPATH_DO_GET_NOTFOUND(walker);
 	    }
-	    CSONPATH_DO_POST_FIND_OBJ
-		walker += cjp->inst_lst[idx].next;
+	    CSONPATH_DO_POST_FIND_OBJ;
+	    walker += cjp->inst_lst[idx].next;
 	    break;
 	case CSONPATH_INST_GET_ARRAY_SMALL:
 	{

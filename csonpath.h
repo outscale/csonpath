@@ -482,12 +482,12 @@ need_reloop_in = 0;
 	int check_at = idx + 1;						\
 	int to_check;							\
 	do {								\
-		to_check = cjp->inst_lst[check_at].inst;		\
-		++check_at;						\
+	    to_check = cjp->inst_lst[check_at].inst;			\
+	    ++check_at;							\
 	} while (to_check == CSONPATH_INST_GET_ALL || to_check == CSONPATH_INST_FIND_ALL); \
 	if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
-		CSONPATH_APPEND_AT(ctx, this_idx, to_update);		\
-		return 1;						\
+	    CSONPATH_APPEND_AT(ctx, this_idx, to_update);		\
+	    return 1;							\
 	}
 
 
@@ -499,6 +499,7 @@ need_reloop_in = 0;
 		tmp = CSONPATH_NEW_ARRAY();		\
 		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
 	}						\
+	walker += cjp->inst_lst[idx].next;		\
 	goto next_inst;
 
 
