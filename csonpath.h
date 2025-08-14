@@ -317,6 +317,27 @@ error:
 	return -1;
 }
 
+/* helper use multiple times */
+#define CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)		\
+	if (to_check == CSONPATH_INST_GET_OBJ) {	\
+		tmp = CSONPATH_NEW_OBJECT();		\
+		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	} else {					\
+		tmp = CSONPATH_NEW_ARRAY();		\
+		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	}						\
+	walker += cjp->inst_lst[idx].next;		\
+	goto next_inst;
+
+#define CSONPATH_GOTO_ON_RELOOP(where)		\
+    nb_res += tret; if (need_reloop_in) goto where;
+
+#define CSONPATH_PREPARE_RELOOP(label)		\
+    int need_reloop_in;				\
+label:						\
+need_reloop_in = 0;
+
+
 #define CSONPATH_NONE_FOUND_RET CSONPATH_NULL
 
 #define CSONPATH_GETTER_ERR(args...) do {	\
@@ -456,24 +477,19 @@ again:
 	}								\
 	return 0;
 
+
 #define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , to_update, NULL, need_reloop
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , to_update,			\
 		csonpath_child_info_set(&(struct csonpath_child_info ){}, tmp, (intptr_t)key_idx), &need_reloop_in
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
 #define CSONPATH_DO_EXTRA_ARGS_IN , to_update, NULL, NULL
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
-#define CSONPATH_DO_FIND_ALL nb_res += tret; if (need_reloop_in) goto find_again;
-#define CSONPATH_DO_FILTER_FIND nb_res += tret; if (need_reloop_in) goto filter_again;
+#define CSONPATH_DO_FIND_ALL CSONPATH_GOTO_ON_RELOOP(find_again)
+#define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
 
-#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
-	int need_reloop_in;			\
-find_again:					\
-need_reloop_in = 0;
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP CSONPATH_PREPARE_RELOOP(find_again)
 
-#define CSONPATH_DO_FILTER_PRE_LOOP		\
-	int need_reloop_in;			\
-filter_again:					\
-need_reloop_in = 0;
+#define CSONPATH_DO_FILTER_PRE_LOOP CSONPATH_PREPARE_RELOOP(filter_again)
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
@@ -492,16 +508,7 @@ need_reloop_in = 0;
 
 
 #define CSONPATH_DO_GET_NOTFOUND(this_idx)		\
-	if (to_check == CSONPATH_INST_GET_OBJ) {	\
-		tmp = CSONPATH_NEW_OBJECT();		\
-		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	} else {					\
-		tmp = CSONPATH_NEW_ARRAY();		\
-		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	}						\
-	walker += cjp->inst_lst[idx].next;		\
-	goto next_inst;
-
+    CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)
 
 
 #include "csonpath_do.h"
@@ -558,18 +565,12 @@ need_reloop_in = 0;
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
 #define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, NULL, NULL
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
-#define CSONPATH_DO_FIND_ALL nb_res += tret; if (need_reloop_in) goto find_again;
-#define CSONPATH_DO_FILTER_FIND nb_res += tret; if (need_reloop_in) goto filter_again;
+#define CSONPATH_DO_FIND_ALL CSONPATH_GOTO_ON_RELOOP(find_again)
+#define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
 
-#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
-	int need_reloop_in;			\
-find_again:					\
-need_reloop_in = 0;
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP CSONPATH_PREPARE_RELOOP(find_again)
 
-#define CSONPATH_DO_FILTER_PRE_LOOP		\
-	int need_reloop_in;			\
-filter_again:					\
-need_reloop_in = 0;
+#define CSONPATH_DO_FILTER_PRE_LOOP CSONPATH_PREPARE_RELOOP(filter_again)
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
@@ -591,15 +592,7 @@ need_reloop_in = 0;
 
 
 #define CSONPATH_DO_GET_NOTFOUND(this_idx)		\
-	if (to_check == CSONPATH_INST_GET_OBJ) {	\
-		tmp = CSONPATH_NEW_OBJECT();		\
-		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	} else {					\
-		tmp = CSONPATH_NEW_ARRAY();		\
-		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	}						\
-	walker += cjp->inst_lst[idx].next;		\
-	goto next_inst;
+    CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)
 
 
 #include "csonpath_do.h"
