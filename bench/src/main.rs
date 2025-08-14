@@ -25,11 +25,12 @@ fn main() {
 
     let queries = vec![
         "$.store.book[*].title",
+        "$..title",
     ];
 
     for query in queries {
         let start = Instant::now();
-        for _i in 0..99 {
+        for _i in 0..990 {
             data.query(query).unwrap();
         }
         let result = data.query(query).unwrap();

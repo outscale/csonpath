@@ -3,6 +3,9 @@ JSON_C_LDFLAGS=$(shell pkg-config --libs json-c)
 
 all: test-json-c-get-a test-json-update test-json-filter
 
+bench:
+	make -C bench
+
 .PHONY: all clean tests pip-dev pip-dev
 
 CFLAGS=-fsanitize=address -fsanitize=undefined -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g

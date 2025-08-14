@@ -20,13 +20,14 @@ const data = {
 
 const queries = [
     '$.store.book[*].title',
+    '$..title',
 ];
 
 // Benchmark
 for (const query of queries) {
     const start = performance.now();
     let result;
-    for (let i = 0; i < 100; ++i)
+    for (let i = 0; i < 1000; ++i)
 	result = JSONPath({ path: query, json: data });
     const elapsed = (performance.now() - start) / 1000; // seconds
     console.log(`Query: ${query}`);

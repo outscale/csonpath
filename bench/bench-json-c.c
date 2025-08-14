@@ -44,6 +44,7 @@ int main() {
 
     const char *queries[] = {
         "$.store.book[*].title",
+        "$..title",
     };
     size_t query_count = sizeof(queries) / sizeof(queries[0]);
     struct csonpath p;
@@ -55,7 +56,7 @@ int main() {
         // TODO: call your JSONPath library here
         // Example (pseudo-code):
 	csonpath_init(&p, queries[i]);
-	for (int j = 0; j < 100; ++j) {
+	for (int j = 0; j < 1000; ++j) {
 		struct json_object *ret = csonpath_find_all(&p, jobj);
 		count = json_object_array_length(ret);
 		json_object_put(ret);
@@ -65,10 +66,9 @@ int main() {
         // For now, we’ll fake a result count for demonstration:
 
         double elapsed = now_seconds() - start;
-        printf("Query: %s\n", queries[i]);
-        printf("Results: %zu, Time: %.6f seconds\n\n", count, elapsed);
+        printf("recompile Query: %s\n", queries[i]);
+        printf("Results: %zu, in 1000 loop, Time: %.6f seconds\n\n", count, elapsed);
 
-        // TODO: free result list if needed
     }
 
     free(json_text);
