@@ -34,6 +34,19 @@
       r;							\
     })
 
+#define CSONPATH_CALLBACK PyObject *
+
+#define CSONPATH_CALLBACK_DATA PyObject *
+
+#define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata) do { \
+	PyObject *arglist;						\
+	if (child_info->type == CSONPATH_STR)				\
+	    arglist = Py_BuildValue("(OsOO)", ctx, child_info->key, tmp, udata); \
+	else								\
+	    arglist = Py_BuildValue("(OiOO)", ctx, child_info->idx, tmp, udata); \
+	PyObject_CallObject(callback, arglist);				\
+    } while (0)
+
 /* assuming each modification of the object need to go out of the loop */
 #define CSONPATH_NEED_FOREACH_REDO(o)	1
 
@@ -54,9 +67,9 @@
 
 static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
 {
-	Py_INCREF(el);
-	if (PyList_SetItem(array, at, el) < 0)
-		PyList_Insert(array, at, el);
+    Py_INCREF(el);
+    if (PyList_SetItem(array, at, el) < 0)
+	PyList_Insert(array, at, el);
 }
 
 #define CSONPATH_APPEND_AT(array, at, el)			\
@@ -149,25 +162,35 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 
 static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
 {
-  PyObject *json;
+    PyObject *json;
 
-  if (!PyArg_ParseTuple(args, "O", &json))
-    BAD_ARG();
-  PyObject *ret =  csonpath_find_all(self->cp, json);
-  if (ret != Py_None) {
-      Py_INCREF(ret);
-  }
-  return ret;
+    if (!PyArg_ParseTuple(args, "O", &json))
+	BAD_ARG();
+    PyObject *ret =  csonpath_find_all(self->cp, json);
+    if (ret != Py_None) {
+	Py_INCREF(ret);
+    }
+    return ret;
 }
 
 static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
 {
-  PyObject *json;
+    PyObject *json;
 
-  if (!PyArg_ParseTuple(args, "O", &json))
-    BAD_ARG();
-  PyObject *ret = csonpath_find_first(self->cp, json);
-  return ret;
+    if (!PyArg_ParseTuple(args, "O", &json))
+	BAD_ARG();
+    PyObject *ret = csonpath_find_first(self->cp, json);
+    return ret;
+}
+
+static PyObject *callback(PyCsonPathObject *self, PyObject* args)
+{
+    PyObject *json, *callback, *udata = Py_None;
+
+    if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
+	BAD_ARG();
+    int ret = csonpath_callback(self->cp, json, callback, udata);
+    return PyLong_FromLong(ret);
 }
 
 static PyObject *do_remove(PyCsonPathObject *self, PyObject* args)
@@ -223,6 +246,7 @@ static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
 static PyMethodDef csonpath_py_method[] = {
     {"get_path", (PyCFunction)PyCsonPath_get_path, METH_VARARGS, "get_path"},
     {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
+    {"callback", (PyCFunction)callback, METH_VARARGS, "callback"},
     {"find_first", (PyCFunction)find_first, METH_VARARGS, "find first elems"},
     {"find_all", (PyCFunction)find_all, METH_VARARGS, "find all elems, if one found, pout it in an array"},
     {"remove", (PyCFunction)do_remove, METH_VARARGS, "remove all elems found"},

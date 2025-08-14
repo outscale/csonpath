@@ -15,6 +15,17 @@
 
 #define CSONPATH_AT csonpath_json_c_at
 
+struct csonpath_child_info;
+typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, json_object *, void *); 
+
+#define CSONPATH_CALLBACK json_c_callback
+
+#define CSONPATH_CALLBACK_DATA void *
+
+#define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata)	\
+  callback(ctx, child_info, tmp, udata)
+
+
 #define CSONPATH_NEED_FOREACH_REDO(o)		\
   json_object_is_type(o, json_type_object)
 

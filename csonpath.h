@@ -505,3 +505,33 @@ need_reloop_in = 0;
 
 
 #include "csonpath_do.h"
+
+/* callback */
+
+#define CSONPATH_DO_DECLARATION			\
+	int nb_res = 0;
+
+#define CSONPATH_DO_RET_TYPE int
+#define CSONPATH_DO_FUNC_NAME callback
+#define CSONPATH_DO_RETURN  do {					\
+    CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata); return 1;} \
+  while (0)
+
+#define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , callback, udata, child_info
+#define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,		\
+    csonpath_child_info_set(child_info, tmp, (intptr_t)key_idx)
+#define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
+#define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, &(struct csonpath_child_info ){}
+#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info
+
+#define CSONPATH_DO_FIND_ALL nb_res += tret;
+#define CSONPATH_DO_FILTER_FIND nb_res += tret;
+
+#define CSONPATH_DO_FIND_ALL_OUT return nb_res;
+
+#define CSONPATH_PRE_GET(this_idx)					\
+  csonpath_child_info_set(child_info, ctx, (intptr_t)this_idx)
+
+
+
+#include "csonpath_do.h"
