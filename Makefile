@@ -6,7 +6,7 @@ all: test-json-c-get-a test-json-update test-json-filter
 bench:
 	make -C bench
 
-.PHONY: all clean tests pip-dev pip-dev
+.PHONY: all clean tests pip-dev pip-dev bench
 
 CFLAGS=-fsanitize=address -fsanitize=undefined -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 

@@ -6,6 +6,9 @@ all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang
 	./bench-json-c-gcc
 	./bench-json-c-clang
 
+.PHONY: all
+
+
 bench-json-c-tcc: bench-json-c.c
 	tcc bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-tcc $(shell pkg-config --libs json-c)
 
