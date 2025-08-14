@@ -296,6 +296,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
     return ret;
 }
 
+#ifndef CSONPATH_NO_UNDEF
+
 #undef CSONPATH_PRE_GET
 #undef CSONPATH_DO_PRE_OPERATION
 #undef CSONPATH_DO_POST_OPERATION
@@ -321,3 +323,5 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_FILTER_PRE_LOOP
 #undef CSONPATH_DO_FILTER_FIND
 #undef CSONPATH_DO_FILTER_LOOP_PRE_SET
+
+#endif

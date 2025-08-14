@@ -221,6 +221,16 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
   return PyLong_FromLong(ret);
 }
 
+static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* args)
+{
+    PyObject *json, *callback, *udata = Py_None;
+
+    if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
+	BAD_ARG();
+    int ret = csonpath_update_or_ceate_callback(self->cp, json, callback, udata);
+    return PyLong_FromLong(ret);
+}
+
 
 static void PyCsonPath_dealloc(PyCsonPathObject *self) {
   if (self->cp) {
@@ -249,6 +259,7 @@ static PyMethodDef csonpath_py_method[] = {
     {"get_path", (PyCFunction)PyCsonPath_get_path, METH_VARARGS, "get_path"},
     {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
     {"callback", (PyCFunction)callback, METH_VARARGS, "callback"},
+    {"update_or_create_callback", (PyCFunction)update_or_create_callback, METH_VARARGS, "update_or_create_callback"},
     {"find_first", (PyCFunction)find_first, METH_VARARGS, "find first elems"},
     {"find_all", (PyCFunction)find_all, METH_VARARGS, "find all elems, if one found, pout it in an array"},
     {"remove", (PyCFunction)do_remove, METH_VARARGS, "remove all elems found"},

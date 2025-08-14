@@ -509,7 +509,7 @@ need_reloop_in = 0;
 /* callback */
 
 #define CSONPATH_DO_DECLARATION			\
-	int nb_res = 0;
+  int nb_res = 0;
 
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME callback
@@ -532,6 +532,74 @@ need_reloop_in = 0;
 #define CSONPATH_PRE_GET(this_idx)					\
   csonpath_child_info_set(child_info, ctx, (intptr_t)this_idx)
 
+
+
+#include "csonpath_do.h"
+
+/* update_or_create_callback */
+
+#define CSONPATH_DO_DECLARATION			\
+	int nb_res = 0;
+
+#define CSONPATH_DO_RET_TYPE int
+#define CSONPATH_DO_FUNC_NAME update_or_ceate_callback
+#define CSONPATH_DO_RETURN						\
+	if (tmp == value) {						\
+		*need_reloop = 1;					\
+		CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata); \
+		return 1;						\
+	}								\
+	return 0;
+
+#define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , callback, udata, NULL, need_reloop
+#define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,	\
+	csonpath_child_info_set(&(struct csonpath_child_info ){}, tmp, (intptr_t)key_idx), \
+	&need_reloop_in
+#define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
+#define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, NULL, NULL
+#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
+#define CSONPATH_DO_FIND_ALL nb_res += tret; if (need_reloop_in) goto find_again;
+#define CSONPATH_DO_FILTER_FIND nb_res += tret; if (need_reloop_in) goto filter_again;
+
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP		\
+	int need_reloop_in;			\
+find_again:					\
+need_reloop_in = 0;
+
+#define CSONPATH_DO_FILTER_PRE_LOOP		\
+	int need_reloop_in;			\
+filter_again:					\
+need_reloop_in = 0;
+
+#define CSONPATH_DO_FIND_ALL_OUT return nb_res;
+
+
+#define CSONPATH_PRE_GET(this_idx)					\
+    int check_at = idx + 1;						\
+    int to_check;							\
+    do {								\
+	to_check = cjp->inst_lst[check_at].inst;			\
+	++check_at;							\
+    } while (to_check == CSONPATH_INST_GET_ALL || to_check == CSONPATH_INST_FIND_ALL); \
+    if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
+	CSONPATH_CALL_CALLBACK(						\
+	    callback, ctx,						\
+	    csonpath_child_info_set(&(struct csonpath_child_info ){},	\
+				    ctx, (intptr_t)this_idx), tmp, udata); \
+	return 1;							\
+    }
+
+
+#define CSONPATH_DO_GET_NOTFOUND(this_idx)		\
+	if (to_check == CSONPATH_INST_GET_OBJ) {	\
+		tmp = CSONPATH_NEW_OBJECT();		\
+		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	} else {					\
+		tmp = CSONPATH_NEW_ARRAY();		\
+		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	}						\
+	walker += cjp->inst_lst[idx].next;		\
+	goto next_inst;
 
 
 #include "csonpath_do.h"
