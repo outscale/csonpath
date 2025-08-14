@@ -1,6 +1,6 @@
 {
   "type": "module",
   "dependencies": {
-    "jsonpath-plus": "^8.0.0"
+    "jsonpath-plus": "^10.3.0"
   }
 }
