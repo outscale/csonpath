@@ -68,8 +68,10 @@
 static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
 {
     Py_INCREF(el);
-    if (PyList_SetItem(array, at, el) < 0)
+    if (at >= PyList_Size(array))
 	PyList_Insert(array, at, el);
+    else
+	PyList_SetItem(array, at, el);
 }
 
 #define CSONPATH_APPEND_AT(array, at, el)			\
