@@ -466,6 +466,12 @@ again:
 
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME update_or_ceate
+
+/*
+ * assuming tmp == value can only be true,
+ * while been called from FIND/FILTER or GET
+ * otherwise CSONPATH_PRE_GET, is the part doing the buisness
+ */
 #define CSONPATH_DO_RETURN						\
 	if (tmp == value) {						\
 		*need_reloop = 1;					\
