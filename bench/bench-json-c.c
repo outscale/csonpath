@@ -53,17 +53,12 @@ int main() {
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();
 
-        // TODO: call your JSONPath library here
-        // Example (pseudo-code):
 	csonpath_init(&p, queries[i]);
 	for (int j = 0; j < 1000; ++j) {
 		struct json_object *ret = csonpath_find_all(&p, jobj);
 		count = json_object_array_length(ret);
 		json_object_put(ret);
 	}
-        // size_t count = result_list_size(res);
-
-        // For now, we’ll fake a result count for demonstration:
 
         double elapsed = now_seconds() - start;
         printf("recompile Query: %s\n", queries[i]);
@@ -72,7 +67,6 @@ int main() {
     }
 
     free(json_text);
-    // TODO: free parsed JSON if needed
-
+    csonpath_destroy(&p);
     return 0;
 }
