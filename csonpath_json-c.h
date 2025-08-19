@@ -53,14 +53,6 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 	}								\
   }
 
-#define CSONPATH_FOREACH_ARRAY(obj, el, code)	do {			\
-    int array_len_ = json_object_array_length(obj);			\
-    for (int key_idx_ = 0; key_idx_ < array_len_; ++key_idx_) {		\
-      el = json_object_array_get_idx(obj, key_idx_);			\
-      code								\
-	}								\
-  } while (0)
-
 #define CSONPATH_REMOVE_CHILD(obj, child_info)				\
   if (child_info.type == CSONPATH_INTEGER) {				\
     json_object_array_put_idx(obj, child_info.idx, NULL);		\

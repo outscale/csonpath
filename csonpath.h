@@ -361,31 +361,32 @@ need_reloop_in = 0;
 
 /* Find All */
 
-#define CSONPATH_DO_DECLARATION				\
-	CSONPATH_JSON good_ret = CSONPATH_NEW_ARRAY();	\
+#define CSONPATH_DO_PRE_OPERATION		\
+  CSONPATH_JSON ret_ar = CSONPATH_NEW_ARRAY();
+
+#define CSONPATH_DO_POST_OPERATION		\
+  if (ret == CSONPATH_NULL) CSONPATH_REMOVE(ret_ar)
+
+#define CSONPATH_DO_DECLARATION			\
 	int nb_res = 0;
 
 #define CSONPATH_DO_FUNC_NAME find_all
 #define CSONPATH_DO_RET_TYPE CSONPATH_JSON
-#define CSONPATH_DO_RETURN ({CSONPATH_ARRAY_APPEND_INCREF(good_ret, tmp); return good_ret;})
+#define CSONPATH_DO_RETURN ({CSONPATH_ARRAY_APPEND_INCREF(ret_ar, tmp); return ret_ar;})
 
 #define CSONPATH_DO_FIND_ALL						\
-	CSONPATH_JSON hel;						\
-									\
-	CSONPATH_FOREACH_ARRAY(tret, hel, {				\
-	    CSONPATH_ARRAY_APPEND_INCREF(good_ret, hel);		\
-	    ++nb_res;							\
-	  });								\
-	CSONPATH_REMOVE(tret);
+    if (tret) ++nb_res;							\
 
 #define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL
-
-#define CSONPATH_DO_FIND_ALL_CLEAUP CSONPATH_REMOVE(good_ret);
 
 #define CSONPATH_DO_FIND_ALL_OUT		\
 	if (!nb_res)				\
 		CSONPATH_NONE_FOUND_RET;	\
-	return good_ret;
+	return ret_ar;
+
+#define CSONPATH_DO_EXTRA_ARGS_IN , ret_ar
+#define CSONPATH_DO_EXTRA_DECLATION , CSONPATH_JSON ret_ar
+
 
 #include "csonpath_do.h"
 
