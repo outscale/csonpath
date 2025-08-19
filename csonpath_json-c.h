@@ -29,8 +29,6 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 #define CSONPATH_NEED_FOREACH_REDO(o)		\
   json_object_is_type(o, json_type_object)
 
-#define CSONPATH_NEW_INT()
-
 #define CSONPATH_REMOVE(o) json_object_put(o)
 
 #define CSONPATH_IS_OBJ(o) json_object_is_type(o, json_type_object)
@@ -54,6 +52,14 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
       code								\
 	}								\
   }
+
+#define CSONPATH_FOREACH_ARRAY(obj, el, code)	do {			\
+    int array_len_ = json_object_array_length(obj);			\
+    for (int key_idx_ = 0; key_idx_ < array_len_; ++key_idx_) {		\
+      el = json_object_array_get_idx(obj, key_idx_);			\
+      code								\
+	}								\
+  } while (0)
 
 #define CSONPATH_REMOVE_CHILD(obj, child_info)				\
   if (child_info.type == CSONPATH_INTEGER) {				\

@@ -372,10 +372,10 @@ need_reloop_in = 0;
 #define CSONPATH_DO_FIND_ALL						\
 	CSONPATH_JSON hel;						\
 									\
-	CSONPATH_FOREACH(tret, hel, {					\
-			CSONPATH_ARRAY_APPEND_INCREF(good_ret, hel);	\
-			++nb_res;					\
-		});							\
+	CSONPATH_FOREACH_ARRAY(tret, hel, {				\
+	    CSONPATH_ARRAY_APPEND_INCREF(good_ret, hel);		\
+	    ++nb_res;							\
+	  });								\
 	CSONPATH_REMOVE(tret);
 
 #define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL

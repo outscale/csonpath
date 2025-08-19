@@ -14,12 +14,6 @@
 
 #define CSONPATH_NEW_ARRAY() PyList_New(0)
 
-#define CSONPATH_NEW_INT(i)			\
-  PyLong_FromLong(i)
-
-#define CSONPATH_NEW_STR(key)			\
-  PyUnicode_FromString(key)
-
 #define CSONPATH_IS_OBJ(o) PyDict_Check(o)
 
 #define CSONPATH_IS_ARRAY(o) PyList_Check(o)
@@ -103,6 +97,15 @@ static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject 
       code								\
 	}								\
   }
+
+
+#define CSONPATH_FOREACH_ARRAY(obj, el, code)	do {			\
+    int array_len_ = PyList_Size(obj);					\
+    for (int key_idx = 0; key_idx < array_len_; ++key_idx) {	\
+      el = PyList_GetItem(obj, key_idx);				\
+      code								\
+	}								\
+    } while (0)
 
 static PyObject *csonpath_python_get(PyObject *obj, const char *key) {
     if (PyDict_Check(obj)) {
