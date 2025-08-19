@@ -1,7 +1,8 @@
-all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang
+all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-jsoncons
 	python bench-jsonpath-ng.py
 	node bench-jsonpath.js
 	cargo run --release
+	./bench-jsoncons
 	./bench-json-c-tcc
 	./bench-json-c-gcc
 	./bench-json-c-clang
@@ -21,3 +22,9 @@ bench-json-c-gcc: bench-json-c.c
 bench-json-c-clang: bench-json-c.c
 	clang bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-clang $(shell pkg-config --libs json-c)
 
+
+jsoncons/:
+	git clone https://github.com/danielaparker/jsoncons.git
+
+bench-jsoncons: jsoncons/
+	 g++ -std=c++17 -O3 bench-jsoncons.cc -I./jsoncons/include -o bench-jsoncons
