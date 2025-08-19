@@ -490,10 +490,10 @@ again:
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
 #define CSONPATH_DO_EXTRA_ARGS_IN , to_update, NULL, NULL
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
-#define CSONPATH_DO_FIND_ALL CSONPATH_GOTO_ON_RELOOP(find_again)
+#define CSONPATH_DO_FIND_ALL nb_res += tret;
 #define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
 
-#define CSONPATH_DO_FIND_ALL_PRE_LOOP CSONPATH_PREPARE_RELOOP(find_again)
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP int need_reloop_in = 0;
 
 #define CSONPATH_DO_FILTER_PRE_LOOP CSONPATH_PREPARE_RELOOP(filter_again)
 
@@ -571,10 +571,10 @@ again:
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
 #define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, NULL, NULL
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
-#define CSONPATH_DO_FIND_ALL CSONPATH_GOTO_ON_RELOOP(find_again)
+#define CSONPATH_DO_FIND_ALL nb_res += tret;
 #define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
 
-#define CSONPATH_DO_FIND_ALL_PRE_LOOP CSONPATH_PREPARE_RELOOP(find_again)
+#define CSONPATH_DO_FIND_ALL_PRE_LOOP int need_reloop_in = 0;
 
 #define CSONPATH_DO_FILTER_PRE_LOOP CSONPATH_PREPARE_RELOOP(filter_again)
 

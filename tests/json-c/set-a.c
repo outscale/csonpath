@@ -52,6 +52,10 @@ int main(void)
   assert(json_object_is_type(ret, json_type_array));
   assert(json_object_array_length(ret) == 2);
   json_object_put(ret);
+
+  csonpath_set_path(&p, "$..0");
+  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a encore 0")) == 1);
+
   json_object_put(jobj);
   csonpath_destroy(&p);
 }
