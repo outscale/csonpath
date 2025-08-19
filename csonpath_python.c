@@ -8,7 +8,7 @@
 
 #define CSONPATH_AT csonpath_python_at
 
-#define CSONPATH_REMOVE(o) // PyList_Clear(o)
+#define CSONPATH_REMOVE(o) Py_XDECREF(o)
 
 #define CSONPATH_NEW_OBJECT() PyDict_New()
 
@@ -62,16 +62,16 @@
 /* I don't think incrref is needed with python */
 #define CSONPATH_ARRAY_APPEND_INCREF(array, el) ({	\
       PyList_Append(array, el);				\
-      Py_INCREF(el);					\
     })
 
 static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
 {
-    Py_INCREF(el);
-    if (at >= PyList_Size(array))
+    if (at >= PyList_Size(array)) {
 	PyList_Insert(array, at, el);
-    else
+    } else {
+	Py_INCREF(el);
 	PyList_SetItem(array, at, el);
+    }
 }
 
 #define CSONPATH_APPEND_AT(array, at, el)			\
@@ -131,7 +131,7 @@ typedef struct {
 
 #define CAPSULE_NAME "csonpath_capsule"
 
-#define BAD_ARG() ({PyErr_BadArgument(); return NULL;})
+#define BAD_ARG() ({fprintf(stderr, "bad argument\n"); PyErr_BadArgument(); return NULL;})
 
 
 static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
@@ -169,9 +169,6 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "O", &json))
 	BAD_ARG();
     PyObject *ret =  csonpath_find_all(self->cp, json);
-    if (ret != Py_None) {
-	Py_INCREF(ret);
-    }
     return ret;
 }
 
@@ -213,11 +210,6 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
   if (!PyArg_ParseTuple(args, "OO", &json, &value))
     BAD_ARG();
   int ret = csonpath_update_or_ceate(self->cp, json, value);
-  if (ret) {
-    for (int i = 0; i < ret; ++i) {
-      Py_INCREF(value);
-    }
-  }
   return PyLong_FromLong(ret);
 }
 
@@ -293,7 +285,6 @@ PyMODINIT_FUNC PyInit_csonpath(void) {
   m = PyModule_Create(&csonpath_py_mod);
   if (!m) return NULL;
 
-  Py_INCREF(&PyCsonPathType);
   PyModule_AddObject(m, "CsonPath", (PyObject *)&PyCsonPathType);
 
   return m;
