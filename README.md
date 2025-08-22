@@ -69,8 +69,6 @@ ret = csonpath_find_first(&p, jobj);
 
 ### Usage (Python)
 
-Check [`dump-test.py`](dump-test.py) for examples:
-
 ```python
 import csonpath
 
@@ -78,6 +76,19 @@ d = { "a": "value", "array": [1,2,3] }
 o = csonpath.CsonPath("$.a")
 print(o.find_first(d))  # Output: "value"
 ```
+
+#### Avaible methodes:
+`CsonPath(path)`: create a new csonpath object.
+`OBJ.find_first(self, json)`: take a json, return first found occurrence.
+`OBJ.find_all(self, json)`: take a json, return all found occurrence in a list.
+`OBJ.remove(self, json)`: take a json, remove all found occurrence from it.
+`OBJ.update_or_create(self, json, value)`: take a json, replace all found occurrence from it, by the value, if doesn't found something, create it.
+`OBJ.update_or_create_callback(self, json, callback, callback_data)`: take a json, if it doesn't find a parent object, create it, then it calls a callback.
+`OBJ.callback(self, json, callback, callback_data)`: take a json, call a callback, an all occurrence.
+
+`callback` is a function that take 4 arguments: `parent`, `idx`, `cur_value` and `callback_data`
+
+Check [`tests`](tests/python/) for more examples
 
 ### Backends and Direct Usage
 
