@@ -22,7 +22,6 @@ jobs:
         python -m pip install --upgrade twine
         python -m build
         twine upload --verbose  dist/csonpath*whl
-        twine upload --verbose  dist/csonpath*tar.gz
       env:
         TWINE_USERNAME: "__token__"
         TWINE_PASSWORD: ${{ secrets.PIP_TOKEN }}
