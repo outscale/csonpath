@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "csonpath"
 version = "0.0.1"
+readme = "README.md"
 
 [tool.setuptools]
 packages = []  # no Python packages, just an extension
