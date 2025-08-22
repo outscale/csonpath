@@ -24,4 +24,4 @@ jobs:
         twine upload --verbose  dist/csonpath*whl
       env:
         TWINE_USERNAME: "__token__"
-        TWINE_PASSWORD: ${{ secrets.PIP_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
