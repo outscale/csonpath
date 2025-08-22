@@ -30,6 +30,8 @@
 - **Find All**: Retrieve all values matching a path.
 - **Update or Create**: Update values or create new ones according to the path.
 - **Remove**: Remove values matching a path.
+- **Update or Create Callback**: Update values or create new ones according to the path, using a user-define callback.
+- **Callback**: Call a callback according to the path.
 - **Supports both C (using json-c) and Python objects.**
 
 ## ✅ Getting Started
@@ -88,7 +90,8 @@ To use csonpath with a different data type or library, simply define the require
 - `csonpath.h`, `csonpath_do.h` - Main implementation files
 - `csonpath_json-c.h` - Json-C implementation, use it by including "csonpath_json-c.h" directly in your source
 - `csonpath_python.c` - python implementation, use it like a python lib (so `pip install .`)
-- `tests/` - Contains C tests using json-c and python
+- `tests/` - Contains tests
+- `bench//` - Some benchmarks
 
 ## 🤝 Contributing
 
