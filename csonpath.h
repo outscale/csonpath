@@ -381,7 +381,7 @@ need_reloop_in = 0;
 
 #define CSONPATH_DO_FIND_ALL_OUT		\
 	if (!nb_res)				\
-		CSONPATH_NONE_FOUND_RET;	\
+		return CSONPATH_NONE_FOUND_RET;	\
 	return ret_ar;
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , ret_ar
