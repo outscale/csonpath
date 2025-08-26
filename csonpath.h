@@ -1,9 +1,28 @@
+#if !defined(CSONPATH_JSON) || !defined(CSONPATH_NULL) || !defined(CSONPATH_GET) || \
+  !defined(CSONPATH_AT) || !defined(CSONPATH_IS_OBJ) || !defined(CSONPATH_IS_ARRAY) || \
+  !defined(CSONPATH_CALLBACK) || !defined(CSONPATH_CALLBACK_DATA) || \
+  !defined(CSONPATH_EQUAL_STR) || !defined(CSONPATH_CALL_CALLBACK) || \
+  !defined(CSONPATH_FOREACH_EXT) || !defined(CSONPATH_APPEND_AT) || \
+  !defined(CSONPATH_REMOVE_CHILD) || !defined(CSONPATH_NEED_FOREACH_REDO) || \
+  !defined(CSONPATH_ARRAY_APPEND_INCREF) || !defined(CSONPATH_REMOVE)
+# error "some defined are missing"
+#endif
+
 #define CSONPATH_UNUSED __attribute__((unused))
 #define MAY_ALIAS __attribute__((__may_alias__))
 
-#define CSONPATH_FOREACH(obj, el, code)			\
-	CSONPATH_FOREACH_EXT(obj, el, code, key_idx)
+#ifndef CSONPATH_FOREACH
+# define CSONPATH_FOREACH(obj, el, code)	\
+  CSONPATH_FOREACH_EXT(obj, el, code, key_idx)
+#endif
 
+#ifndef CSONPATH_FIND_ALL_RET
+#define CSONPATH_FIND_ALL_RET CSONPATH_JSON
+#endif
+
+#ifndef CSONPATH_FIND_ALL_RET_INIT
+#define CSONPATH_FIND_ALL_RET_INIT CSONPATH_NEW_ARRAY
+#endif
 
 enum csonpath_instuction_raw {
 	CSONPATH_INST_ROOT,
@@ -75,7 +94,7 @@ struct csonpath_child_info {
 	} while (0)
 
 static inline struct csonpath_child_info *csonpath_child_info_set(struct csonpath_child_info *child_info,
-								  const CSONPATH_JSON j, const intptr_t key)
+								  CSONPATH_JSON j, const intptr_t key)
 {
 	if (CSONPATH_IS_OBJ(j)) {
 		*child_info = (struct csonpath_child_info){.key=(const char *)key, .type=CSONPATH_STR};
@@ -362,7 +381,7 @@ need_reloop_in = 0;
 /* Find All */
 
 #define CSONPATH_DO_PRE_OPERATION		\
-  CSONPATH_JSON ret_ar = CSONPATH_NEW_ARRAY();
+  CSONPATH_FIND_ALL_RET ret_ar = CSONPATH_FIND_ALL_RET_INIT();
 
 #define CSONPATH_DO_POST_OPERATION		\
   if (ret == CSONPATH_NULL) CSONPATH_REMOVE(ret_ar)
@@ -371,7 +390,7 @@ need_reloop_in = 0;
 	int nb_res = 0;
 
 #define CSONPATH_DO_FUNC_NAME find_all
-#define CSONPATH_DO_RET_TYPE CSONPATH_JSON
+#define CSONPATH_DO_RET_TYPE CSONPATH_FIND_ALL_RET
 #define CSONPATH_DO_RETURN ({CSONPATH_ARRAY_APPEND_INCREF(ret_ar, tmp); return ret_ar;})
 
 #define CSONPATH_DO_FIND_ALL						\
@@ -385,7 +404,7 @@ need_reloop_in = 0;
 	return ret_ar;
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , ret_ar
-#define CSONPATH_DO_EXTRA_DECLATION , CSONPATH_JSON ret_ar
+#define CSONPATH_DO_EXTRA_DECLATION , CSONPATH_FIND_ALL_RET ret_ar
 
 
 #include "csonpath_do.h"

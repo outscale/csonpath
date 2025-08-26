@@ -134,7 +134,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
 					  CSONPATH_DO_EXTRA_ARGS_NEESTED);
 		CSONPATH_DO_FIND_ALL;
 	    }
-	});
+	})
     CSONPATH_DO_FIND_ALL_OUT;
     return tret;
 }
@@ -173,8 +173,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 			CSONPATH_JSON el2;
 
 			CSONPATH_DO_FILTER_LOOP_PRE_SET
-			if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
-			    CSONPATH_GETTER_ERR("filter support only comparaiso with STR");
+			    if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
+				CSONPATH_GETTER_ERR("filter support only comparaison with STR");
 
 			CSONPATH_FOREACH_EXT(el, el2, {
 				if (!strcmp((char *)neested_key, filter_key)) {
