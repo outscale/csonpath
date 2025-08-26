@@ -281,7 +281,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
     (void)ctx;
     csonpath_compile(cjp);
     if (cjp->inst_lst[0].inst == CSONPATH_INST_BROKEN) {
-	CSONPATH_GETTER_ERR("fail to compile\n");
+	CSONPATH_GETTER_ERR("fail to compile: %s\n", cjp->compile_error);
 	return CSONPATH_NONE_FOUND_RET;
     }
 

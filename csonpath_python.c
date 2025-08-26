@@ -148,7 +148,9 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
     return PyErr_NoMemory();
 
   if (csonpath_compile(ret) < 0) {
-    PyErr_Format(PyExc_ValueError, "Fail to compile %s", s);
+    char *error = ret->compile_error;
+    PyErr_Format(PyExc_ValueError, "compilation fail %s", error);
+    csonpath_destroy(ret);
     return NULL;
   }
   self->cp = ret;

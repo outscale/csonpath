@@ -73,11 +73,12 @@ struct csonpath_instruction {
 #define CSONPATH_INST_MIN_ALLOC (1 << 7)
 
 struct csonpath {
-	char *path;
-	struct csonpath_instruction *inst_lst;
-	int compiled;
-	int inst_idx;
-	int inst_size;
+    char *path;
+    char *compile_error;
+    struct csonpath_instruction *inst_lst;
+    int compiled;
+    int inst_idx;
+    int inst_size;
 };
 
 struct csonpath_child_info {
@@ -88,10 +89,20 @@ struct csonpath_child_info {
 	};
 };
 
-#define CSONPATH_CLASSIC_ERR(args...) do {	\
-		fprintf(stderr, args);		\
-		goto error;			\
-	} while (0)
+/* I'm assuming error message won't be longer than 125 */
+#define CSONPATH_COMPILE_ERR(tmp, idx, args...) do {			\
+	int ltmp  = strlen(tmp), lidx, oidx = idx;			\
+	if (cjp->compile_error)						\
+	    free(cjp->compile_error);					\
+	cjp->compile_error = malloc(ltmp * 2 + 1024);			\
+	lidx = snprintf(cjp->compile_error, 1024, "colum %d:\n", oidx); \
+	strcpy(cjp->compile_error + lidx, tmp);				\
+	ltmp += lidx;							\
+	cjp->compile_error[ltmp++] = '\n';				\
+	for (; oidx; --oidx) {cjp->compile_error[ltmp++] = ' ';} \
+	snprintf(cjp->compile_error + ltmp, 1024 - lidx, "\\-- "args);	\
+	goto error;							\
+    } while (0)
 
 static inline struct csonpath_child_info *csonpath_child_info_set(struct csonpath_child_info *child_info,
 								  CSONPATH_JSON j, const intptr_t key)
@@ -108,7 +119,8 @@ static inline void csonpath_destroy(struct csonpath cjp[static 1])
 {
 	free(cjp->path);
 	free(cjp->inst_lst);
-	cjp->path = NULL;
+	free(cjp->compile_error);
+	*cjp = (struct csonpath){};
 }
 
 static inline int csonpath_init(struct csonpath cjp[static 1],
@@ -126,6 +138,7 @@ static inline int csonpath_set_path(struct csonpath cjp[static 1],
 				    const char path[static 1])
 {
 	free(cjp->path);
+	free(cjp->compile_error);
 	free(cjp->inst_lst);
 	return csonpath_init(cjp, path);
 }
@@ -144,14 +157,18 @@ void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
 int csonpath_compile(struct csonpath cjp[static 1])
 {
 	char *walker = cjp->path;
+	char *orig = walker;
 	char *next;
 	char to_check;
+	char *tmp;
 
 	if (cjp->compiled)
 		return 0;
-root_again:
+
+	tmp = strdup(cjp->path);
+ root_again:
 	if (*walker != '$') {
-		CSONPATH_CLASSIC_ERR("'$' needed");
+	    CSONPATH_COMPILE_ERR(tmp, walker - orig, "%s", "'$' needed");
 	}
 	++walker;
 	csonpath_push_inst(cjp, CSONPATH_INST_ROOT);
@@ -169,7 +186,7 @@ again:
 		if (*walker == '*') {
 			csonpath_push_inst(cjp, CSONPATH_INST_GET_ALL);
 			if (walker[1] != ']') {
-				CSONPATH_CLASSIC_ERR("unclose bracket\n");
+			    CSONPATH_COMPILE_ERR(tmp, walker - orig, "%s", "unclose bracket\n");
 			}
 			cjp->inst_lst[cjp->inst_idx - 1].next = 2;
 			walker += 2;
@@ -246,12 +263,14 @@ again:
 			next = walker;
 			do {
 				if (*next < '0' || *next > '9') {
-					CSONPATH_CLASSIC_ERR("unexpected '%c', sting, filter or number require\n", *next);
+					CSONPATH_COMPILE_ERR(tmp, walker - orig,
+							     "unexpected '%c', sting, filter or number require\n", *next);
 				}
 				next++;
 			} while (*next && *next != ']');
 			if (!*next) {
-				CSONPATH_CLASSIC_ERR("unclose bracket\n");
+			    CSONPATH_COMPILE_ERR(tmp, walker - orig,
+						 "%s", "unclose bracket\n");
 			}
 			*next = 0;
 			num = atoi(walker);
@@ -288,7 +307,8 @@ again:
 			*next = 0;
 			++next;
 			if (*next != ']')
-				CSONPATH_CLASSIC_ERR("']' require instead of '%c'\n", *next);
+				CSONPATH_COMPILE_ERR(tmp, walker - orig,
+						     "']' require instead of '%c'\n", *next);
 
 			csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ);
 			cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
@@ -329,10 +349,12 @@ again:
 	if (*walker == 0) {
 		csonpath_push_inst(cjp, CSONPATH_INST_END);
 		cjp->compiled = 1;
+		free(tmp);
 		return 0;
 	}
 error:
 	cjp->inst_lst[0] = (struct csonpath_instruction){.inst=CSONPATH_INST_BROKEN};
+	free(tmp);
 	return -1;
 }
 

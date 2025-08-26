@@ -12,7 +12,7 @@ all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-jsoncons bench-y
 
 
 clean:
-	rm -vf bench-json-c-tcc bench-json-c-gcc bench-json-c-clang
+	rm -vf bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-yyjson
 
 bench-json-c-tcc: bench-json-c.c
 	tcc bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-tcc $(shell pkg-config --libs json-c)
@@ -24,7 +24,7 @@ bench-json-c-clang: bench-json-c.c
 	clang bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-clang $(shell pkg-config --libs json-c)
 
 bench-yyjson: bench-yyjson.c
-	gcc bench-yyjson.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-yyjson $(shell pkg-config --libs json-c)
+	gcc bench-yyjson.c -O3 -g -I../ $(shell pkg-config --cflags yyjson) -o bench-yyjson $(shell pkg-config --libs yyjson)
 
 
 jsoncons/:
