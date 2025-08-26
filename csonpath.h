@@ -181,6 +181,7 @@ again:
 	{
 		int end;
 
+	  do_array:
 		cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 		++walker;
 		if (*walker == '*') {
@@ -328,9 +329,22 @@ again:
 			inst = CSONPATH_INST_FIND_ALL;
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 			++walker;
-		}
+		} else if (*walker == '*') {
+		    inst = CSONPATH_INST_GET_ALL;
+		    ++walker;
+		    if (*walker != '.' && *walker != '[' && *walker != '\0')
+			CSONPATH_COMPILE_ERR(tmp, walker - orig, "unsuported characters '%c' after '*'", *walker);
+		    csonpath_push_inst(cjp, inst);
+		    to_check = *walker;
+		    goto again;
+		} 
 		for (next = walker; *next && *next != '[' && *next != '.' && *next != '|';
 		     ++next);
+		if (next == walker) {
+		    if (*next == '[')
+			goto do_array;
+		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "empty getter");
+		}
 		to_check = *next;
 		*next = 0;
 
