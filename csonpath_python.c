@@ -149,7 +149,7 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 
   if (csonpath_compile(ret) < 0) {
     char *error = ret->compile_error;
-    PyErr_Format(PyExc_ValueError, "compilation fail %s", error);
+    PyErr_Format(PyExc_ValueError, "compilation fail %s", error ? error : "(unknow error)");
     csonpath_destroy(ret);
     return NULL;
   }
