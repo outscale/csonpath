@@ -1,6 +1,15 @@
 #ifndef CSONPATH_YYJSON_H_
 #define CSONPATH_YYJSON_H_
 
+/*
+ * !!!!!! WARNING !!!!!!!
+ * This lib implement csonpath with yyjson_val, and as sure
+ * are not mutable,so only non mutable functions work here
+ * also, it has its own return type for find_all:
+ * struct find_all_ret *, which need to be free using:
+ * free_find_all
+ */
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -27,7 +36,7 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 #define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
       _Bool r = 0;						\
       if (yyjson_get_type(obj) == YYJSON_TYPE_STR)		\
-	r = !strcmp(yyjson_get_str(obj), to_cmp);	\
+	  r = !strcmp(yyjson_get_str(obj), to_cmp);		\
       r;							\
     })
 

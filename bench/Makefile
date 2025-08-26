@@ -1,4 +1,4 @@
-all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-jsoncons
+all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-jsoncons bench-yyjson
 	python bench-jsonpath-ng.py
 	node bench-jsonpath.js
 	cargo run --release
@@ -6,6 +6,7 @@ all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-jsoncons
 	./bench-json-c-tcc
 	./bench-json-c-gcc
 	./bench-json-c-clang
+	./bench-yyjson
 
 .PHONY: all clean
 
@@ -21,6 +22,9 @@ bench-json-c-gcc: bench-json-c.c
 
 bench-json-c-clang: bench-json-c.c
 	clang bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-clang $(shell pkg-config --libs json-c)
+
+bench-yyjson: bench-yyjson.c
+	gcc bench-yyjson.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-yyjson $(shell pkg-config --libs json-c)
 
 
 jsoncons/:

@@ -13,55 +13,70 @@ jsonpath-ng for python
 cargo for rust
 
 
-# bench result (19/08/2025) on macos
+# bench result (26/08/2025) on macos
 
 ```
+python bench-jsonpath-ng.py
 jsonpath-ng Query: $.store.book[*].title
-jsonpath-ng Results: 5000, Time: 8.291868 seconds
+jsonpath-ng Results: 5000, Time: 8.190528 seconds
 
 csonpath python Query: $.store.book[*].title
-csonpath python Results: 5000, Time: 0.195057 seconds
+csonpath python Results: 5000, Time: 0.198578 seconds
 
 jsonpath-ng Query: $..title
-jsonpath-ng Results: 5000, Time: 31.199278 seconds
+jsonpath-ng Results: 5000, Time: 30.959582 seconds
 
 csonpath python Query: $..title
-csonpath python Results: 5000, Time: 0.148505 seconds
+csonpath python Results: 5000, Time: 0.149349 seconds
 
 node bench-jsonpath.js
 Query: $.store.book[*].title
-Results: 5000, Time: 0.885409 seconds
+Results: 5000, Time: 0.881951 seconds
 
 Query: $..title
-Results: 5000, Time: 1.690542 seconds
+Results: 5000, Time: 1.605545 seconds
 
 cargo run --release
 Query: $.store.book[*].title
-Results: 5000, Time: 1.193257834s
+Results: 5000, Time: 1.18956625s
 
 Query: $..title
-Results: 5000, Time: 3.439993458s
+Results: 5000, Time: 3.42593s
 
 ./bench-jsoncons
 Query: $.store.book[*].title
-Results: 5000, Time: 0.159941 seconds
+Results: 5000, Time: 0.159977 seconds
 
 Query: $..title
-Results: 5000, Time: 0.261324 seconds
+Results: 5000, Time: 0.244324 seconds
 
 ./bench-json-c-tcc
 recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.161415 seconds
+Results: 5000, in 1000 loop, Time: 0.156014 seconds
 
 recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.237807 seconds
+Results: 5000, in 1000 loop, Time: 0.239929 seconds
+
+./bench-json-c-gcc
+recompile Query: $.store.book[*].title
+Results: 5000, in 1000 loop, Time: 0.129898 seconds
+
+recompile Query: $..title
+Results: 5000, in 1000 loop, Time: 0.156560 seconds
 
 ./bench-json-c-clang
 recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.130240 seconds
+Results: 5000, in 1000 loop, Time: 0.464044 seconds
 
 recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.157839 seconds
+Results: 5000, in 1000 loop, Time: 0.823912 seconds
+
+./bench-yyjson
+recompile Query: $.store.book[*].title
+Results: 5000, in 1000 loop, Time: 0.038708 seconds
+
+recompile Query: $..title
+Results: 5000, in 1000 loop, Time: 0.074619 seconds
 ```
 
 # bench result (19/08/2025) on Arch Linux BTW
