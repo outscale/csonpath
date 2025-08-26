@@ -37,6 +37,16 @@ int main(void)
   assert(iret == 1);
   csonpath_set_path(&p, "$.array[?b=\"oh no !\"]");
   assert(csonpath_find_first(&p, jobj));
+
+  json_object_put(jobj);
+  csonpath_destroy(&p);
+
+  jobj = json_tokener_parse("{\"ha\": [ {\"h\": \"Leodagan\"}"
+			    ", {\"h\": \"George\"} ]}");
+  assert(csonpath_init(&p, "$.ha[?h != \"Leodagan\"]") >= 0);
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+  json_object_put(ret);
   json_object_put(jobj);
   csonpath_destroy(&p);
 }

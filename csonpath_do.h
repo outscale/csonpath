@@ -161,9 +161,11 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	    walker += cjp->inst_lst[idx].next;
 	    break;
 	case CSONPATH_INST_FILTER_KEY_EQ:
+	case CSONPATH_INST_FILTER_KEY_NOT_EQ:
 	{
 	    CSONPATH_JSON el;
 	    char *filter_key = walker;
+	    int operation = cjp->inst_lst[idx].inst;
 	    walker += cjp->inst_lst[idx].next;
 	    ++idx;
 
@@ -178,7 +180,9 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 
 			CSONPATH_FOREACH_EXT(el, el2, {
 				if (!strcmp((char *)neested_key, filter_key)) {
-				    if (CSONPATH_EQUAL_STR(el2, walker)) {
+				    _Bool eq_ret = CSONPATH_EQUAL_STR(el2, walker);
+				    if ((operation == CSONPATH_INST_FILTER_KEY_NOT_EQ && !eq_ret) ||
+					(operation == CSONPATH_INST_FILTER_KEY_EQ && eq_ret)) {
 					CSONPATH_DO_RET_TYPE tret =
 					    csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
 								 walker + cjp->inst_lst[idx].next

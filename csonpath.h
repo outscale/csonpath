@@ -30,6 +30,7 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_GET_ARRAY_SMALL,
 	CSONPATH_INST_GET_ARRAY_BIG,
 	CSONPATH_INST_FILTER_KEY_EQ,
+	CSONPATH_INST_FILTER_KEY_NOT_EQ,
 	CSONPATH_INST_FILTER_OPERAND_STR,
 	CSONPATH_INST_FILTER_OPERAND_BYTE, /* store the same way it's in ARRAY_SMALL  */
 	CSONPATH_INST_FILTER_OPERAND_INT, /* store the same way it's in ARRAY_BIG  */
@@ -194,25 +195,49 @@ again:
 			to_check = *walker;
 			goto again;
 		} else if (*walker == '?') {
+			int have_blank;
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 			++walker;
 			for (next = walker; isalnum(*next); ++next);
 			if (!*next) {
+				CSONPATH_COMPILE_ERR(tmp, walker - orig,
+						     "filter miss condition");
 				goto error;
 			}
 			to_check = *next;
 			*next = 0;
-			for (++next; isblank(*next); ++next);
-			if (!*next)
+			have_blank = isblank(to_check);
+
+			for (++next; isblank(*next); ++next) {
+				have_blank = 1;
+			}
+
+			if (*next && have_blank &&
+			    to_check != '=' && to_check != '!') {
+				to_check = *next;
+				++next;
+			}
+
+			if (!*next) {
+				CSONPATH_COMPILE_ERR(tmp, next - orig,
+						     "filter miss condition");
+
 				goto error;
+			}
 			/* = and == are the same here */
 			if (to_check == '=') {
 				csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ);
 				if (next[0] == '=')
 					++next;
+			} else if (to_check == '!' && next[0] == '=') {
+				csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ);
+				++next;
 			} else {
+				CSONPATH_COMPILE_ERR(tmp, next - orig,
+						     "'%c': unsuported operation", to_check);
 				goto error;
 			}
+			for (;isblank(*next); ++next);
 			cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
 			walker = next;
 			if (*walker == '"' || *walker == '\'') {
@@ -221,8 +246,11 @@ again:
 				cjp->inst_lst[cjp->inst_idx - 1].next++;
 				csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_STR);
 				for (next = walker; *next && *next != end; ++next);
-				if (!*next)
+				if (!*next) {
+					CSONPATH_COMPILE_ERR(tmp, walker - orig,
+							     "broken filter");
 					goto error;
+				}
 				*next = 0;
 				++next;
 				to_check = *next;
@@ -230,8 +258,12 @@ again:
 				int n;
 
 				for (next = walker; isdigit(*next); ++next);
-				if (next == walker)
+				if (next == walker) {
+					CSONPATH_COMPILE_ERR(tmp, walker - orig,
+							     "'%c': broken filter with number",
+							     *walker);
 					goto error;
+				}
 				n = atoi(walker);
 				if (n < 100) {
 					*walker = n;
@@ -242,6 +274,8 @@ again:
 					csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT);
 				}
 				if (!*next) {
+					CSONPATH_COMPILE_ERR(tmp, walker - orig,
+							     "compilation error");
 					goto error;
 				}
 				to_check = *next;
