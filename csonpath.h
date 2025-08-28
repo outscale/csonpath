@@ -105,6 +105,20 @@ struct csonpath_child_info {
 	goto error;							\
     } while (0)
 
+#define CSONPATH_REQUIRE_ERR(c, on) do {		\
+	CSONPATH_COMPILE_ERR(tmp, on - orig,		\
+			     "'%c' require", c);	\
+	goto error;					\
+    } while (0)
+
+#define CSONPATH_SKIP(c, on) do {			\
+	if (*on != c) {					\
+	    CSONPATH_REQUIRE_ERR(c, on);		\
+	}						\
+	++on;						\
+    } while (0)
+
+
 static inline struct csonpath_child_info *csonpath_child_info_set(struct csonpath_child_info *child_info,
 								  CSONPATH_JSON j, const intptr_t key)
 {
@@ -168,10 +182,7 @@ int csonpath_compile(struct csonpath cjp[static 1])
 
 	tmp = strdup(cjp->path);
  root_again:
-	if (*walker != '$') {
-	    CSONPATH_COMPILE_ERR(tmp, walker - orig, "%s", "'$' needed");
-	}
-	++walker;
+	CSONPATH_SKIP('$', walker);
 	csonpath_push_inst(cjp, CSONPATH_INST_ROOT);
 	cjp->inst_lst[cjp->inst_idx - 1].next = 1;
 	to_check = *walker;
@@ -196,8 +207,16 @@ again:
 			goto again;
 		} else if (*walker == '?') {
 			int have_blank;
+			int have_parentesis = 0;
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 			++walker;
+			if (*walker == '(') {
+			  have_parentesis = 1;
+			  ++walker;
+			  CSONPATH_SKIP('@', walker);
+			  CSONPATH_SKIP('.', walker);
+			  for (; isblank(*walker); ++walker);
+			}
 			for (next = walker; isalnum(*next); ++next);
 			if (!*next) {
 				CSONPATH_COMPILE_ERR(tmp, walker - orig,
@@ -285,8 +304,13 @@ again:
 				for (next++; isblank(*next); ++next);
 				to_check = *next;
 			}
-			if (to_check != ']')
-				goto error;
+			if (have_parentesis) {
+			    CSONPATH_SKIP(')', next);
+			    to_check = *next;
+			}
+			if (to_check != ']') {
+			    CSONPATH_REQUIRE_ERR(']', next);
+			}
 			/* skipp space */
 			cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
 			walker = next + 1;
