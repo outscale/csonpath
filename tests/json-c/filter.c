@@ -48,5 +48,14 @@ int main(void)
   assert(ret);
   json_object_put(ret);
   json_object_put(jobj);
+
+  jobj = json_tokener_parse("{\"ha\": [ {\"i\": {\"h\": \"Leodagan\"}}"
+			    ", {\"h\": \"George\"} ]}");
+  assert(csonpath_init(&p, "$.ha[?i.h==\"Leodagan\"]") >= 0);
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+  json_object_put(ret);
+  json_object_put(jobj);
+
   csonpath_destroy(&p);
 }

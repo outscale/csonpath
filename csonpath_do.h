@@ -194,7 +194,6 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 			    CSONPATH_GETTER_ERR("filter support only comparaison with STR");
 
 			if (el2 != CSONPATH_NULL) {
-			    /* owalker += cjp->inst_lst[idx].next; */
 			    _Bool eq_ret = CSONPATH_EQUAL_STR(el2, owalker);
 			    if ((operation == CSONPATH_INST_FILTER_KEY_NOT_EQ && !eq_ret) ||
 				(operation == CSONPATH_INST_FILTER_KEY_EQ && eq_ret)) {

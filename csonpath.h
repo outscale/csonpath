@@ -244,15 +244,15 @@ again:
 		    have_parentesis = 1;
 		    ++walker;
 		    CSONPATH_SKIP('@', walker);
-		  filter_again:
 		    CSONPATH_SKIP('.', walker);
 		    cjp->inst_lst[cjp->inst_idx - 1].next += 3;
 		    for (; isblank(*walker); ++walker)
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 		}
+	      filter_again:
 		for (next = walker; isalnum(*next); ++next);
 		if (!*next) {
-		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
+		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "filter miss condition");
 		    goto error;
 		}
@@ -260,8 +260,11 @@ again:
 		*next = 0;
 		filter_getter[nb_getter_inst++] = (struct csonpath_instruction){.inst=inst,
 		    .next=next - walker};
-		if (to_check == '.')
+		if (to_check == '.') {
+		    filter_getter[nb_getter_inst-1].next += 1;
+		    walker = next + 1;
 		    goto filter_again;
+		}
 
 		walker = next;
 		have_blank = isblank(to_check);

@@ -27,3 +27,8 @@ def test_filter():
     cp = csonpath.CsonPath("$.ha[?h != \"Leodagan\"].h")
     ret = cp.find_all(dict)
     assert(ret == ["George"])
+
+    dict = {"ha": [ {"h": {"h1": "Leodagan"}}, {"h": "George"} ]}
+    cp = csonpath.CsonPath("$.ha[?h.h1 = \"Leodagan\"].h.h1")
+    ret = cp.find_all(dict)
+    assert ret == ["Leodagan"], dict
