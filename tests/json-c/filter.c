@@ -46,6 +46,18 @@ int main(void)
   assert(csonpath_init(&p, "$.ha[?h != \"Leodagan\"]") >= 0);
   ret = csonpath_find_all(&p, jobj);
   assert(ret);
+
+  csonpath_set_path(&p, "$.ha[?h=~\"eo\"]");
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+  json_object_put(ret);
+
+  csonpath_set_path(&p, "$.ha[?h=~\"wololo\"]");
+  ret = csonpath_find_all(&p, jobj);
+  assert(!ret);
+
+  ret = csonpath_find_all(&p, jobj);
+  assert(!ret);
   json_object_put(ret);
   json_object_put(jobj);
 
@@ -55,6 +67,17 @@ int main(void)
   ret = csonpath_find_all(&p, jobj);
   assert(ret);
   json_object_put(ret);
+
+  assert(!csonpath_set_path(&p, "$.ha[?i.h =~ \"L*gan\"].i.h"));
+
+  if (csonpath_compile(&p) < 0) {
+    printf("compile error: %s\n", p.compile_error);
+  }
+  assert(iret);
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret);
+  json_object_put(ret);
+
   json_object_put(jobj);
 
   csonpath_destroy(&p);

@@ -1,4 +1,5 @@
 #if !defined(CSONPATH_JSON) || !defined(CSONPATH_NULL) || !defined(CSONPATH_GET) || \
+    !defined(CSONPATH_IS_STR) ||					\
   !defined(CSONPATH_AT) || !defined(CSONPATH_IS_OBJ) || !defined(CSONPATH_IS_ARRAY) || \
   !defined(CSONPATH_CALLBACK) || !defined(CSONPATH_CALLBACK_DATA) || \
   !defined(CSONPATH_EQUAL_STR) || !defined(CSONPATH_CALL_CALLBACK) || \
@@ -6,6 +7,10 @@
   !defined(CSONPATH_REMOVE_CHILD) || !defined(CSONPATH_NEED_FOREACH_REDO) || \
   !defined(CSONPATH_ARRAY_APPEND_INCREF) || !defined(CSONPATH_REMOVE)
 # error "some defined are missing"
+#endif
+
+#ifndef CSONPATH_NO_REGEX
+#include <regex.h>
 #endif
 
 #define CSONPATH_UNUSED __attribute__((unused))
@@ -31,6 +36,7 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_GET_ARRAY_BIG,
 	CSONPATH_INST_FILTER_KEY_EQ,
 	CSONPATH_INST_FILTER_KEY_NOT_EQ,
+	CSONPATH_INST_FILTER_KEY_REG_EQ,
 	CSONPATH_INST_FILTER_OPERAND_STR,
 	CSONPATH_INST_FILTER_OPERAND_BYTE, /* store the same way it's in ARRAY_SMALL  */
 	CSONPATH_INST_FILTER_OPERAND_INT, /* store the same way it's in ARRAY_BIG  */
@@ -50,6 +56,7 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"GET_ARRAY_BIG",
 	"FILTER_KEY_EQ",
 	"FILTER_KEY_NOT_EQ",
+	"FILTER_KEY_REG_EQ",
 	"FILTER_OPERAND_STR",
 	"FILTER_OPERAND_BYTE",
 	"FILTER_OPERAND_INT",
@@ -200,7 +207,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 	char *orig = walker;
 	char *next;
 	char to_check;
-	char *tmp;
+	char *tmp; /* tmp is only here for debug */
 
 	if (cjp->compiled)
 		return 0;
@@ -250,7 +257,7 @@ again:
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 		}
 	      filter_again:
-		for (next = walker; isalnum(*next); ++next);
+		for (next = walker; isalnum(*next) || *next == '_' || *next == '-'; ++next);
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "filter miss condition");
@@ -290,6 +297,10 @@ again:
 		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ);
 		    if (next[0] == '=')
 			++next;
+		    else if (next[0] == '~') {
+			cjp->inst_lst[cjp->inst_idx - 1].inst = CSONPATH_INST_FILTER_KEY_REG_EQ;
+			++next;			
+		    }
 		} else if (to_check == '!' && next[0] == '=') {
 		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ);
 		    ++next;

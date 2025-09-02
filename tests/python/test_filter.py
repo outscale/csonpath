@@ -31,4 +31,9 @@ def test_filter():
     dict = {"ha": [ {"h": {"h1": "Leodagan"}}, {"h": "George"} ]}
     cp = csonpath.CsonPath("$.ha[?h.h1 = \"Leodagan\"].h.h1")
     ret = cp.find_all(dict)
+
+    dict = {"ha": [ {"h": {"h1": "Leodagan"}}, {"h": "George"} ]}
+    cp = csonpath.CsonPath("$.ha[?h.h1 =~ \"gan\"].h.h1")
+    ret = cp.find_all(dict)
+
     assert ret == ["Leodagan"], dict

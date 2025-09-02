@@ -25,6 +25,7 @@
 
 #define CSONPATH_IS_OBJ(obj) (yyjson_get_type(obj) == YYJSON_TYPE_OBJ)
 #define CSONPATH_IS_ARRAY(obj) (yyjson_get_type(obj) == YYJSON_TYPE_ARR)
+#define CSONPATH_IS_STR(obj) (yyjson_get_type(obj) == YYJSON_TYPE_STR)
 
 struct csonpath_child_info;
 typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, yyjson_val *, void *);
@@ -32,6 +33,9 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 #define CSONPATH_CALLBACK yyjson_val_callback
 
 #define CSONPATH_CALLBACK_DATA void *
+
+#define CSONPATH_GET_STR(obj)			\
+    yyjson_get_str(obj)
 
 #define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
       _Bool r = 0;						\

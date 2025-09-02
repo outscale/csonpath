@@ -114,4 +114,4 @@ Feel free to open issues or pull requests!
 
 ## 📜 License
 BSD 3-Clause. See [LICENSE](LICENSE).
-
+remimu.h is under the CC0 1.0 Universal, original source is [here](https://github.com/wareya/Remimu)

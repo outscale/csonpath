@@ -161,7 +161,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	    walker += cjp->inst_lst[idx].next;
 	    break;
 	case CSONPATH_INST_FILTER_KEY_EQ:
-	     /* fall through */
+	case CSONPATH_INST_FILTER_KEY_REG_EQ:
 	case CSONPATH_INST_FILTER_KEY_NOT_EQ:
 	{
 	    CSONPATH_JSON el;
@@ -191,12 +191,39 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 			}
 			
 			if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
-			    CSONPATH_GETTER_ERR("filter support only comparaison with STR");
+			    CSONPATH_GETTER_ERR("unsuported instruction '%s' only FILTER_OPERAND_STR is supported here", csonpath_instuction_str[(int)cjp->inst_lst[idx].inst]);
 
 			if (el2 != CSONPATH_NULL) {
-			    _Bool eq_ret = CSONPATH_EQUAL_STR(el2, owalker);
-			    if ((operation == CSONPATH_INST_FILTER_KEY_NOT_EQ && !eq_ret) ||
-				(operation == CSONPATH_INST_FILTER_KEY_EQ && eq_ret)) {
+			    _Bool match = 0;
+			    switch (operation) {
+			    case CSONPATH_INST_FILTER_KEY_NOT_EQ:
+				match = !CSONPATH_EQUAL_STR(el2, owalker);
+				break;
+			    case CSONPATH_INST_FILTER_KEY_EQ:
+				match = CSONPATH_EQUAL_STR(el2, owalker);
+				break;
+			    case CSONPATH_INST_FILTER_KEY_REG_EQ:
+				#ifdef CSONPATH_NO_REGEX
+				CSONPATH_GETTER_ERR("regex deactivate\n");
+				return  CSONPATH_NONE_FOUND_RET;
+				#else
+				if (CSONPATH_IS_STR(el2)) {
+				    regex_t compiled;
+				    int e = regcomp(&compiled, owalker, 0);
+				    if (e) {
+					CSONPATH_GETTER_ERR("regex has error\n");
+					return  CSONPATH_NONE_FOUND_RET;
+				    }
+
+
+				    int match_len = regexec(&compiled, CSONPATH_GET_STR(el2),
+							    0, NULL, 0);
+				    match = match_len == 0;
+				}
+				break;
+				#endif
+			    }
+			    if (match) {
 				CSONPATH_DO_RET_TYPE tret =
 				    csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
 							 owalker + cjp->inst_lst[idx].next

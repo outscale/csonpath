@@ -18,6 +18,11 @@
 
 #define CSONPATH_IS_ARRAY(o) PyList_Check(o)
 
+#define CSONPATH_IS_STR(o) PyUnicode_Check(o)
+
+#define CSONPATH_GET_STR(obj)			\
+    PyUnicode_AsUTF8(obj)
+
 #define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
     _Bool r = 0;						\
       if (PyUnicode_Check(obj))	{				\
