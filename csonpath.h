@@ -176,9 +176,7 @@ static inline int csonpath_init(struct csonpath cjp[static 1],
 static inline int csonpath_set_path(struct csonpath cjp[static 1],
 				    const char path[static 1])
 {
-    free(cjp->path);
-    free(cjp->compile_error);
-    free(cjp->inst_lst);
+    csonpath_destroy(cjp);
     return csonpath_init(cjp, path);
 }
 

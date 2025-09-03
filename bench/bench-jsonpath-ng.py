@@ -13,8 +13,8 @@ data = {
 
 # JSONPath queries to benchmark
 queries = [
-    "$.store.book[?(@.title) =~ \"Book\"].title",
     "$.store.book[*].title",
+    "$.store.book[?(@.title) =~ \"Book\"].title",
     "$..title",
 ]
 
