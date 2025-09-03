@@ -285,13 +285,11 @@ again:
 		    goto filter_again;
 		}
 
-		if (have_parentesis) {
-		    if (to_check != ')') {
-			CSONPATH_REQUIRE_ERR(')', next);
-		    }
+		if (have_parentesis && to_check == ')') {
 		    filter_getter[nb_getter_inst-1].next += 1;
 		    ++next;
 		    to_check = *next;
+		    have_parentesis = 0;
 		}
 
 		walker = next;
@@ -394,6 +392,11 @@ again:
 		}
 		if (isblank(to_check)) {
 		    for (next++; isblank(*next); ++next);
+		    to_check = *next;
+		}
+
+		if (have_parentesis) {
+		    CSONPATH_SKIP(')', next);
 		    to_check = *next;
 		}
 		if (to_check != ']') {

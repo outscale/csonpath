@@ -53,7 +53,7 @@ int main(void)
   assert(ret);
   json_object_put(ret);
 
-  csonpath_set_path(&p, "$.ha[?(@.h)=~\"eo\"]");
+  csonpath_set_path(&p, "$.ha[?(@.h=~\"eo\")]");
   ret = csonpath_find_all(&p, jobj);
   assert(ret);
   json_object_put(ret);
