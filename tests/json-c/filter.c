@@ -58,13 +58,13 @@ int main(void)
   json_object_put(ret);
 
   csonpath_set_path(&p, "$.ha[?h=~\"wololo\"]");
-  ret = csonpath_find_all(&p, jobj);
-  assert(!ret);
 
   ret = csonpath_find_all(&p, jobj);
   assert(!ret);
+
   json_object_put(ret);
   json_object_put(jobj);
+  csonpath_destroy(&p);
 
   jobj = json_tokener_parse("{\"ha\": [ {\"i\": {\"h\": \"Leodagan\"}}"
 			    ", {\"h\": \"George\"} ]}");
