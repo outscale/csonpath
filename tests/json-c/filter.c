@@ -46,6 +46,7 @@ int main(void)
   assert(csonpath_init(&p, "$.ha[?h != \"Leodagan\"]") >= 0);
   ret = csonpath_find_all(&p, jobj);
   assert(ret);
+  json_object_put(ret);
 
   csonpath_set_path(&p, "$.ha[?h=~\"eo\"]");
   ret = csonpath_find_all(&p, jobj);
