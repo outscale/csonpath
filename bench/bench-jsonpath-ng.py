@@ -1,6 +1,6 @@
 import json
 import time
-from jsonpath_ng import parse
+from jsonpath_ng.ext import parse
 import csonpath
 
 # Create a large test dataset
@@ -13,6 +13,7 @@ data = {
 
 # JSONPath queries to benchmark
 queries = [
+    "$.store.book[?(@.title) =~ \"Book\"].title",
     "$.store.book[*].title",
     "$..title",
 ]

@@ -273,6 +273,15 @@ again:
 		    goto filter_again;
 		}
 
+		if (have_parentesis) {
+		    if (to_check != ')') {
+			CSONPATH_REQUIRE_ERR(')', next);
+		    }
+		    filter_getter[nb_getter_inst-1].next += 1;
+		    ++next;
+		    to_check = *next;
+		}
+
 		walker = next;
 		have_blank = isblank(to_check);
 
@@ -360,10 +369,6 @@ again:
 		}
 		if (isblank(to_check)) {
 		    for (next++; isblank(*next); ++next);
-		    to_check = *next;
-		}
-		if (have_parentesis) {
-		    CSONPATH_SKIP(')', next);
 		    to_check = *next;
 		}
 		if (to_check != ']') {
