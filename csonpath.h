@@ -74,9 +74,12 @@ enum {
 };
 
 struct csonpath_instruction {
-	char inst;
-	char filter_next;
-	short int next;
+    unsigned char inst;
+    union {
+	unsigned char filter_next;
+	unsigned char regex_idx;
+    };
+    short int next;
 };
 
 #define CSONPATH_INST_MIN_ALLOC (1 << 7)
@@ -88,6 +91,10 @@ struct csonpath {
     int compiled;
     int inst_idx;
     int inst_size;
+#ifndef CSONPATH_NO_REGEX
+    int regex_cnt;
+    regex_t *regexs;
+#endif
 };
 
 struct csonpath_child_info {
@@ -146,6 +153,12 @@ static inline void csonpath_destroy(struct csonpath cjp[static 1])
 	free(cjp->path);
 	free(cjp->inst_lst);
 	free(cjp->compile_error);
+	if (cjp->regex_cnt) {
+	    for (int i = 0; i < cjp->regex_cnt; ++i) {
+		regfree(&cjp->regexs[i]);
+	    }
+	    free(cjp->regexs);
+	}
 	*cjp = (struct csonpath){};
 }
 
@@ -242,6 +255,7 @@ again:
 		int have_parentesis = 0;
 		int nb_getter_inst = 0;
 		struct csonpath_instruction filter_getter[CSONPATH_TMP_BUF_SIZE];
+		int regex_idx = -1;
 		int inst;
 
 		inst = CSONPATH_INST_GET_OBJ;
@@ -308,7 +322,8 @@ again:
 			++next;
 		    else if (next[0] == '~') {
 			cjp->inst_lst[cjp->inst_idx - 1].inst = CSONPATH_INST_FILTER_KEY_REG_EQ;
-			++next;			
+			regex_idx = cjp->regex_cnt++;
+			++next;
 		    }
 		} else if (to_check == '!' && next[0] == '=') {
 		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ);
@@ -338,6 +353,18 @@ again:
 			goto error;
 		    }
 		    *next = 0;
+#ifndef CSONPATH_NO_REGEX
+		    if (regex_idx >= 0) {
+			if (!regex_idx)
+			    cjp->regexs = malloc(sizeof *cjp->regexs * 255);
+			int e = regcomp(&cjp->regexs[regex_idx], walker, 0);
+			cjp->inst_lst[cjp->inst_idx - 1].regex_idx = regex_idx;
+			if (e) {
+			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error\n");
+			    goto error;
+			}
+		    }
+#endif
 		    ++next;
 		    to_check = *next;
 		} else {

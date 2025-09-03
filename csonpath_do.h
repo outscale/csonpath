@@ -203,25 +203,19 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 				match = CSONPATH_EQUAL_STR(el2, owalker);
 				break;
 			    case CSONPATH_INST_FILTER_KEY_REG_EQ:
-				#ifdef CSONPATH_NO_REGEX
+#ifdef CSONPATH_NO_REGEX
 				CSONPATH_GETTER_ERR("regex deactivate\n");
 				return  CSONPATH_NONE_FOUND_RET;
-				#else
+#else
 				if (CSONPATH_IS_STR(el2)) {
-				    regex_t compiled;
-				    int e = regcomp(&compiled, owalker, 0);
-				    if (e) {
-					CSONPATH_GETTER_ERR("regex has error\n");
-					return  CSONPATH_NONE_FOUND_RET;
-				    }
-
-
-				    int match_len = regexec(&compiled, CSONPATH_GET_STR(el2),
+				    int regex_idx = cjp->inst_lst[idx].regex_idx;
+				    regex_t *compiled = &cjp->regexs[regex_idx];
+				    int match_len = regexec(compiled, CSONPATH_GET_STR(el2),
 							    0, NULL, 0);
 				    match = match_len == 0;
 				}
 				break;
-				#endif
+#endif
 			    }
 			    if (match) {
 				CSONPATH_DO_RET_TYPE tret =
