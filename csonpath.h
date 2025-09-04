@@ -509,6 +509,11 @@ again:
 	    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 	    goto root_again;
 	}
+	if (isblank(*walker)) {
+	    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	    ++walker;
+	    goto again;
+	}
 	if (*walker == 0) {
 	    csonpath_push_inst(cjp, CSONPATH_INST_END);
 	    cjp->compiled = 1;
