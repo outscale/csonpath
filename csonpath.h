@@ -212,6 +212,11 @@ static void csonpath_print_instruction(struct csonpath cjp[static 1])
     printf("%d: END\n", idx);
 }
 
+static inline _Bool csonpath_is_dot_operand(int c)
+{
+    return isalnum(c) || c == '_' || c == '-';
+}
+
 static int csonpath_compile(struct csonpath cjp[static 1])
 {
 	char *walker = cjp->path;
@@ -269,7 +274,7 @@ again:
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 		}
 	      filter_again:
-		for (next = walker; isalnum(*next) || *next == '_' || *next == '-'; ++next);
+		for (next = walker; csonpath_is_dot_operand(*next); ++next);
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "filter miss condition");
@@ -487,8 +492,7 @@ again:
 		to_check = *walker;
 		goto again;
 	    } 
-	    for (next = walker; *next && *next != '[' && *next != '.' && *next != '|';
-		 ++next);
+	    for (next = walker; csonpath_is_dot_operand(*next); ++next);
 	    if (next == walker) {
 		if (*next == '[')
 		    goto do_array;
@@ -514,11 +518,13 @@ again:
 	    ++walker;
 	    goto again;
 	}
-	if (*walker == 0) {
+	else if (*walker == 0) {
 	    csonpath_push_inst(cjp, CSONPATH_INST_END);
 	    cjp->compiled = 1;
 	    free(tmp);
 	    return 0;
+	} else {
+	    CSONPATH_COMPILE_ERR(tmp, walker - orig, "unexpected char '%c'", to_check);
 	}
   error:
 	cjp->inst_lst[0] = (struct csonpath_instruction){.inst=CSONPATH_INST_BROKEN};

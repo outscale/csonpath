@@ -32,6 +32,20 @@ int main(void)
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
 
+  TRY(csonpath_set_path(&p, "$['b'].B  "));
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+
+  TRY(csonpath_set_path(&p, "$['b'].[\"B\"]  "));
+  if (csonpath_compile(&p) < 0) {
+    printf("compile error: %s\n", p.compile_error);
+  }
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+
+
+  assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
+
   TRY(csonpath_set_path(&p, "$.b.B"));
   ret = csonpath_find_first(&p, jobj);
   assert(ret);

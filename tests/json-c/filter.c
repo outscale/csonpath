@@ -2,12 +2,15 @@
 #include <assert.h>
 #include "csonpath_json-c.h"
 
+// $.compute[?dn="sys/chassis-1/blade-6"].vendor
+
 const char *json_str = "{"
 	" \"array\": ["
 	"{\"a\": \"la\", \"b\": 1},"
 	"{\"a\": 2, \"b\": \"la\"},"
 	"{\"b\": 4}"
-	"]"
+	"],"
+  	"\"compute\": [{\"dn\": \"sys/chassis-1/blade-6\", \"vendor\": \"coucou\"}]"
   "}";
 
 void update_callback(json_object *parent, struct csonpath_child_info *c_nfo,
