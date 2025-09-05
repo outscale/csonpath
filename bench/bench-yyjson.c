@@ -45,7 +45,7 @@ int main() {
 
     const char *queries[] = {
         "$.store.book[*].title",
-        "$.store.book[?title =~ \"Book\"].title",
+        "$.store.book[?title =~ /Book/].title",
         "$..title",
     };
     size_t query_count = sizeof(queries) / sizeof(queries[0]);

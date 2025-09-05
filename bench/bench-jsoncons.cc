@@ -36,6 +36,7 @@ int main() {
 
     std::vector<std::string> queries = {
         "$.store.book[*].title",
+        "$.store.book[?(@.title =~ /Book/)].title",
 	"$..title"
     };
 

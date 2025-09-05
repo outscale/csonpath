@@ -380,7 +380,7 @@ again:
 		}
 		cjp->inst_lst[cjp->inst_idx - 1].next += next - walker;
 		walker = next;
-		if (*walker == '"' || *walker == '\'') {
+		if (*walker == '"' || *walker == '\'' || *walker == '/') {
 		    char end = *walker;
 		    ++walker;
 		    cjp->inst_lst[cjp->inst_idx - 1].next++;
