@@ -30,9 +30,22 @@ int main(void)
   assert(csonpath_init(&p, "$.array[?a=\"la\"]") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
+
+  csonpath_set_path(&p, "$.array[?[\"a\"]==\"la\"]");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+
+  csonpath_set_path(&p, "$.array[?(@[\"a\"]==\"la\")]");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+
   int iret = csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'C"));
   assert(iret == 1);
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(jobj_ar, 0)), "la y'a l'C"));
+
+  csonpath_set_path(&p, "$.compute[?dn=\"sys/chassis-1/blade-6\"].vendor");
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
 
   csonpath_set_path(&p, "$.array[?b=\"la\"]");
   iret = csonpath_update_or_ceate_callback(&p, jobj, update_callback,
@@ -77,7 +90,7 @@ int main(void)
   assert(ret);
   json_object_put(ret);
 
-  assert(!csonpath_set_path(&p, "$.ha[?i.h =~ \"L*gan\"].i.h"));
+  assert(!csonpath_set_path(&p, "$.ha[?i.h =~ \"gan\"].i.h"));
 
   if (csonpath_compile(&p) < 0) {
     printf("compile error: %s\n", p.compile_error);
@@ -86,6 +99,19 @@ int main(void)
   ret = csonpath_find_all(&p, jobj);
   assert(ret);
   json_object_put(ret);
+  assert(csonpath_find_first(&p, jobj));  
+
+  assert(!csonpath_set_path(&p, "$.ha[?(@[\"i\"].h =~ \"gan\")].i.h"));
+  assert(csonpath_find_first(&p, jobj));
+
+  assert(!csonpath_set_path(&p, "$.ha[?(@.i[\"h\"] =~ \"gan\")].i.h"));
+  assert(csonpath_find_first(&p, jobj));
+
+  assert(!csonpath_set_path(&p, "$.ha[?(@[\"i\"][\"h\"] =~ \"gan\")].i.h"));
+  assert(csonpath_find_first(&p, jobj));
+
+  assert(!csonpath_set_path(&p, "$.ha[?(@[\"i\"][\"h\"] =~ \"gan\")][\"i\"][\"h\"]"));
+  assert(csonpath_find_first(&p, jobj));
 
   json_object_put(jobj);
 

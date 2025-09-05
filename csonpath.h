@@ -129,12 +129,15 @@ struct csonpath_child_info {
 	goto error;					\
     } while (0)
 
-#define CSONPATH_SKIP(c, on) do {			\
-	if (*on != c) {					\
-	    CSONPATH_REQUIRE_ERR(c, on);		\
-	}						\
-	++on;						\
+#define CSONPATH_SKIP_2(c, check, on) do {			\
+	if (check) {						\
+	    CSONPATH_REQUIRE_ERR(c, on);			\
+	}							\
+	++on;							\
     } while (0)
+
+#define CSONPATH_SKIP(c, on)			\
+    CSONPATH_SKIP_2(c, *on != c, on)
 
 
 static inline struct csonpath_child_info *csonpath_child_info_set(struct csonpath_child_info *child_info,
@@ -258,23 +261,45 @@ again:
 		int have_parentesis = 0;
 		int nb_getter_inst = 0;
 		struct csonpath_instruction filter_getter[CSONPATH_TMP_BUF_SIZE];
+		struct csonpath_instruction *last_inst;
 		int regex_idx = -1;
 		int inst;
+		int getter_end = 0;
 
 		inst = CSONPATH_INST_GET_OBJ;
 		cjp->inst_lst[cjp->inst_idx - 1].next += 1;
 		++walker;
+		last_inst = &cjp->inst_lst[cjp->inst_idx - 1];
 		if (*walker == '(') {
 		    have_parentesis = 1;
 		    ++walker;
 		    CSONPATH_SKIP('@', walker);
-		    CSONPATH_SKIP('.', walker);
+		    if (*walker == '[') {
+			++walker;
+			getter_end = *walker;
+		    } else {
+			CSONPATH_SKIP('.', walker);
+		    }
 		    cjp->inst_lst[cjp->inst_idx - 1].next += 3;
 		    for (; isblank(*walker); ++walker)
 			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+		} else if (*walker == '[') {
+		    ++walker;
+		    last_inst->next++;
+		    getter_end = *walker;
 		}
 	      filter_again:
-		for (next = walker; csonpath_is_dot_operand(*next); ++next);
+		if (getter_end) {
+		    if (getter_end != '\'' && getter_end != '"') {
+			CSONPATH_COMPILE_ERR(tmp, walker - orig,
+					     "string require here, got '%c'", getter_end);
+		    }
+		    last_inst->next += 1;
+		    ++walker;
+		    for (next = walker; *next != getter_end; ++next);
+		} else {
+		    for (next = walker; csonpath_is_dot_operand(*next); ++next);
+		}
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "filter miss condition");
@@ -282,13 +307,26 @@ again:
 		}
 		to_check = *next;
 		*next = 0;
+		if (getter_end) {
+		    CSONPATH_SKIP_2(getter_end, to_check != getter_end, next);
+		    CSONPATH_SKIP(']', next);
+		    to_check = *next;
+		    getter_end = 0;
+		}
 		filter_getter[nb_getter_inst++] = (struct csonpath_instruction){.inst=inst,
 		    .next=next - walker};
+		last_inst = &filter_getter[nb_getter_inst - 1];
 		if (to_check == '.') {
-		    filter_getter[nb_getter_inst-1].next += 1;
+		    filter_getter[nb_getter_inst - 1].next += 1;
 		    walker = next + 1;
 		    goto filter_again;
+		} else if (to_check == '[') {
+		    filter_getter[nb_getter_inst - 1].next += 1;
+		    walker = next + 1;
+		    getter_end = *walker;
+		    goto filter_again;
 		}
+
 
 		if (have_parentesis && to_check == ')') {
 		    filter_getter[nb_getter_inst-1].next += 1;
