@@ -62,14 +62,29 @@
       PyList_Append(array, el);				\
     })
 
-static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
+static int pydict_try_setitemstring(PyObject *obj,  const char * const at, PyObject *el)
 {
+    if (!PyDict_Check(obj)) {
+	PyErr_Format(PyExc_ValueError, "Unable to follow path: Dict expected");
+	return -1;
+    }
+    PyDict_SetItemString(obj, at, el);
+    return 1;
+}
+
+static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
+{
+    if (!PyList_Check(array)) {
+	PyErr_Format(PyExc_ValueError, "Unable to follow path: List expected");
+	return -1;
+    }
     if (at >= PyList_Size(array)) {
 	PyList_Insert(array, at, el);
     } else {
 	Py_INCREF(el);
 	PyList_SetItem(array, at, el);
     }
+    return 1;
 }
 
 #define CSONPATH_APPEND_AT(array, at, el)			\
@@ -80,12 +95,12 @@ static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject 
 	     unsigned long: python_set_or_insert_item,		\
 	     long long: python_set_or_insert_item,		\
 	     unsigned long long: python_set_or_insert_item,	\
-	     const char *: PyDict_SetItemString,		\
-	     char *: PyDict_SetItemString			\
+	     const char *: pydict_try_setitemstring,		\
+	     char *: pydict_try_setitemstring			\
 	) (array, at, el)
 
 
-#define CSONPATH_FOREACH_EXT(obj, el, code, key_idx)				\
+#define CSONPATH_FOREACH_EXT(obj, el, code, key_idx)			\
   if (PyDict_Check(obj)) {						\
     PyObject *key_;							\
     Py_ssize_t pos_ = 0;						\
@@ -220,6 +235,8 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
   if (!PyArg_ParseTuple(args, "OO", &json, &value))
     BAD_ARG();
   int ret = csonpath_update_or_ceate(self->cp, json, value);
+  if (ret < 0)
+      return NULL;
   return PyLong_FromLong(ret);
 }
 

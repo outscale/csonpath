@@ -70,17 +70,37 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 
 #define CSONPATH_NEW_OBJECT() json_object_new_object()
 
-#define CSONPATH_APPEND_AT(array, at, el)			\
-	_Generic((at),						\
-		 int: json_object_array_put_idx,		\
-		 unsigned int: json_object_array_put_idx,	\
-		 long: json_object_array_put_idx,		\
-		 unsigned long: json_object_array_put_idx,	\
-		 long long: json_object_array_put_idx,		\
-		 unsigned long long: json_object_array_put_idx,	\
-		 const char *: json_object_object_add,		\
-		 char *: json_object_object_add			\
-		) (array, at, el)
+static int json_object_try_object_add(struct json_object *obj, const char * const at,
+				      struct json_object *el)
+{
+    if (!CSONPATH_IS_OBJ(obj)) {
+	return -1;
+    }
+    json_object_object_add(obj, at, el);
+    return 1;
+}
+
+static int json_array_try_put(struct json_object *obj, int at,
+			      struct json_object *el)
+{
+    if (!CSONPATH_IS_ARRAY(obj)) {
+	return -1;
+    }
+    json_object_array_put_idx(obj, at, el);
+    return 1;
+}
+
+#define CSONPATH_APPEND_AT(array, at, el)		\
+    _Generic((at),					\
+	     int: json_array_try_put,			\
+	     unsigned int: json_array_try_put,		\
+	     long: json_array_try_put,			\
+	     unsigned long: json_array_try_put,		\
+	     long long: json_array_try_put,		\
+	     unsigned long long: json_array_try_put,	\
+	     const char *: json_object_try_object_add,	\
+	     char *: json_object_try_object_add		\
+	) (array, at, el)
 
 #define CSONPATH_ARRAY_APPEND_INCREF(array, el) ({	\
       json_object_get(el);				\

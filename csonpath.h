@@ -571,16 +571,20 @@ again:
 }
 
 /* helper use multiple times */
-#define CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)		\
-	if (to_check == CSONPATH_INST_GET_OBJ) {	\
-		tmp = CSONPATH_NEW_OBJECT();		\
-		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	} else {					\
-		tmp = CSONPATH_NEW_ARRAY();		\
-		CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	}						\
-	walker += cjp->inst_lst[idx].next;		\
-	goto next_inst;
+#define CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)			\
+    do {								\
+	int append_ret = 0;						\
+	if (to_check == CSONPATH_INST_GET_OBJ) {			\
+	    tmp = CSONPATH_NEW_OBJECT();				\
+	    append_ret = CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	} else {							\
+	    tmp = CSONPATH_NEW_ARRAY();					\
+	    append_ret = CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	}								\
+	walker += cjp->inst_lst[idx].next;				\
+	if (append_ret < 0) return append_ret;				\
+	goto next_inst;							\
+    } while (0)
 
 #define CSONPATH_GOTO_ON_RELOOP(where)		\
     nb_res += tret; if (need_reloop_in) goto where;
@@ -730,9 +734,9 @@ again:
 	if (tmp == value) {						\
 		*need_reloop = 1;					\
 		if (child_info->type == CSONPATH_INTEGER)		\
-			CSONPATH_APPEND_AT(ctx, child_info->idx, to_update); \
+			return CSONPATH_APPEND_AT(ctx, child_info->idx, to_update); \
 		else							\
-			CSONPATH_APPEND_AT(ctx, child_info->key, to_update); \
+			return CSONPATH_APPEND_AT(ctx, child_info->key, to_update); \
 		return 1;						\
 	}								\
 	return 0;

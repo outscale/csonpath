@@ -69,11 +69,11 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 
 
 #define CSONPATH_APPEND_AT(array, at, el)	\
-    fail_on_non_mut(NULL)			\
+  fail_on_non_mut(NULL)				\
 
 
 #define CSONPATH_REMOVE_CHILD(a, b)		\
-    fail_on_non_mut(NULL)
+  fail_on_non_mut(NULL)
 
 #define CSONPATH_NEED_FOREACH_REDO(o) 0
 
@@ -109,10 +109,11 @@ static inline void free_find_all(struct find_all_ret *far) {
     free(far);
 }
 
-static inline void fail_on_non_mut(yyjson_val *o_) {
+static inline int fail_on_non_mut(yyjson_val *o_) {
     fprintf(stderr, "unssuported on mut");
     abort();
     (void)o_;
+    return -1;
 }
 
 static inline yyjson_val *CSONPATH_NEW_ARRAY() {
