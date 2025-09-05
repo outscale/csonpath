@@ -29,3 +29,13 @@ def test_update_create():
         assert(e[2]["a"] == [1,2,3])
         assert(e[3]["a"] == 0)
         assert(e[4]["a"] == 5)
+
+
+def test_a_b_c():
+        path = "$.a.b.c"
+        o = csonpath.CsonPath(path)
+        
+        d = {}
+        o.update_or_create(d, [])
+        assert d["a"]["b"]["c"] == []
+

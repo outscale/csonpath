@@ -73,16 +73,16 @@ static void python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject 
 }
 
 #define CSONPATH_APPEND_AT(array, at, el)			\
-	_Generic((at),						\
-		 int: python_set_or_insert_item,				\
-		 unsigned int: python_set_or_insert_item,			\
-		 long: python_set_or_insert_item,				\
-		 unsigned long: python_set_or_insert_item,			\
-		 long long: python_set_or_insert_item,			\
-		 unsigned long long: python_set_or_insert_item,		\
-		 const char *: PyDict_SetItemString,		\
-		 char *: PyDict_SetItemString			\
-		 ) (array, at, el)
+    _Generic((at),						\
+	     int: python_set_or_insert_item,			\
+	     unsigned int: python_set_or_insert_item,		\
+	     long: python_set_or_insert_item,			\
+	     unsigned long: python_set_or_insert_item,		\
+	     long long: python_set_or_insert_item,		\
+	     unsigned long long: python_set_or_insert_item,	\
+	     const char *: PyDict_SetItemString,		\
+	     char *: PyDict_SetItemString			\
+	) (array, at, el)
 
 
 #define CSONPATH_FOREACH_EXT(obj, el, code, key_idx)				\
@@ -243,10 +243,6 @@ static void PyCsonPath_dealloc(PyCsonPathObject *self) {
 }
 
 
-static PyObject *PyCsonPath_get_path(PyCsonPathObject *self) {
-    return PyUnicode_FromString(self->cp->path);
-}
-
 static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
     const char *new_path;
     if (!PyArg_ParseTuple(args, "s", &new_path))
@@ -258,7 +254,6 @@ static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
 }
 
 static PyMethodDef csonpath_py_method[] = {
-    {"get_path", (PyCFunction)PyCsonPath_get_path, METH_VARARGS, "get_path"},
     {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
     {"callback", (PyCFunction)callback, METH_VARARGS, "callback"},
     {"update_or_create_callback", (PyCFunction)update_or_create_callback, METH_VARARGS, "update_or_create_callback"},
