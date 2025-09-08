@@ -8,7 +8,13 @@ all: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-jsoncons bench-y
 	./bench-json-c-clang
 	./bench-yyjson
 
-.PHONY: all clean
+.PHONY: all clean bench_csonpath
+
+bench_csonpath: bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-yyjson
+	./bench-json-c-tcc
+	./bench-json-c-gcc
+	./bench-json-c-clang
+	./bench-yyjson
 
 
 clean:
