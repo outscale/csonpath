@@ -39,7 +39,7 @@ int main(void)
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
 
-  int iret = csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'C"));
+  int iret = csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a l'C"));
   assert(iret == 1);
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(jobj_ar, 0)), "la y'a l'C"));
 
@@ -48,7 +48,7 @@ int main(void)
   assert(ret);
 
   csonpath_set_path(&p, "$.array[?b=\"la\"]");
-  iret = csonpath_update_or_ceate_callback(&p, jobj, update_callback,
+  iret = csonpath_update_or_create_callback(&p, jobj, update_callback,
 					   "oh no !");
   assert(iret == 1);
   csonpath_set_path(&p, "$.array[?b=\"oh no !\"]");

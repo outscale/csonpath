@@ -723,7 +723,7 @@ again:
 	int nb_res = 0;
 
 #define CSONPATH_DO_RET_TYPE int
-#define CSONPATH_DO_FUNC_NAME update_or_ceate
+#define CSONPATH_DO_FUNC_NAME update_or_create
 
 /*
  * assuming tmp == value can only be true,
@@ -813,7 +813,7 @@ again:
 	int nb_res = 0;
 
 #define CSONPATH_DO_RET_TYPE int
-#define CSONPATH_DO_FUNC_NAME update_or_ceate_callback
+#define CSONPATH_DO_FUNC_NAME update_or_create_callback
 #define CSONPATH_DO_RETURN						\
 	if (tmp == value) {						\
 		*need_reloop = 1;					\

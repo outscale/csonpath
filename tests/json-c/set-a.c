@@ -19,30 +19,30 @@ int main(void)
   assert(csonpath_init(&p, "$.c") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(!ret);
-  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'C")) == 1);
+  assert(csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a l'C")) == 1);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'C"));
 
-  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'gros C")) == 1);
+  assert(csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a l'gros C")) == 1);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'gros C"));
 
   csonpath_set_path(&p, "$['array'][0]");
-  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'D")) == 1);
+  assert(csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a l'D")) == 1);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'D"));
 
   csonpath_set_path(&p, "$.ar2[0].o");
-  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'E")) == 1);
+  assert(csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a l'E")) == 1);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'E"));
 
   csonpath_set_path(&p, "$['ar2'][*].p");
-  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a l'F")) == 2);
+  assert(csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a l'F")) == 2);
   ret = csonpath_find_first(&p, jobj);
   json_object_get(ret); // update references counter
   assert(ret);
@@ -54,7 +54,7 @@ int main(void)
   json_object_put(ret);
 
   csonpath_set_path(&p, "$..0");
-  assert(csonpath_update_or_ceate(&p, jobj, json_object_new_string("la y'a encore 0")) == 1);
+  assert(csonpath_update_or_create(&p, jobj, json_object_new_string("la y'a encore 0")) == 1);
 
   json_object_put(jobj);
   csonpath_destroy(&p);

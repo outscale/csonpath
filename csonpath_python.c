@@ -234,7 +234,7 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
 
   if (!PyArg_ParseTuple(args, "OO", &json, &value))
     BAD_ARG();
-  int ret = csonpath_update_or_ceate(self->cp, json, value);
+  int ret = csonpath_update_or_create(self->cp, json, value);
   if (ret < 0)
       return NULL;
   return PyLong_FromLong(ret);
@@ -246,7 +246,7 @@ static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* arg
 
     if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
 	BAD_ARG();
-    int ret = csonpath_update_or_ceate_callback(self->cp, json, callback, udata);
+    int ret = csonpath_update_or_create_callback(self->cp, json, callback, udata);
     return PyLong_FromLong(ret);
 }
 
