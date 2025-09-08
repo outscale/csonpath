@@ -78,7 +78,11 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	PyErr_Format(PyExc_ValueError, "Unable to follow path: List expected");
 	return -1;
     }
-    if (at >= PyList_Size(array)) {
+    size_t s = PyList_Size(array); 
+    if (at >= s) {
+	for (;s < at; ++s)
+	    PyList_Insert(array, s, Py_None);
+
 	PyList_Insert(array, at, el);
     } else {
 	Py_INCREF(el);
