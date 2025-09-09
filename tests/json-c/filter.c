@@ -8,7 +8,7 @@ const char *json_str = "{"
 	" \"array\": ["
 	"{\"a\": \"la\", \"b\": 1},"
 	"{\"a\": 2, \"b\": \"la\"},"
-	"{\"b\": 4}"
+	"{\"b\": 400}"
 	"],"
   	"\"compute\": [{\"dn\": \"sys/chassis-1/blade-6\", \"vendor\": \"coucou\"}]"
   "}";
@@ -26,6 +26,16 @@ int main(void)
   struct json_object *jobj = json_tokener_parse(json_str);
   struct json_object *jobj_ar = json_object_object_get(jobj, "array");
   struct json_object *ret;
+
+  assert(csonpath_init(&p, "$.array[?a==2]") >= 0);
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(json_object_get_int(json_object_object_get(ret, "a")) == 2);
+
+  assert(csonpath_init(&p, "$.array[?b==400]") >= 0);
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret);
+  assert(json_object_get_int(json_object_object_get(ret, "b")) == 400);
 
   assert(csonpath_init(&p, "$.array[?a=\"la\"]") >= 0);
   ret = csonpath_find_first(&p, jobj);

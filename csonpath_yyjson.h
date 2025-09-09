@@ -44,6 +44,13 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
       r;							\
     })
 
+#define CSONPATH_EQUAL_NUM(obj, to_cmp)	({			\
+      _Bool r = 0;						\
+      if (yyjson_get_type(obj) == YYJSON_TYPE_NUM)		\
+	r = yyjson_get_num(obj) == to_cmp;			\
+      r;							\
+    })
+
 #define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata)   \
     callback(ctx, child_info, tmp, udata)
 

@@ -23,6 +23,15 @@
 #define CSONPATH_GET_STR(obj)			\
     PyUnicode_AsUTF8(obj)
 
+#define CSONPATH_EQUAL_NUM(obj, to_cmp)		\
+    ({						\
+	_Bool r = 0;				\
+	if (PyLong_Check(obj)) {		\
+	    r = PyLong_AsLong(obj) == to_cmp;	\
+	}					\
+	r;					\
+    })
+
 #define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
     _Bool r = 0;						\
       if (PyUnicode_Check(obj))	{				\
@@ -78,7 +87,7 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	PyErr_Format(PyExc_ValueError, "Unable to follow path: List expected");
 	return -1;
     }
-    size_t s = PyList_Size(array); 
+    Py_ssize_t s = PyList_Size(array); 
     if (at >= s) {
 	for (;s < at; ++s)
 	    PyList_Insert(array, s, Py_None);

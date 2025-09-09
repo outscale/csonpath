@@ -48,6 +48,15 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
       r;							\
     })
 
+#define CSONPATH_EQUAL_NUM(obj, to_cmp)	({			\
+      _Bool r = 0;						\
+      if (json_object_is_type(obj, json_type_int)) {		\
+	r = json_object_get_int(obj) == to_cmp;			\
+      }								\
+      r;							\
+    })
+
+
 #define CSONPATH_FOREACH_EXT(obj, el, code, key_idx_)				\
   if (json_object_is_type(obj, json_type_object)) {			\
     json_object_object_foreach(obj, key_idx_, el) { (void) key_idx_; code } \

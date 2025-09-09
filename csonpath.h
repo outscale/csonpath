@@ -415,23 +415,28 @@ again:
 					     "'%c': broken filter with number",
 					     *walker);
 			goto error;
+		    } else if (!*next) {
+			CSONPATH_COMPILE_ERR(tmp, walker - orig,
+					     "unclose filter");
+			goto error;
 		    }
+
 		    n = atoi(walker);
+		    to_check = *next;
 		    if (n < 100) {
 			*walker = n;
 			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_BYTE);
 		    } else {
-			MAY_ALIAS int *walk_int = (void *)walker;
-			*walk_int = n;
+			union {
+			    int n;
+			    char c[4];
+			} u = {.n=n};
+			walker[0] = u.c[0];
+			walker[1] = u.c[1];
+			walker[2] = u.c[2];
+			walker[3] = u.c[3];
 			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT);
 		    }
-		    if (!*next) {
-			CSONPATH_COMPILE_ERR(tmp, walker - orig,
-					     "compilation error");
-			goto error;
-		    }
-		    to_check = *next;
-		    *next = 0;
 		}
 		if (isblank(to_check)) {
 		    for (next++; isblank(*next); ++next);
@@ -568,6 +573,24 @@ again:
 	cjp->inst_lst[0] = (struct csonpath_instruction){.inst=CSONPATH_INST_BROKEN};
 	free(tmp);
 	return -1;
+}
+
+static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, char *owalker)
+{
+    switch (operand_instruction) {
+    case CSONPATH_INST_FILTER_OPERAND_STR:
+	return CSONPATH_EQUAL_STR(el2, owalker);
+    case CSONPATH_INST_FILTER_OPERAND_BYTE:
+	return CSONPATH_EQUAL_NUM(el2, *owalker);
+    case CSONPATH_INST_FILTER_OPERAND_INT:
+    {
+	union {int n; char c[4];} to_num =
+	    { .c= { owalker[0], owalker[1], owalker[2], owalker[3] } };
+
+	return CSONPATH_EQUAL_NUM(el2, to_num.n);
+    }
+    }
+    return 0;
 }
 
 /* helper use multiple times */

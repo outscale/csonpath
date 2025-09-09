@@ -169,6 +169,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	    walker += cjp->inst_lst[idx].next;
 	    char *owalker;
 	    int filter_next = cjp->inst_lst[idx].filter_next;
+	    int operand_instruction = -1;
 	    int in_idx = idx + 1;
 
 	    CSONPATH_DO_FILTER_PRE_LOOP;
@@ -189,18 +190,21 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 			    }
 			    owalker += cjp->inst_lst[idx].next;
 			}
-			
-			if (cjp->inst_lst[idx].inst != CSONPATH_INST_FILTER_OPERAND_STR)
+
+			if (operand_instruction < 0)
+			    operand_instruction = cjp->inst_lst[idx].inst;
+			if (operand_instruction != CSONPATH_INST_FILTER_OPERAND_STR &&
+			    operation == CSONPATH_INST_FILTER_KEY_REG_EQ)
 			    CSONPATH_GETTER_ERR("unsuported instruction '%s' only FILTER_OPERAND_STR is supported here", csonpath_instuction_str[(int)cjp->inst_lst[idx].inst]);
 
 			if (el2 != CSONPATH_NULL) {
 			    _Bool match = 0;
 			    switch (operation) {
 			    case CSONPATH_INST_FILTER_KEY_NOT_EQ:
-				match = !CSONPATH_EQUAL_STR(el2, owalker);
+				match = !csonpath_do_match(operand_instruction, el2, owalker);
 				break;
 			    case CSONPATH_INST_FILTER_KEY_EQ:
-				match = CSONPATH_EQUAL_STR(el2, owalker);
+				match = csonpath_do_match(operand_instruction, el2, owalker);
 				break;
 			    case CSONPATH_INST_FILTER_KEY_REG_EQ:
 #ifdef CSONPATH_NO_REGEX
