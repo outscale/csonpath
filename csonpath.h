@@ -34,6 +34,8 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_GET_OBJ,
 	CSONPATH_INST_GET_ARRAY_SMALL,
 	CSONPATH_INST_GET_ARRAY_BIG,
+	CSONPATH_INST_FILTER_KEY_SUPERIOR,
+	CSONPATH_INST_FILTER_KEY_INFERIOR,
 	CSONPATH_INST_FILTER_KEY_EQ,
 	CSONPATH_INST_FILTER_KEY_NOT_EQ,
 	CSONPATH_INST_FILTER_KEY_REG_EQ,
@@ -54,6 +56,8 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"GET_OBJ",
 	"GET_ARRAY_SMALL",
 	"GET_ARRAY_BIG",
+	"FILTER_KEY_SUPERIOR",
+	"FILTER_KEY_INFERIOR",
 	"FILTER_KEY_EQ",
 	"FILTER_KEY_NOT_EQ",
 	"FILTER_KEY_REG_EQ",
@@ -265,6 +269,7 @@ again:
 		int regex_idx = -1;
 		int inst;
 		int getter_end = 0;
+		int operand_instruction;
 
 		inst = CSONPATH_INST_GET_OBJ;
 		cjp->inst_lst[cjp->inst_idx - 1].next += 1;
@@ -367,11 +372,16 @@ again:
 		} else if (to_check == '!' && next[0] == '=') {
 		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ);
 		    ++next;
+		} else if (to_check == '>') {
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_SUPERIOR);
+		} else if (to_check == '<') {
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR);
 		} else {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "'%c': unsuported operation", to_check);
 		    goto error;
 		}
+		operand_instruction = cjp->inst_lst[cjp->inst_idx - 1].inst;
 		for (;isblank(*next); ++next);
 		cjp->inst_lst[cjp->inst_idx - 1].next = 0;
 		cjp->inst_lst[cjp->inst_idx - 1].filter_next = cjp->inst_idx + nb_getter_inst;
@@ -381,6 +391,12 @@ again:
 		cjp->inst_lst[cjp->inst_idx - 1].next += next - walker;
 		walker = next;
 		if (*walker == '"' || *walker == '\'' || *walker == '/') {
+		    if (operand_instruction == CSONPATH_INST_FILTER_KEY_SUPERIOR ||
+			operand_instruction == CSONPATH_INST_FILTER_KEY_INFERIOR) {
+			CSONPATH_COMPILE_ERR(tmp, walker - orig, "string unsuported here");
+			goto error;
+		    }
+
 		    char end = *walker;
 		    ++walker;
 		    cjp->inst_lst[cjp->inst_idx - 1].next++;
@@ -408,6 +424,11 @@ again:
 		    to_check = *next;
 		} else {
 		    int n;
+
+		    if (operand_instruction == CSONPATH_INST_FILTER_KEY_REG_EQ) {
+			CSONPATH_COMPILE_ERR(tmp, walker - orig, "number unsuported for regex");
+			goto error;
+		    }
 
 		    for (next = walker; isdigit(*next); ++next);
 		    if (next == walker) {
@@ -573,6 +594,19 @@ again:
 	cjp->inst_lst[0] = (struct csonpath_instruction){.inst=CSONPATH_INST_BROKEN};
 	free(tmp);
 	return -1;
+}
+
+static int csonpath_int_from_walker(int operand_instruction, char *walker)
+{
+    if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_BYTE)
+	return *walker;
+    else if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_INT) {
+	union {int n; char c[4];} to_num =
+	    { .c= { walker[0], walker[1], walker[2], walker[3] } };
+
+	return to_num.n;
+    }
+    return -1;
 }
 
 static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, char *owalker)

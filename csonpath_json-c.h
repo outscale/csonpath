@@ -37,8 +37,13 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 
 #define CSONPATH_IS_STR(o) json_object_is_type(o, json_type_string)
 
+#define CSONPATH_IS_NUM(o) json_object_is_type(o, json_type_int)
+
 #define CSONPATH_GET_STR(obj)			\
     json_object_get_string(obj)
+
+#define CSONPATH_GET_NUM(obj)			\
+    json_object_get_int(obj)
 
 #define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
       _Bool r = 0;						\

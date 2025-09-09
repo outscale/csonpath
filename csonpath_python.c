@@ -20,8 +20,13 @@
 
 #define CSONPATH_IS_STR(o) PyUnicode_Check(o)
 
+#define CSONPATH_IS_NUM(o) PyLong_Check(o)
+
 #define CSONPATH_GET_STR(obj)			\
     PyUnicode_AsUTF8(obj)
+
+#define CSONPATH_GET_NUM(obj)			\
+    PyLong_AsLong(obj)
 
 #define CSONPATH_EQUAL_NUM(obj, to_cmp)		\
     ({						\

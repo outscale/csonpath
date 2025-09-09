@@ -163,6 +163,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	case CSONPATH_INST_FILTER_KEY_EQ:
 	case CSONPATH_INST_FILTER_KEY_REG_EQ:
 	case CSONPATH_INST_FILTER_KEY_NOT_EQ:
+	case CSONPATH_INST_FILTER_KEY_SUPERIOR:
+	case CSONPATH_INST_FILTER_KEY_INFERIOR:
 	{
 	    CSONPATH_JSON el;
 	    int operation = cjp->inst_lst[idx].inst;
@@ -191,11 +193,9 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 			    owalker += cjp->inst_lst[idx].next;
 			}
 
-			if (operand_instruction < 0)
+			if (operand_instruction < 0) {
 			    operand_instruction = cjp->inst_lst[idx].inst;
-			if (operand_instruction != CSONPATH_INST_FILTER_OPERAND_STR &&
-			    operation == CSONPATH_INST_FILTER_KEY_REG_EQ)
-			    CSONPATH_GETTER_ERR("unsuported instruction '%s' only FILTER_OPERAND_STR is supported here", csonpath_instuction_str[(int)cjp->inst_lst[idx].inst]);
+			}
 
 			if (el2 != CSONPATH_NULL) {
 			    _Bool match = 0;
@@ -205,6 +205,12 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 				break;
 			    case CSONPATH_INST_FILTER_KEY_EQ:
 				match = csonpath_do_match(operand_instruction, el2, owalker);
+				break;
+			    case CSONPATH_INST_FILTER_KEY_SUPERIOR:
+				if (!CSONPATH_IS_NUM(el2))
+				    break;
+				match = csonpath_int_from_walker(operand_instruction, owalker) <
+				    CSONPATH_GET_NUM(el2);
 				break;
 			    case CSONPATH_INST_FILTER_KEY_REG_EQ:
 #ifdef CSONPATH_NO_REGEX
@@ -303,7 +309,10 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 		    break;
 	    }
 	default:
-	    CSONPATH_GETTER_ERR("unimplemented %d at idx %d\n", cjp->inst_lst[idx].inst, idx);
+	    CSONPATH_GETTER_ERR("unimplemented %d (%s) at idx %d\n", cjp->inst_lst[idx].inst,
+				cjp->inst_lst[idx].inst <= CSONPATH_INST_BROKEN ?
+				csonpath_instuction_str[cjp->inst_lst[idx].inst] : "(unknow)",
+				idx);
 	}
       next_inst:
 	++idx;
