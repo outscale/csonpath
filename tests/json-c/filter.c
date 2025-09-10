@@ -32,27 +32,27 @@ int main(void)
   assert(ret);
   assert(json_object_get_int(json_object_object_get(ret, "a")) == 2);
 
-  assert(csonpath_init(&p, "$.array[?b==400]") >= 0);
+  assert(csonpath_set_path(&p, "$.array[?b==400]") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(json_object_get_int(json_object_object_get(ret, "b")) == 400);
 
-  assert(csonpath_init(&p, "$.array[?b>100]") >= 0);
+  assert(csonpath_set_path(&p, "$.array[?b>100]") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(json_object_get_int(json_object_object_get(ret, "b")) == 400);
 
-  assert(csonpath_init(&p, "$.array[?b<100]") >= 0);
+  assert(csonpath_set_path(&p, "$.array[?b<100]") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(json_object_get_int(json_object_object_get(ret, "b")) == 1);
 
-  assert(csonpath_init(&p, "$.array[?b>0]") >= 0);
+  assert(csonpath_set_path(&p, "$.array[?b>0]") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
   assert(json_object_get_int(json_object_object_get(ret, "b")) == 1);
 
-  assert(csonpath_init(&p, "$.array[?a=\"la\"]") >= 0);
+  assert(csonpath_set_path(&p, "$.array[?a=\"la\"]") >= 0);
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
 
