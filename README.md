@@ -67,8 +67,53 @@ ret = csonpath_find_first(&p, jobj);
 // ret now points to "value"
 ```
 
+#### Avaible functions:
+```C
+int csonpath_init(struct csonpath cjp[static 1], const char path[static 1])
+```
+init a csonpath struct
+
+```C
+int csonpath_set_path(struct csonpath cjp[static 1], const char path[static 1])
+```
+change the path of a struct
+
+```C
+int csonpath_compile(struct csonpath cjp[static 1])
+```
+compile the path, doesn't need to be called before using it, but can be useful to catch error earlyer.
+```C
+void csonpath_print_instruction(struct csonpath cjp[static 1])
+```
+print all instructions once compiled
+```C
+struct json_object *csonpath_find_first(struct csonpath cjp[static 1], struct json_object *json);
+```
+Retrieve the first value matching a path
+```C
+struct json_object *csonpath_find_all(struct csonpath cjp[static 1], struct json_object *json);
+```
+Retrieve all values matching a path, return need to be free using `json_object_put`
+```C
+struct json_object *csonpath_remove(struct csonpath cjp[static 1], struct json_object *json);
+```
+Remove all matching elements from json
+```C
+struct json_object *csonpath_update_or_create(struct csonpath cjp[static 1], struct json_object *json, struct json_object *new_val)
+```
+update and push new_val, in json.
+```C
+struct json_object *csonpath_callback(struct csonpath cjp[static 1], struct json_object *json, json_c_callback callback, void *userdata)
+```
+call `callback` on each value matching path
+```C
+struct json_object *csonpath_update_or_create_callback(struct csonpath cjp[static 1], struct json_object *json, json_c_callback callback, void *userdata)
+```
+like callback, but update json base on the path, along the way.
+
 ### Usage (Python)
 
+#### Example
 ```python
 import csonpath
 
@@ -102,7 +147,7 @@ To use csonpath with a different data type or library, simply define the require
 - `csonpath_json-c.h` - Json-C implementation, use it by including "csonpath_json-c.h" directly in your source
 - `csonpath_python.c` - python implementation, use it like a python lib (so `pip install .`)
 - `tests/` - Contains tests
-- `bench//` - Some benchmarks
+- `bench/` - Some benchmarks
 
 ## 🤝 Contributing
 
