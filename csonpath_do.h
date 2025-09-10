@@ -212,6 +212,12 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 				match = csonpath_int_from_walker(operand_instruction, owalker) <
 				    CSONPATH_GET_NUM(el2);
 				break;
+			    case CSONPATH_INST_FILTER_KEY_INFERIOR:
+				if (!CSONPATH_IS_NUM(el2))
+				    break;
+				match = csonpath_int_from_walker(operand_instruction, owalker) >
+				    CSONPATH_GET_NUM(el2);
+				break;
 			    case CSONPATH_INST_FILTER_KEY_REG_EQ:
 #ifdef CSONPATH_NO_REGEX
 				CSONPATH_GETTER_ERR("regex deactivate\n");
