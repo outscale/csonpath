@@ -86,15 +86,11 @@ struct csonpath_instruction {
     short int next;
 };
 
-#define CSONPATH_INST_MIN_ALLOC (1 << 7)
-
 struct csonpath {
-    char *path;
     char *compile_error;
+    char *path;
     struct csonpath_instruction *inst_lst;
     int compiled;
-    int inst_idx;
-    int inst_size;
 #ifndef CSONPATH_NO_REGEX
     int regex_cnt;
     regex_t *regexs;
@@ -169,11 +165,26 @@ static inline void csonpath_destroy(struct csonpath cjp[static 1])
 	*cjp = (struct csonpath){};
 }
 
+static _Bool csonpath_is_one_char_instruction(int c)
+{
+    return c == '|' || c == '$';
+}
+
 static inline int csonpath_init(struct csonpath cjp[static 1],
 				const char path[static 1]) {
+    /*
+     * We overalloc, but this enable us to avoid checking size,
+     * as the only instruction that require 1 character is $, and $$ is not allow
+     * we can safely assume that we can't have more instructions than path len / 2 + 2
+     * we add plus 2, because "$", is a valid path, and contain 2 instruction: ROOT and END
+     */
+    int max_inst = strlen(path) / 2 + 1;
+    for (const char *cpy = path; *cpy; ++cpy) {
+	if (csonpath_is_one_char_instruction(*cpy))
+	    ++max_inst;
+    }
     *cjp = (struct csonpath) {.path=strdup(path),
-	.inst_size = CSONPATH_INST_MIN_ALLOC,
-	.inst_lst = malloc(sizeof(*cjp->inst_lst) * CSONPATH_INST_MIN_ALLOC)};
+	.inst_lst = malloc(sizeof(*cjp->inst_lst) * max_inst)};
     if (!cjp->path || !cjp->inst_lst) {
 	return -ENOMEM;
     }
@@ -187,27 +198,18 @@ static inline int csonpath_set_path(struct csonpath cjp[static 1],
     return csonpath_init(cjp, path);
 }
 
-static inline void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
+static inline void csonpath_push_inst(struct csonpath cjp[static 1], int inst, int *inst_idx)
 {
-    if (cjp->inst_idx + 1 > cjp->inst_size) {
-	cjp->inst_size = cjp->inst_size << 1;
-	cjp->inst_lst = realloc(cjp->inst_lst, cjp->inst_size * sizeof(*cjp->inst_lst));
-	assert(cjp->inst_lst);
-    }
-    cjp->inst_lst[cjp->inst_idx] = (struct csonpath_instruction){.inst=inst};
-    ++cjp->inst_idx;
+    cjp->inst_lst[*inst_idx] = (struct csonpath_instruction){.inst=inst};
+    *inst_idx += 1;
 }
 
 static inline void csonpath_push_inst_cpy(struct csonpath cjp[static 1],
-					  struct csonpath_instruction inst)
+					  const struct csonpath_instruction inst,
+					  int *inst_idx)
 {
-    if (cjp->inst_idx + 1 > cjp->inst_size) {
-	cjp->inst_size = cjp->inst_size << 1;
-	cjp->inst_lst = realloc(cjp->inst_lst, cjp->inst_size);
-	assert(cjp->inst_lst);
-    }
-    cjp->inst_lst[cjp->inst_idx] = inst;
-    ++cjp->inst_idx;
+    cjp->inst_lst[*inst_idx] = inst;
+    *inst_idx += 1;
 }
 
 static void csonpath_print_instruction(struct csonpath cjp[static 1])
@@ -230,6 +232,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 	char *orig = walker;
 	char *next;
 	char to_check;
+	int inst_idx = 0;
 	char *tmp; /* tmp is only here for debug */
 
 	if (cjp->compiled)
@@ -238,8 +241,8 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 	tmp = strdup(cjp->path);
  root_again:
 	CSONPATH_SKIP('$', walker);
-	csonpath_push_inst(cjp, CSONPATH_INST_ROOT);
-	cjp->inst_lst[cjp->inst_idx - 1].next = 1;
+	csonpath_push_inst(cjp, CSONPATH_INST_ROOT, &inst_idx);
+	cjp->inst_lst[inst_idx - 1].next = 1;
 	to_check = *walker;
 
 again:
@@ -249,14 +252,14 @@ again:
 	    int end;
 
 	  do_array:
-	    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	    cjp->inst_lst[inst_idx - 1].next += 1;
 	    ++walker;
 	    if (*walker == '*') {
-		csonpath_push_inst(cjp, CSONPATH_INST_GET_ALL);
+		csonpath_push_inst(cjp, CSONPATH_INST_GET_ALL, &inst_idx);
 		if (walker[1] != ']') {
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "%s", "unclose bracket\n");
 		}
-		cjp->inst_lst[cjp->inst_idx - 1].next = 2;
+		cjp->inst_lst[inst_idx - 1].next = 2;
 		walker += 2;
 		to_check = *walker;
 		goto again;
@@ -272,9 +275,9 @@ again:
 		int operand_instruction;
 
 		inst = CSONPATH_INST_GET_OBJ;
-		cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+		cjp->inst_lst[inst_idx - 1].next += 1;
 		++walker;
-		last_inst = &cjp->inst_lst[cjp->inst_idx - 1];
+		last_inst = &cjp->inst_lst[inst_idx - 1];
 		if (*walker == '(') {
 		    have_parentesis = 1;
 		    ++walker;
@@ -285,9 +288,9 @@ again:
 		    } else {
 			CSONPATH_SKIP('.', walker);
 		    }
-		    cjp->inst_lst[cjp->inst_idx - 1].next += 3;
+		    cjp->inst_lst[inst_idx - 1].next += 3;
 		    for (; isblank(*walker); ++walker)
-			cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+			cjp->inst_lst[inst_idx - 1].next += 1;
 		} else if (*walker == '[') {
 		    ++walker;
 		    last_inst->next++;
@@ -361,34 +364,34 @@ again:
 		}
 		/* = and == are the same here */
 		if (to_check == '=') {
-		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ);
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ, &inst_idx);
 		    if (next[0] == '=')
 			++next;
 		    else if (next[0] == '~') {
-			cjp->inst_lst[cjp->inst_idx - 1].inst = CSONPATH_INST_FILTER_KEY_REG_EQ;
+			cjp->inst_lst[inst_idx - 1].inst = CSONPATH_INST_FILTER_KEY_REG_EQ;
 			regex_idx = cjp->regex_cnt++;
 			++next;
 		    }
 		} else if (to_check == '!' && next[0] == '=') {
-		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ);
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ, &inst_idx);
 		    ++next;
 		} else if (to_check == '>') {
-		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_SUPERIOR);
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_SUPERIOR, &inst_idx);
 		} else if (to_check == '<') {
-		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR);
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR, &inst_idx);
 		} else {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "'%c': unsuported operation", to_check);
 		    goto error;
 		}
-		operand_instruction = cjp->inst_lst[cjp->inst_idx - 1].inst;
+		operand_instruction = cjp->inst_lst[inst_idx - 1].inst;
 		for (;isblank(*next); ++next);
-		cjp->inst_lst[cjp->inst_idx - 1].next = 0;
-		cjp->inst_lst[cjp->inst_idx - 1].filter_next = cjp->inst_idx + nb_getter_inst;
+		cjp->inst_lst[inst_idx - 1].next = 0;
+		cjp->inst_lst[inst_idx - 1].filter_next = inst_idx + nb_getter_inst;
 		for (int i = 0; i < nb_getter_inst; ++i) {
-		    csonpath_push_inst_cpy(cjp, filter_getter[i]);
+		    csonpath_push_inst_cpy(cjp, filter_getter[i], &inst_idx);
 		}
-		cjp->inst_lst[cjp->inst_idx - 1].next += next - walker;
+		cjp->inst_lst[inst_idx - 1].next += next - walker;
 		walker = next;
 		if (*walker == '"' || *walker == '\'' || *walker == '/') {
 		    if (operand_instruction == CSONPATH_INST_FILTER_KEY_SUPERIOR ||
@@ -399,8 +402,8 @@ again:
 
 		    char end = *walker;
 		    ++walker;
-		    cjp->inst_lst[cjp->inst_idx - 1].next++;
-		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_STR);
+		    cjp->inst_lst[inst_idx - 1].next++;
+		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_STR, &inst_idx);
 		    for (next = walker; *next && *next != end; ++next);
 		    if (!*next) {
 			CSONPATH_COMPILE_ERR(tmp, walker - orig,
@@ -413,7 +416,7 @@ again:
 			if (!regex_idx)
 			    cjp->regexs = malloc(sizeof *cjp->regexs * 255);
 			int e = regcomp(&cjp->regexs[regex_idx], walker, 0);
-			cjp->inst_lst[cjp->inst_idx - 1].regex_idx = regex_idx;
+			cjp->inst_lst[inst_idx - 1].regex_idx = regex_idx;
 			if (e) {
 			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error\n");
 			    goto error;
@@ -446,7 +449,7 @@ again:
 		    to_check = *next;
 		    if (n < 100) {
 			*walker = n;
-			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_BYTE);
+			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_BYTE, &inst_idx);
 		    } else {
 			union {
 			    int n;
@@ -456,7 +459,7 @@ again:
 			walker[1] = u.c[1];
 			walker[2] = u.c[2];
 			walker[3] = u.c[3];
-			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT);
+			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT, &inst_idx);
 		    }
 		}
 		if (isblank(to_check)) {
@@ -472,7 +475,7 @@ again:
 		    CSONPATH_REQUIRE_ERR(']', next);
 		}
 		/* skip space */
-		cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
+		cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 		walker = next + 1;
 		to_check = *walker;
 		goto again;
@@ -494,7 +497,7 @@ again:
 		*next = 0;
 		num = atoi(walker);
 		if (num < 100) {
-		    csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_SMALL);
+		    csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_SMALL, &inst_idx);
 		    *walker = num;
 		} else {
 		    union {
@@ -505,15 +508,15 @@ again:
 		    walker[1] = u.c[1];
 		    walker[2] = u.c[2];
 		    walker[3] = u.c[3];
-		    csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_BIG);
+		    csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_BIG, &inst_idx);
 		}
-		cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
+		cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 		walker = next + 1;
 		to_check = *walker;
 		goto again;
 	    } else {
 		end = *walker;
-		cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+		cjp->inst_lst[inst_idx - 1].next += 1;
 
 		++walker;
 		next = walker;
@@ -529,8 +532,8 @@ again:
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
 					 "']' require instead of '%c'\n", *next);
 
-		csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ);
-		cjp->inst_lst[cjp->inst_idx - 1].next = next - walker + 1;
+		csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ, &inst_idx);
+		cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 
 		walker = next + 1;
 		to_check = *walker;
@@ -541,18 +544,18 @@ again:
 	{
 	    int inst = CSONPATH_INST_GET_OBJ;
 
-	    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	    cjp->inst_lst[inst_idx - 1].next += 1;
 	    ++walker;
 	    if (*walker == '.') {
 		inst = CSONPATH_INST_FIND_ALL;
-		cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+		cjp->inst_lst[inst_idx - 1].next += 1;
 		++walker;
 	    } else if (*walker == '*') {
 		inst = CSONPATH_INST_GET_ALL;
 		++walker;
 		if (*walker != '.' && *walker != '[' && *walker != '\0')
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "unsuported characters '%c' after '*'", *walker);
-		csonpath_push_inst(cjp, inst);
+		csonpath_push_inst(cjp, inst, &inst_idx);
 		to_check = *walker;
 		goto again;
 	    } 
@@ -565,25 +568,25 @@ again:
 	    to_check = *next;
 	    *next = 0;
 
-	    csonpath_push_inst(cjp, inst);
-	    cjp->inst_lst[cjp->inst_idx - 1].next = next - walker;
+	    csonpath_push_inst(cjp, inst, &inst_idx);
+	    cjp->inst_lst[inst_idx - 1].next = next - walker;
 	    walker = next;
 	    goto again;
 	}
 	case '|':
-	    /* cjp->inst_lst[cjp->inst_idx - 1].next += 1; */
-	    csonpath_push_inst(cjp, CSONPATH_INST_OR);
+	    /* cjp->inst_lst[inst_idx - 1].next += 1; */
+	    csonpath_push_inst(cjp, CSONPATH_INST_OR, &inst_idx);
 	    ++walker;
-	    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	    cjp->inst_lst[inst_idx - 1].next += 1;
 	    goto root_again;
 	}
 	if (isblank(*walker)) {
-	    cjp->inst_lst[cjp->inst_idx - 1].next += 1;
+	    cjp->inst_lst[inst_idx - 1].next += 1;
 	    ++walker;
 	    goto again;
 	}
 	else if (*walker == 0) {
-	    csonpath_push_inst(cjp, CSONPATH_INST_END);
+	    csonpath_push_inst(cjp, CSONPATH_INST_END, &inst_idx);
 	    cjp->compiled = 1;
 	    free(tmp);
 	    return 0;
