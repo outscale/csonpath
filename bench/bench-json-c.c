@@ -43,6 +43,7 @@ int main() {
     struct json_object *jobj = json_tokener_parse(json_text);
 
     const char *queries[] = {
+	"$.store.book[?(@.price) > 20].title",
         "$.store.book[*].title",
 	"$.store.book[?title =~ \"Book\"].title",
         "$..title",

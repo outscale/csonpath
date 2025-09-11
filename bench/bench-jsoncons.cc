@@ -35,6 +35,7 @@ int main() {
     data.insert_or_assign("store", store);
 
     std::vector<std::string> queries = {
+	"$.store.book[?(@.price > 20)].title",
         "$.store.book[*].title",
         "$.store.book[?(@.title =~ /Book/)].title",
 	"$..title"

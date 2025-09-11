@@ -44,9 +44,9 @@ int main() {
     yyjson_val *jobj = yyjson_doc_get_root(jdoc);
 
     const char *queries[] = {
-        "$.store.book[*].title",
-        "$.store.book[?title =~ /Book/].title",
-        "$..title",
+	"$.store.book[*].title",
+	"$.store.book[?title =~ /Book/].title",
+	"$..title",
     };
     size_t query_count = sizeof(queries) / sizeof(queries[0]);
     struct csonpath p;
