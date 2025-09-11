@@ -191,7 +191,7 @@ static inline void csonpath_push_inst(struct csonpath cjp[static 1], int inst)
 {
     if (cjp->inst_idx + 1 > cjp->inst_size) {
 	cjp->inst_size = cjp->inst_size << 1;
-	cjp->inst_lst = realloc(cjp->inst_lst, cjp->inst_size);
+	cjp->inst_lst = realloc(cjp->inst_lst, cjp->inst_size * sizeof(*cjp->inst_lst));
 	assert(cjp->inst_lst);
     }
     cjp->inst_lst[cjp->inst_idx] = (struct csonpath_instruction){.inst=inst};
