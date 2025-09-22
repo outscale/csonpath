@@ -26,6 +26,16 @@
 
 ## 🚀 Features
 
+### jsonpath
+- support simple path like ex: `"$.a[3]["oui"]`
+- support `..`: `"$..non`
+- support `[*]`: `"$.array[*].obj[*].field"`
+- support filters:
+  - with `>` or `<`: `"$.obj[?.field > 123]"`
+  - with `=` or '!=': `"$.obj[?.field != "123"]"`
+  - with regex, using POSIX regcom: `"$.obj[?.field ~= "123"]"`
+- support `|`: `"$.obj | $.otherobj"`
+### Functions
 - **Find First**: Retrieve the first value matching a path.
 - **Find All**: Retrieve all values matching a path.
 - **Update or Create**: Update values or create new ones according to the path.
@@ -159,4 +169,3 @@ Feel free to open issues or pull requests!
 
 ## 📜 License
 BSD 3-Clause. See [LICENSE](LICENSE).
-remimu.h is under the CC0 1.0 Universal, original source is [here](https://github.com/wareya/Remimu)
