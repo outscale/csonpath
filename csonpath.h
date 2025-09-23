@@ -234,6 +234,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 	char to_check;
 	int inst_idx = 0;
 	char *tmp; /* tmp is only here for debug */
+	int inst;
 
 	if (cjp->compiled)
 		return 0;
@@ -251,10 +252,16 @@ again:
 	{
 	    int end;
 
+	    inst = 0;
 	  do_array:
 	    cjp->inst_lst[inst_idx - 1].next += 1;
 	    ++walker;
 	    if (*walker == '*') {
+		if (inst == CSONPATH_INST_FIND_ALL) {
+		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "'%c' is invalide here\n",
+					 *walker);
+			goto error;
+		}
 		csonpath_push_inst(cjp, CSONPATH_INST_GET_ALL, &inst_idx);
 		if (walker[1] != ']') {
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "%s", "unclose bracket\n");
@@ -270,10 +277,14 @@ again:
 		struct csonpath_instruction filter_getter[CSONPATH_TMP_BUF_SIZE];
 		struct csonpath_instruction *last_inst;
 		int regex_idx = -1;
-		int inst;
 		int getter_end = 0;
 		int operand_instruction;
 
+		if (inst == CSONPATH_INST_FIND_ALL) {
+		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "'%c' is invalide here\n",
+					 *walker);
+		    goto error;
+		}
 		inst = CSONPATH_INST_GET_OBJ;
 		cjp->inst_lst[inst_idx - 1].next += 1;
 		++walker;
@@ -301,6 +312,7 @@ again:
 		    if (getter_end != '\'' && getter_end != '"') {
 			CSONPATH_COMPILE_ERR(tmp, walker - orig,
 					     "string require here, got '%c'", getter_end);
+			goto error;
 		    }
 		    last_inst->next += 1;
 		    ++walker;
@@ -479,8 +491,14 @@ again:
 		walker = next + 1;
 		to_check = *walker;
 		goto again;
+		/* Filter out */
 	    } else if (*walker != '"' && *walker != '\'') {
 		int num;
+
+		if (inst == CSONPATH_INST_FIND_ALL) {
+		    CSONPATH_COMPILE_ERR(tmp, walker - orig, ".. require string\n");
+		    goto error;
+		}
 
 		next = walker;
 		do {
@@ -517,6 +535,8 @@ again:
 	    } else {
 		end = *walker;
 		cjp->inst_lst[inst_idx - 1].next += 1;
+		if (inst != CSONPATH_INST_FIND_ALL)
+		    inst = CSONPATH_INST_GET_OBJ;
 
 		++walker;
 		next = walker;
@@ -532,7 +552,7 @@ again:
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
 					 "']' require instead of '%c'\n", *next);
 
-		csonpath_push_inst(cjp, CSONPATH_INST_GET_OBJ, &inst_idx);
+		csonpath_push_inst(cjp, inst, &inst_idx);
 		cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 
 		walker = next + 1;
@@ -542,7 +562,7 @@ again:
 	}
 	case '.':
 	{
-	    int inst = CSONPATH_INST_GET_OBJ;
+	    inst = CSONPATH_INST_GET_OBJ;
 
 	    cjp->inst_lst[inst_idx - 1].next += 1;
 	    ++walker;
@@ -553,8 +573,10 @@ again:
 	    } else if (*walker == '*') {
 		inst = CSONPATH_INST_GET_ALL;
 		++walker;
-		if (*walker != '.' && *walker != '[' && *walker != '\0')
+		if (*walker != '.' && *walker != '[' && *walker != '\0') {
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "unsuported characters '%c' after '*'", *walker);
+		    goto error;
+		}
 		csonpath_push_inst(cjp, inst, &inst_idx);
 		to_check = *walker;
 		goto again;
