@@ -203,7 +203,7 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
 
     if (!PyArg_ParseTuple(args, "O", &json))
 	BAD_ARG();
-    PyObject *ret =  csonpath_find_all(self->cp, json);
+    PyObject *ret = csonpath_find_all(self->cp, json);
     return ret;
 }
 
@@ -214,6 +214,7 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "O", &json))
 	BAD_ARG();
     PyObject *ret = csonpath_find_first(self->cp, json);
+    Py_INCREF(ret);
     return ret;
 }
 
