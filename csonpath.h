@@ -29,6 +29,10 @@
 #define CSONPATH_FIND_ALL_RET_INIT CSONPATH_NEW_ARRAY
 #endif
 
+#ifndef CSONPATH_DECREF
+#define CSONPATH_DECREF(obj)
+#endif
+
 enum csonpath_instuction_raw {
 	CSONPATH_INST_ROOT,
 	CSONPATH_INST_GET_OBJ,
@@ -659,9 +663,11 @@ static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, char 
 	if (to_check == CSONPATH_INST_GET_OBJ) {			\
 	    tmp = CSONPATH_NEW_OBJECT();				\
 	    append_ret = CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	    CSONPATH_DECREF(tmp);					\
 	} else {							\
 	    tmp = CSONPATH_NEW_ARRAY();					\
 	    append_ret = CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
+	    CSONPATH_DECREF(tmp);					\
 	}								\
 	walker += cjp->inst_lst[idx].next;				\
 	if (append_ret < 0) return append_ret;				\
