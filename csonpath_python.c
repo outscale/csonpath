@@ -214,7 +214,7 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "O", &json))
 	BAD_ARG();
     PyObject *ret = csonpath_find_first(self->cp, json);
-    Py_INCREF(ref);
+    Py_INCREF(ret);
     return ret;
 }
 
