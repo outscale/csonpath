@@ -100,7 +100,8 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	PyList_Insert(array, at, el);
     } else {
 	Py_INCREF(el);
-	PyList_SetItem(array, at, el);
+	if (PyList_SetItem(array, at, el) < 0)
+	  Py_DECREF(el);
     }
     return 1;
 }
@@ -203,14 +204,6 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "O", &json))
 	BAD_ARG();
     PyObject *ret =  csonpath_find_all(self->cp, json);
-    if (ret != Py_None) {
-	PyObject *key_;
-	Py_ssize_t pos_ = 0;
-	PyObject *el;
-	while (PyDict_Next(ret, &pos_, &key_, &el)) {
-	    Py_INCREF(el);
-	}
-    }
     return ret;
 }
 
@@ -221,7 +214,6 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "O", &json))
 	BAD_ARG();
     PyObject *ret = csonpath_find_first(self->cp, json);
-    Py_INCREF(ret);
     return ret;
 }
 
