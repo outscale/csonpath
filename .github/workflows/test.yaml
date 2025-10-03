@@ -4,12 +4,16 @@ on:
     branches: [ main ]
   push:
     branches: [ main ]
+
+permissions:
+  contents: read
+
 jobs:
   auto-build:
     environment: auto-build
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: ⬇️ Install Python
       uses: actions/setup-python@v5
       with:
