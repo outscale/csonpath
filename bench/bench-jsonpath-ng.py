@@ -6,8 +6,11 @@ import csonpath
 # Create a large test dataset
 data = {
     "store": {
-        "book": [{"category": "fiction", "title": f"Book {i}", "price": i % 50 + 5} for i in range(5000)],
-        "bicycle": {"color": "red", "price": 19.95}
+        "book": [
+            {"category": "fiction", "title": f"Book {i}", "price": i % 50 + 5}
+            for i in range(5000)
+        ],
+        "bicycle": {"color": "red", "price": 19.95},
     }
 }
 
@@ -15,7 +18,7 @@ data = {
 queries = [
     "$.store.book[?(@.price) > 20].title",
     "$.store.book[*].title",
-    "$.store.book[?(@.title) =~ \"Book\"].title",
+    '$.store.book[?(@.title) =~ "Book"].title',
     "$..title",
 ]
 
@@ -23,7 +26,7 @@ queries = [
 for query in queries:
     start = time.perf_counter()
     expr = parse(query)
-    for x in range (1000):
+    for x in range(1000):
         result = expr.find(data)
     elapsed = time.perf_counter() - start
     print(f"jsonpath-ng Query: {query}")
@@ -31,7 +34,7 @@ for query in queries:
 
     start = time.perf_counter()
     cp = csonpath.CsonPath(query)
-    for x in range (1000):
+    for x in range(1000):
         result = cp.find_all(data)
     elapsed = time.perf_counter() - start
     print(f"csonpath python Query: {query}")
