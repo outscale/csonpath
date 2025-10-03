@@ -1,6 +1,7 @@
 import csonpath
 import sys
 
+
 def test_update_or_create_refcount_insert_once():
     value = ["wololo"]
     d = {}
@@ -14,6 +15,7 @@ def test_update_or_create_refcount_insert_once():
     assert d_ref_bef == sys.getrefcount(d)
     # Should be exactly +1 for the one insertion
     assert ref_after == ref_before + 1
+
 
 def test_update_or_create_refcount_insert_twice():
     value = ["wololo"]
@@ -33,6 +35,7 @@ def test_update_or_create_refcount_insert_twice():
     # The right way:
     expected = ret1 + ret2
     assert ref_after == ref_before + expected
+
 
 def test_update_or_create_refcount_replaces_and_releases_old():
     old_value = "old-------"
@@ -55,6 +58,7 @@ def test_update_or_create_refcount_replaces_and_releases_old():
     # New value refcount increased by one (container now holds it)
     assert new_ref_after == new_ref_before + 1
 
+
 def test_update_or_create_refcount_shared_subobject():
     sub = {"a": 1}
     value = [sub, sub]
@@ -71,4 +75,3 @@ def test_update_or_create_refcount_shared_subobject():
     # Should be +1 for the direct insertion
     assert ret2 == 1
     assert ref_after2 == ref_after + 1
-
