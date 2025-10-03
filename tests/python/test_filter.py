@@ -1,5 +1,6 @@
 import pytest
 import csonpath
+import sys
 
 def test_filter():
     dict = {"ar": [{"0": "a 0", "1": "a 1"}, {"ah": "a 0", "bh": "a 10"}]}
@@ -13,9 +14,14 @@ def test_filter():
 
     assert ret == [{"0": "a 0", "1": "a 1"}], "fail result look like: {}".format(ret)
 
-    ret = cp.update_or_create(dict, ["wololo"])
+    value = ["wololo"]
+    
+    ref_before = sys.getrefcount(value)
+    ret = cp.update_or_create(dict, value)
+    ref_after = sys.getrefcount(value)
 
     assert ret == 1
+    assert ref_before == ref_after - ret
     assert dict == {"ar": [["wololo"], {"ah": "a 0", "bh": "a 10"}]}, "fail result look like: {}".format(dict["ar"][0])
 
     cp.set_path("$.ar[?ah=\"a 0\"]")

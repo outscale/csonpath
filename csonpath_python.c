@@ -61,6 +61,7 @@
 	else								\
 	    arglist = Py_BuildValue("(OiOO)", ctx, child_info->idx, tmp, udata); \
 	PyObject_CallObject(callback, arglist);				\
+	Py_DECREF(arglist);						\
     } while (0)
 
 /* assuming each modification of the object need to go out of the loop */

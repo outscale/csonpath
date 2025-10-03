@@ -1,5 +1,6 @@
 import pytest
 import csonpath
+import sys
 
 def split_line(parent, idx, cur, data):
     parent[idx] = cur.splitlines()
@@ -13,15 +14,22 @@ def test_callback():
     assert type(d["c"][0] == "new")
     assert type(d["c"][1] == "line")
 
+VALUE_REF: int = 0
+
 def set_data(parent, idx, cur, data):
     parent[idx] = data
 
 def test_callback_data():
     o = csonpath.CsonPath("$.c")
     d = {"c": "new\nline"}
+    value = [123]
 
-    o.callback(d, set_data, 123)
-    assert d["c"] == 123
+    global VALUE_REF
+    VALUE_REF = sys.getrefcount(value)
+    assert VALUE_REF > 0
+    o.callback(d, set_data, value)
+    assert VALUE_REF == sys.getrefcount(value) - 1
+    assert d["c"] == [123]
 
 def syncronyse_in_out(source_path, json_in, json_out):
     if json_in is json_out:
