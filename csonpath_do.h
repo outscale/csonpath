@@ -17,6 +17,10 @@
 #define CSONPATH_PRE_GET(this_idx)
 #endif
 
+#ifndef CSONPATH_PRE_GET_ROOT
+#define CSONPATH_PRE_GET_ROOT
+#endif
+
 #ifndef CSONPATH_DO_DECLARATION
 #define CSONPATH_DO_DECLARATION
 #endif
@@ -155,11 +159,14 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	   cjp->inst_lst[idx].inst != CSONPATH_INST_OR) {
 	switch (cjp->inst_lst[idx].inst) {
 	case CSONPATH_INST_ROOT:
+	{
+	    CSONPATH_PRE_GET_ROOT
 	    value = origin;
 	    tmp = value;
 	    ctx = CSONPATH_NULL;
 	    walker += cjp->inst_lst[idx].next;
-	    break;
+	}
+	break;
 	case CSONPATH_INST_FILTER_KEY_EQ:
 	case CSONPATH_INST_FILTER_KEY_REG_EQ:
 	case CSONPATH_INST_FILTER_KEY_NOT_EQ:
@@ -356,6 +363,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 
 #ifndef CSONPATH_NO_UNDEF
 
+#undef CSONPATH_PRE_GET_ROOT
 #undef CSONPATH_PRE_GET
 #undef CSONPATH_DO_PRE_OPERATION
 #undef CSONPATH_DO_POST_OPERATION

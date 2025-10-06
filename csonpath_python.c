@@ -50,6 +50,10 @@
       r;							\
     })
 
+#define CSONPATH_EXEPTION(ARGS...)		\
+  PyErr_Format(PyExc_ValueError, ARGS);		\
+  return -1;
+
 #define CSONPATH_CALLBACK PyObject *
 
 #define CSONPATH_CALLBACK_DATA PyObject *
@@ -84,7 +88,7 @@
 static int pydict_try_setitemstring(PyObject *obj,  const char * const at, PyObject *el)
 {
     if (!PyDict_Check(obj)) {
-	PyErr_Format(PyExc_ValueError, "Unable to follow path: Dict expected");
+	PyErr_Format(PyExc_ValueError, "Unable to follow path (%s): Dict expected", at);
 	return -1;
     }
     PyDict_SetItemString(obj, at, el);

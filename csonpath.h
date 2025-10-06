@@ -33,6 +33,10 @@
 #define CSONPATH_DECREF(obj)
 #endif
 
+#ifndef CSONPATH_EXEPTION
+#define CSONPATH_EXEPTION(args...) CSONPATH_GETTER_ERR(args)
+#endif
+
 enum csonpath_instuction_raw {
 	CSONPATH_INST_ROOT,
 	CSONPATH_INST_GET_OBJ,
@@ -847,6 +851,14 @@ again:
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
 
+#define CSONPATH_PRE_GET_ROOT						\
+  int to_check = cjp->inst_lst[idx + 1].inst;				\
+  if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR)  { \
+    CSONPATH_EXEPTION("can't upate root ($)\n");			\
+  }
+    
+
+
 #define CSONPATH_PRE_GET(this_idx)					\
 	int check_at = idx + 1;						\
 	int to_check;							\
@@ -927,6 +939,12 @@ again:
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
+#define CSONPATH_PRE_GET_ROOT						\
+  int to_check = cjp->inst_lst[idx + 1].inst;				\
+  if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR)  { \
+    CSONPATH_GETTER_ERR("can't upate root ($)\n");			\
+    return CSONPATH_NONE_FOUND_RET;					\
+  }
 
 #define CSONPATH_PRE_GET(this_idx)					\
     int check_at = idx + 1;						\
