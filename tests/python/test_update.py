@@ -17,6 +17,17 @@ def test_update_at_out_of_bound():
     o.update_or_create(d, "hej hej")
     assert d["a"][3] == "hej hej"
 
+def test_update_root():
+    o = csonpath.CsonPath("$")
+    v = {"1": 1, "2" : "2", "3": 3}
+    d = []
+    o.update_or_create(d, [1,2,3,4])
+    assert d == [1,2,3,4]
+
+    d = {}
+    o.update_or_create(d, v)
+    assert d == {"1": 1, "2" : "2", "3": 3}
+
 
 def test_update_create():
     jp = csonpath.CsonPath("$[*].a")

@@ -51,8 +51,8 @@
     })
 
 #define CSONPATH_EXEPTION(ARGS...)		\
-  PyErr_Format(PyExc_ValueError, ARGS);		\
-  return -1;
+    PyErr_Format(PyExc_ValueError, ARGS);	\
+    return -1;
 
 #define CSONPATH_CALLBACK PyObject *
 
@@ -101,7 +101,7 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	PyErr_Format(PyExc_ValueError, "Unable to follow path: List expected");
 	return -1;
     }
-    Py_ssize_t s = PyList_Size(array); 
+    Py_ssize_t s = PyList_Size(array);
     if (at >= s) {
 	for (;s < at; ++s)
 	    PyList_Insert(array, s, Py_None);
@@ -127,6 +127,22 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	     char *: pydict_try_setitemstring			\
 	) (array, at, el)
 
+
+#define CSONPATH_ARRAY_CLEAR(o) PyList_Clear(o)
+
+#define CSONPATH_OBJ_CLEAR(o) PyDict_Clear(o)
+
+#define CSONPATH_FOREACH_ARRAY(obj, child, idx)				\
+    for (intptr_t array_len = PyList_Size(obj), idx = 0;		\
+	 ({int r = idx < array_len; if (r) child = PyList_GetItem(obj, idx); r;}); ++idx)
+
+#define CSONPATH_FOREACH_OBJ(obj, child, key)				\
+    for (Py_ssize_t pos_ = 0; ({					\
+		PyObject *key_;						\
+		_Bool r = PyDict_Next(obj, &pos_, &key_, &child);	\
+		if (r) key = PyUnicode_AsUTF8AndSize(key_, NULL);	\
+		r;							\
+	    });)
 
 #define CSONPATH_FOREACH_EXT(obj, el, code, key_idx)			\
   if (PyDict_Check(obj)) {						\

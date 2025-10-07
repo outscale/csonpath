@@ -62,6 +62,28 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
     })
 
 
+#define CSONPATH_FOREACH_ARRAY(obj, child, idx)				\
+  for (intptr_t array_len = json_object_array_length(obj), idx = 0;	\
+       ({int r = idx < array_len; child = json_object_array_get_idx(obj, idx); r;}); ++idx)
+
+#define CSONPATH_FOREACH_OBJ(obj, child, key)				\
+        struct lh_entry *entry##key;                                           \
+        struct lh_entry *entry_next##key = NULL;                               \
+        for (entry##key = json_object_get_object(obj)->head;                   \
+             (entry##key ? (key = (char *)lh_entry_k(entry##key),              \
+                           child = (struct json_object *)lh_entry_v(entry##key), \
+                           entry_next##key = entry##key->next, entry##key)     \
+                         : 0);                                                 \
+             entry##key = entry_next##key)
+
+
+#define CSONPATH_OBJ_CLEAR(o)						\
+  do { json_object_object_foreach(o, k, to_rm) { json_object_object_del(o,k); }  } while (0)
+
+#define CSONPATH_ARRAY_CLEAR(o)					\
+  json_object_array_del_idx(o, 0, json_object_array_length(o));
+
+
 #define CSONPATH_FOREACH_EXT(obj, el, code, key_idx_)				\
   if (json_object_is_type(obj, json_type_object)) {			\
     json_object_object_foreach(obj, key_idx_, el) { (void) key_idx_; code } \

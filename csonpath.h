@@ -678,7 +678,8 @@ static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, char 
 	goto next_inst;							\
     } while (0)
 
-#define CSONPATH_GOTO_ON_RELOOP(where)		\
+
+#define CSONPATH_GOTO_ON_RELOOP(where)			\
     nb_res += tret; if (need_reloop_in) goto where;
 
 #define CSONPATH_PREPARE_RELOOP(label)		\
@@ -850,14 +851,41 @@ again:
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
+static int csonpath_sync_root_array(CSONPATH_JSON parent, CSONPATH_JSON to_update)
+{
+    CSONPATH_JSON child;
+    size_t idx;
+    (void) idx;
+
+    CSONPATH_ARRAY_CLEAR(parent);
+    CSONPATH_FOREACH_ARRAY(to_update, child, idx) {
+	CSONPATH_APPEND_AT(parent, idx, child);
+    }
+    return 1;
+}
+
+static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
+{
+    CSONPATH_JSON child;
+    const char *key;
+
+    CSONPATH_OBJ_CLEAR(parent);
+    CSONPATH_FOREACH_OBJ(to_update, child, key) {
+	CSONPATH_APPEND_AT(parent, key, child);
+    }
+    return 1;
+}
 
 #define CSONPATH_PRE_GET_ROOT						\
-  int to_check = cjp->inst_lst[idx + 1].inst;				\
-  if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR)  { \
-    CSONPATH_EXEPTION("can't upate root ($)\n");			\
-  }
-    
-
+    int to_check = cjp->inst_lst[idx + 1].inst;				\
+    if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
+	if (CSONPATH_IS_OBJ(origin) && CSONPATH_IS_OBJ(to_update))	\
+	    return csonpath_sync_root_obj(origin, to_update);		\
+	else if (CSONPATH_IS_ARRAY(origin) && CSONPATH_IS_ARRAY(to_update)) \
+	    return csonpath_sync_root_array(origin, to_update);		\
+	else								\
+	    CSONPATH_EXEPTION("can't upate root ($)\n");		\
+    }
 
 #define CSONPATH_PRE_GET(this_idx)					\
 	int check_at = idx + 1;						\
