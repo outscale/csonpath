@@ -63,6 +63,22 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 #define CSONPATH_FOREACH(obj, el, code)		\
     CSONPATH_FOREACH_EXT(obj, el, ({code}), key_idx)
 
+#define CSONPATH_FOREACH_ARRAY(obj, el, key_idx_)	\
+  size_t max_;						\
+  yyjson_arr_foreach(obj, key_idx_, max_, el)
+
+#define CSONPATH_FOREACH_OBJ(obj, val, key)			\
+  size_t idx_, max_;						\
+  yyjson_val *key_;						\
+  for ((idx_) = 0,						\
+	 (max_) = yyjson_obj_size(obj),				\
+	 (key_) = (obj) ? unsafe_yyjson_get_first(obj) : NULL,	\
+	 (val) = (key_) + 1;					\
+       ({int r = (idx_) < (max_); if (r) key = yyjson_get_str(key_); r; }); \
+       (idx_)++,							\
+	 (key_) = unsafe_yyjson_get_next(val),			\
+	 (val) = (key_) + 1)
+
 #define CSONPATH_FOREACH_EXT(obj, el, code, key_idx_)			\
     if (yyjson_get_type(obj) == YYJSON_TYPE_ARR) {      		\
 	size_t key_idx_, max_;						\
@@ -79,6 +95,12 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 	}								\
     }
 
+
+#define CSONPATH_ARRAY_CLEAR(o)			\
+  fail_on_non_mut(NULL)
+
+#define CSONPATH_OBJ_CLEAR(o)			\
+  fail_on_non_mut(NULL)
 
 #define CSONPATH_APPEND_AT(array, at, el)	\
   fail_on_non_mut(NULL)				\

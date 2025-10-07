@@ -33,8 +33,8 @@
 #define CSONPATH_DECREF(obj)
 #endif
 
-#ifndef CSONPATH_EXEPTION
-#define CSONPATH_EXEPTION(args...) CSONPATH_GETTER_ERR(args)
+#ifndef CSONPATH_EXCEPTION
+#define CSONPATH_EXCEPTION(args...) CSONPATH_GETTER_ERR(args)
 #endif
 
 enum csonpath_instuction_raw {
@@ -884,7 +884,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 	else if (CSONPATH_IS_ARRAY(origin) && CSONPATH_IS_ARRAY(to_update)) \
 	    return csonpath_sync_root_array(origin, to_update);		\
 	else								\
-	    CSONPATH_EXEPTION("can't upate root ($)\n");		\
+	    CSONPATH_EXCEPTION("can't upate root ($)\n");		\
     }
 
 #define CSONPATH_PRE_GET(this_idx)					\

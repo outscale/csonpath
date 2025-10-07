@@ -50,7 +50,7 @@
       r;							\
     })
 
-#define CSONPATH_EXEPTION(ARGS...)		\
+#define CSONPATH_EXCEPTION(ARGS...)		\
     PyErr_Format(PyExc_ValueError, ARGS);	\
     return -1;
 
