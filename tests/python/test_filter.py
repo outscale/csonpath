@@ -3,7 +3,7 @@ import csonpath
 import sys
 
 
-def test_filter():
+def test_simple_filter():
     dict = {"ar": [{"0": "a 0", "1": "a 1"}, {"ah": "a 0", "bh": "a 10"}]}
     cp = csonpath.CsonPath('$.ar[?0="a 0"]')
 
@@ -48,3 +48,15 @@ def test_filter():
     ret = cp.find_all(dict)
 
     assert ret == ["Leodagan"], dict
+
+
+def test_multiple_filters():
+    # cf. https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#extensions, last example of filter
+    dict = {"knights": [{"name": "Leodagan", "laterality": "left"}, {"name": "George", "laterality": "left"}]}
+    cp = csonpath.CsonPath('$.knights[?laterality = "left"]')
+    ret = cp.find_all(dict)
+    assert ret == [{'name': 'Leodagan', 'laterality': 'left'}, {'name': 'George', 'laterality': 'left'}]
+
+    cp = csonpath.CsonPath('$.knights[?laterality = "left" & name = "George]')
+    ret = cp.find_all(dict)
+    assert ret == [{'name': 'George', 'laterality': 'left'}]
