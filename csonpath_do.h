@@ -188,23 +188,25 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	    {
 		intptr_t key_idx = foreach_idx;
 		(void)key_idx;
+		owalker = walker;
 	      match_and_or_or:
 		if (CSONPATH_IS_OBJ(el)) {
 		    CSONPATH_JSON el2 = el;
 
-		    owalker = walker;
 		    idx = walker_idx;
 		    CSONPATH_DO_FILTER_LOOP_PRE_SET;
 		    el2 = cosnpath_crawl_filter_el(cjp, &idx, &owalker, el2, filter_next);
 
 		    if (csonpath_make_match(cjp, &cjp->inst_lst[idx], el2, owalker,
 					    operation)) {
-			if (cjp->inst_lst[idx + 1].next == CSONPATH_INST_FILTER_AND) {
+			if (cjp->inst_lst[idx + 1].inst == CSONPATH_INST_FILTER_AND) {
+			    ++idx; /* skip next */
 			    if (csonpath_is_endish_inst(cjp->inst_lst[idx + 1].inst) ||
 				csonpath_is_endish_inst(cjp->inst_lst[idx + 2].inst))
 				goto fail_match;
 			    operation = cjp->inst_lst[idx +1].inst;
 			    filter_next = cjp->inst_lst[idx +1].filter_next;
+			    owalker += cjp->inst_lst[idx].next + cjp->inst_lst[idx-1].next;
 			    walker_idx = idx + 2;
 			    goto match_and_or_or;
 			}

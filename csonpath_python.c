@@ -246,6 +246,12 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
     return ret;
 }
 
+static PyObject *print_instructions(PyCsonPathObject *self, PyObject *args, PyObject *kwds)
+{
+    csonpath_print_instruction(self->cp);
+    return Py_None;
+}
+
 static PyObject *callback(PyCsonPathObject *self, PyObject* args)
 {
     PyObject *json, *callback, *udata = Py_None;
@@ -289,7 +295,6 @@ static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* arg
     return PyLong_FromLong(ret);
 }
 
-
 static void PyCsonPath_dealloc(PyCsonPathObject *self) {
   if (self->cp) {
     csonpath_destroy(self->cp);
@@ -312,6 +317,7 @@ static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
 static PyMethodDef csonpath_py_method[] = {
     {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
     {"callback", (PyCFunction)callback, METH_VARARGS, "callback"},
+    {"print_instructions", (PyCFunction)print_instructions, METH_NOARGS, "print_instructions"},
     {"update_or_create_callback", (PyCFunction)update_or_create_callback, METH_VARARGS, "update_or_create_callback"},
     {"find_first", (PyCFunction)find_first, METH_VARARGS, "find first elems"},
     {"find_all", (PyCFunction)find_all, METH_VARARGS, "find all elems, if one found, pout it in an array"},

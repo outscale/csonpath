@@ -303,6 +303,11 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		inst = CSONPATH_INST_GET_OBJ;
 		cjp->inst_lst[inst_idx - 1].next += 1;
 		++walker;
+
+		/* skipp blank */
+		for (; isblank(*walker); ++walker)
+		    cjp->inst_lst[inst_idx - 1].next += 1;
+
 		last_inst = &cjp->inst_lst[inst_idx - 1];
 		if (*walker == '(') {
 		    ++have_parentesis;
