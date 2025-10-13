@@ -131,7 +131,18 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	) (array, at, el)
 
 
+#if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 13)
+/* PyList_Clear was introduced in Python 3.13 */
 #define CSONPATH_ARRAY_CLEAR(o) PyList_Clear(o)
+#else
+For older versions, manually clear the list
+#define CSONPATH_ARRAY_CLEAR(o)            \
+    do {                                   \
+        while (PyList_Size(o) > 0) {       \
+            PyList_SetSlice(o, 0, PyList_Size(o), NULL); \
+        }                                  \
+    } while (0)
+#endif
 
 #define CSONPATH_OBJ_CLEAR(o) PyDict_Clear(o)
 
