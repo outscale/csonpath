@@ -31,9 +31,10 @@
 - support `..`: `"$..non`
 - support `[*]`: `"$.array[*].obj[*].field"`
 - support filters:
-  - with `>` or `<`: `"$.obj[?.field > 123]"`
-  - with `=` or '!=': `"$.obj[?.field != "123"]"`
+  - with `>` or `<`: `"$.obj[?field > 123]"`
+  - with `=` or '!=': `"$.obj[?field != "123"]"`
   - with regex, using POSIX regcom: `"$.obj[?.field ~= "123"]"`
+  - with `&`: `"$.obj[?field != "123" & second = 1]"`
 - support `|`: `"$.obj | $.otherobj"`
 ### Functions
 - **Find First**: Retrieve the first value matching a path.

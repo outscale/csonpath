@@ -108,6 +108,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 						 int idx,
 						 char *walker CSONPATH_DO_EXTRA_DECLATION);
 
+
 #define csonpath_do_dotdot__(name) CATCAT(csonpath_, name, _dotdot)
 #define csonpath_do_dotdot csonpath_do_dotdot__(CSONPATH_DO_FUNC_NAME)
 
@@ -174,83 +175,54 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	case CSONPATH_INST_FILTER_KEY_INFERIOR:
 	{
 	    CSONPATH_JSON el;
-	    int operation = cjp->inst_lst[idx].inst;
+	    int operation_in = cjp->inst_lst[idx].inst, operation = cjp->inst_lst[idx].inst;
 	    walker += cjp->inst_lst[idx].next;
 	    char *owalker;
-	    int filter_next = cjp->inst_lst[idx].filter_next;
-	    int operand_instruction = -1;
-	    int in_idx = idx + 1;
+	    int filter_next_in = cjp->inst_lst[idx].filter_next, filter_next = cjp->inst_lst[idx].filter_next;
+	    int walker_idx = idx + 1, in_idx = idx + 1;
+	    int foreach_idx;
 
+	    (void) foreach_idx;
 	    CSONPATH_DO_FILTER_PRE_LOOP;
-	    CSONPATH_FOREACH(tmp, el, {
-		    if (CSONPATH_IS_OBJ(el)) {
-			CSONPATH_JSON el2 = el;
+	    CSONPATH_FOREACH_ARRAY(tmp, el, foreach_idx)
+	    {
+		intptr_t key_idx = foreach_idx;
+		(void)key_idx;
+		owalker = walker;
+	      match_and_or_or:
+		if (CSONPATH_IS_OBJ(el)) {
+		    CSONPATH_JSON el2 = el;
 
-			owalker = walker;
-			idx = in_idx;
-			CSONPATH_DO_FILTER_LOOP_PRE_SET;
-			for (; idx < filter_next; ++idx) {
-			    switch (cjp->inst_lst[idx].inst) {
-			    case CSONPATH_INST_GET_OBJ:
-				el2 = CSONPATH_GET(el2, owalker);
-				break;
-			    default:
-				CSONPATH_GETTER_ERR("unsuported");
-			    }
-			    owalker += cjp->inst_lst[idx].next;
+		    idx = walker_idx;
+		    CSONPATH_DO_FILTER_LOOP_PRE_SET;
+		    el2 = cosnpath_crawl_filter_el(cjp, &idx, &owalker, el2, filter_next);
+
+		    if (csonpath_make_match(cjp, &cjp->inst_lst[idx], el2, owalker,
+					    operation)) {
+			if (cjp->inst_lst[idx + 1].inst == CSONPATH_INST_FILTER_AND) {
+			    ++idx; /* skip next */
+			    if (csonpath_is_endish_inst(cjp->inst_lst[idx + 1].inst) ||
+				csonpath_is_endish_inst(cjp->inst_lst[idx + 2].inst))
+				goto fail_match;
+			    operation = cjp->inst_lst[idx +1].inst;
+			    filter_next = cjp->inst_lst[idx +1].filter_next;
+			    owalker += cjp->inst_lst[idx].next + cjp->inst_lst[idx-1].next;
+			    walker_idx = idx + 2;
+			    goto match_and_or_or;
 			}
-
-			if (operand_instruction < 0) {
-			    operand_instruction = cjp->inst_lst[idx].inst;
-			}
-
-			if (el2 != CSONPATH_NULL) {
-			    _Bool match = 0;
-			    switch (operation) {
-			    case CSONPATH_INST_FILTER_KEY_NOT_EQ:
-				match = !csonpath_do_match(operand_instruction, el2, owalker);
-				break;
-			    case CSONPATH_INST_FILTER_KEY_EQ:
-				match = csonpath_do_match(operand_instruction, el2, owalker);
-				break;
-			    case CSONPATH_INST_FILTER_KEY_SUPERIOR:
-				if (!CSONPATH_IS_NUM(el2))
-				    break;
-				match = csonpath_int_from_walker(operand_instruction, owalker) <
-				    CSONPATH_GET_NUM(el2);
-				break;
-			    case CSONPATH_INST_FILTER_KEY_INFERIOR:
-				if (!CSONPATH_IS_NUM(el2))
-				    break;
-				match = csonpath_int_from_walker(operand_instruction, owalker) >
-				    CSONPATH_GET_NUM(el2);
-				break;
-			    case CSONPATH_INST_FILTER_KEY_REG_EQ:
-#ifdef CSONPATH_NO_REGEX
-				CSONPATH_GETTER_ERR("regex deactivate\n");
-				return  CSONPATH_NONE_FOUND_RET;
-#else
-				if (CSONPATH_IS_STR(el2)) {
-				    int regex_idx = cjp->inst_lst[idx].regex_idx;
-				    regex_t *compiled = &cjp->regexs[regex_idx];
-				    int match_len = regexec(compiled, CSONPATH_GET_STR(el2),
-							    0, NULL, 0);
-				    match = match_len == 0;
-				}
-				break;
-#endif
-			    }
-			    if (match) {
-				CSONPATH_DO_RET_TYPE tret =
-				    csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
-							 owalker + cjp->inst_lst[idx].next
-							 CSONPATH_DO_EXTRA_ARGS_NEESTED);
-
-				CSONPATH_DO_FILTER_FIND;
-			    }
-			}
+			CSONPATH_DO_RET_TYPE tret =
+			    csonpath_do_internal(cjp, origin, el, tmp, idx + 1,
+						 owalker + cjp->inst_lst[idx].next
+						 CSONPATH_DO_EXTRA_ARGS_NEESTED);
+			CSONPATH_DO_FILTER_FIND;
+		    } else {
+		      fail_match:
+			operation = operation_in;
+			walker_idx = in_idx;
+			filter_next = filter_next_in;
 		    }
-		});
+		}
+	    }
 	    CSONPATH_DO_FILTER_OUT;
 	    break;
 	}
