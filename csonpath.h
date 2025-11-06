@@ -57,6 +57,7 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_FILTER_AND,
 	CSONPATH_INST_GET_ALL,
 	CSONPATH_INST_FIND_ALL,
+	CSONPATH_INST_RANGE,
 	CSONPATH_INST_OR,
 	CSONPATH_INST_END,
 	CSONPATH_INST_BROKEN
@@ -80,6 +81,7 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"FILTER_AND",
 	"GET_ALL",
 	"FIND_ALL",
+	"RANGE",
 	"OR",
 	"END",
 	"BROKEN"
@@ -238,6 +240,37 @@ static void csonpath_print_instruction(struct csonpath cjp[static 1])
 static inline _Bool csonpath_is_dot_operand(int c)
 {
     return isalnum(c) || c == '_' || c == '-';
+}
+
+
+static int csonpath_fill_walker_with_int(char *walker, int num)
+{
+    if (num < 100) {
+	 *walker = num;
+	 return CSONPATH_INST_GET_ARRAY_SMALL;
+    }
+    union {
+	int n;
+	char c[4];
+    } u = {.n=num};
+    walker[0] = u.c[0];
+    walker[1] = u.c[1];
+    walker[2] = u.c[2];
+    walker[3] = u.c[3];
+    return CSONPATH_INST_GET_ARRAY_BIG;
+}
+
+static int csonpath_int_from_walker(int operand_instruction, char *walker)
+{
+    if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_BYTE)
+	return *walker;
+    else if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_INT) {
+	union {int n; char c[4];} to_num =
+	    { .c= { walker[0], walker[1], walker[2], walker[3] } };
+
+	return to_num.n;
+    }
+    return -1;
 }
 
 static int csonpath_compile(struct csonpath cjp[static 1])
@@ -479,20 +512,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 
 		    n = atoi(walker);
 		    to_check = *next;
-		    if (n < 100) {
-			*walker = n;
-			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_BYTE, &inst_idx);
-		    } else {
-			union {
-			    int n;
-			    char c[4];
-			} u = {.n=n};
-			walker[0] = u.c[0];
-			walker[1] = u.c[1];
-			walker[2] = u.c[2];
-			walker[3] = u.c[3];
-			csonpath_push_inst(cjp, CSONPATH_INST_FILTER_OPERAND_INT, &inst_idx);
-		    }
+		    csonpath_push_inst(cjp, csonpath_fill_walker_with_int(walker, n), &inst_idx);
 		}
 
 		/* skip space */
@@ -537,11 +557,19 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 
 		next = walker;
 		do {
-		    if (*next < '0' || *next > '9') {
-			CSONPATH_COMPILE_ERR(tmp, walker - orig,
-					     "unexpected '%c', sting, filter or number require\n", *next);
-		    }
-		    next++;
+		  if (*next == ':') {
+		    csonpath_push_inst(cjp, CSONPATH_INST_RANGE, &inst_idx);
+		    num = atoi(walker);
+		    csonpath_push_inst(cjp, csonpath_fill_walker_with_int(walker, num), &inst_idx);
+		    walker = next + 1;
+		    ++next;
+		    continue;
+		  }
+		  if (*next < '0' || *next > '9') {
+		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
+					 "unexpected '%c', sting, filter or number require\n", *next);
+		  }
+		  next++;
 		} while (*next && *next != ']');
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
@@ -549,20 +577,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		}
 		*next = 0;
 		num = atoi(walker);
-		if (num < 100) {
-		    csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_SMALL, &inst_idx);
-		    *walker = num;
-		} else {
-		    union {
-			int n;
-			char c[4];
-		    } u = {.n=num};
-		    walker[0] = u.c[0];
-		    walker[1] = u.c[1];
-		    walker[2] = u.c[2];
-		    walker[3] = u.c[3];
-		    csonpath_push_inst(cjp, CSONPATH_INST_GET_ARRAY_BIG, &inst_idx);
-		}
+		csonpath_push_inst(cjp, csonpath_fill_walker_with_int(walker, num), &inst_idx);
 		cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 		walker = next + 1;
 		to_check = *walker;
@@ -654,19 +669,6 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 	cjp->inst_lst[0] = (struct csonpath_instruction){.inst=CSONPATH_INST_BROKEN};
 	free(tmp);
 	return -1;
-}
-
-static int csonpath_int_from_walker(int operand_instruction, char *walker)
-{
-    if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_BYTE)
-	return *walker;
-    else if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_INT) {
-	union {int n; char c[4];} to_num =
-	    { .c= { walker[0], walker[1], walker[2], walker[3] } };
-
-	return to_num.n;
-    }
-    return -1;
 }
 
 static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, char *owalker)
