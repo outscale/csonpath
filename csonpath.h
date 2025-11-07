@@ -243,11 +243,11 @@ static inline _Bool csonpath_is_dot_operand(int c)
 }
 
 
-static int csonpath_fill_walker_with_int(char *walker, int num)
+static int csonpath_fill_walker_with_int(char *walker, int num, int first_ret)
 {
     if (num < 100) {
 	 *walker = num;
-	 return CSONPATH_INST_GET_ARRAY_SMALL;
+	 return first_ret;
     }
     union {
 	int n;
@@ -257,18 +257,24 @@ static int csonpath_fill_walker_with_int(char *walker, int num)
     walker[1] = u.c[1];
     walker[2] = u.c[2];
     walker[3] = u.c[3];
-    return CSONPATH_INST_GET_ARRAY_BIG;
+    return first_ret + 1;
 }
 
 static int csonpath_int_from_walker(int operand_instruction, char *walker)
 {
-    if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_BYTE)
+    switch(operand_instruction) {
+    case CSONPATH_INST_FILTER_OPERAND_BYTE:
+    case CSONPATH_INST_GET_ARRAY_SMALL:
 	return *walker;
-    else if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_INT) {
+    case CSONPATH_INST_GET_ARRAY_BIG:
+    case CSONPATH_INST_FILTER_OPERAND_INT:
+    {
 	union {int n; char c[4];} to_num =
 	    { .c= { walker[0], walker[1], walker[2], walker[3] } };
-
 	return to_num.n;
+    }
+    default:
+	break;
     }
     return -1;
 }
@@ -512,7 +518,8 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 
 		    n = atoi(walker);
 		    to_check = *next;
-		    csonpath_push_inst(cjp, csonpath_fill_walker_with_int(walker, n), &inst_idx);
+		    csonpath_push_inst(cjp, csonpath_fill_walker_with_int(
+					   walker, n, CSONPATH_INST_FILTER_OPERAND_BYTE), &inst_idx);
 		}
 
 		/* skip space */
@@ -560,7 +567,11 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		  if (*next == ':') {
 		    csonpath_push_inst(cjp, CSONPATH_INST_RANGE, &inst_idx);
 		    num = atoi(walker);
-		    csonpath_push_inst(cjp, csonpath_fill_walker_with_int(walker, num), &inst_idx);
+		    csonpath_push_inst(
+			cjp, csonpath_fill_walker_with_int(
+			    walker, num, CSONPATH_INST_GET_ARRAY_SMALL),
+			&inst_idx);
+		    cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 		    walker = next + 1;
 		    ++next;
 		    continue;
@@ -577,7 +588,9 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		}
 		*next = 0;
 		num = atoi(walker);
-		csonpath_push_inst(cjp, csonpath_fill_walker_with_int(walker, num), &inst_idx);
+		csonpath_push_inst(cjp, csonpath_fill_walker_with_int(
+				       walker, num, CSONPATH_INST_GET_ARRAY_SMALL),
+				   &inst_idx);
 		cjp->inst_lst[inst_idx - 1].next = next - walker + 1;
 		walker = next + 1;
 		to_check = *walker;
@@ -883,14 +896,25 @@ need_reloop_in = 0;
 #define CSONPATH_DO_FILTER_FIND nb_res += tret;
 
 #define CSONPATH_DO_FIND_ALL ({					\
-			if (tret < 0) return -1;		\
-			nb_res += tret;				\
-			if (need_reloop_in){ goto again; };	\
-		})
+	    if (tret < 0) return -1;				\
+	    nb_res += tret;					\
+	    if (need_reloop_in){ goto again; };			\
+	})
+
+#define CSONPATH_DO_RANGE ({						\
+	    if (tret < 0) return -1;					\
+	    nb_res += tret;						\
+	    --end;							\
+	    if (need_reloop_in){ goto range_again; };			\
+	})
 
 #define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, NULL
+
+#define CSONPATH_DO_RANGE_PRE_LOOP		\
+    int need_reloop_in;				\
+range_again:
 
 #define CSONPATH_DO_FILTER_PRE_LOOP		\
 	int need_reloop_in;
