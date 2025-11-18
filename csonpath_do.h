@@ -93,6 +93,18 @@
 #define CSONPATH_DO_FILTER_LOOP_PRE_SET
 #endif
 
+#ifndef CSONPATH_DO_RANGE
+#define CSONPATH_DO_RANGE CSONPATH_DO_FIND_ALL
+#endif
+
+#ifndef CSONPATH_DO_RANGE
+#define CSONPATH_DO_RANGE CSONPATH_DO_FIND_ALL
+#endif
+
+#ifndef CSONPATH_DO_RANGE_PRE_LOOP
+#define CSONPATH_DO_RANGE_PRE_LOOP CSONPATH_DO_FIND_ALL_PRE_LOOP
+#endif
+
 #ifndef CAT
 # define CATCAT(a, b, c) a ## b ## c
 # define CAT(a, b) a ## b
@@ -234,6 +246,46 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	    CSONPATH_DO_FIND_ALL_CLEAUP;
 	    return tret;
 	}
+	case CSONPATH_INST_RANGE:
+	{
+	    if (!CSONPATH_IS_ARRAY(tmp)) {
+		return CSONPATH_NONE_FOUND_RET;
+	    }
+
+	    CSONPATH_JSON el;
+	    intptr_t key_idx;
+
+	    (void)key_idx;
+	    int next_0 = cjp->inst_lst[idx].next;
+	    int next_1 = cjp->inst_lst[idx + 1].next;
+	    int next_2 = cjp->inst_lst[idx + 2].next;
+	    unsigned int beg = csonpath_int_from_walker(cjp->inst_lst[idx + 1].inst, walker + next_0);
+	    unsigned int end = csonpath_int_from_walker(cjp->inst_lst[idx + 2].inst,
+							walker + next_0 + next_1);
+
+	    if (!end)
+		end = -1;
+
+	    CSONPATH_DO_RANGE_PRE_LOOP;
+	    CSONPATH_FOREACH_ARRAY(tmp, el, key_idx) {
+		if (key_idx < beg) {
+		    key_idx = beg - 1;
+		    continue;
+		}
+		if (key_idx >= end)
+		    break;
+		CSONPATH_DO_FOREACH_PRE_SET
+			CSONPATH_DO_RET_TYPE tret =
+			csonpath_do_internal(cjp, origin, el, tmp, idx + 3,
+					     walker + next_0 + next_1 + next_2
+					     CSONPATH_DO_EXTRA_ARGS_NEESTED);
+
+		CSONPATH_DO_RANGE;
+	    }
+
+	    CSONPATH_DO_GET_ALL_OUT;
+	    break;
+	}
 	case CSONPATH_INST_GET_ALL:
 	{
 	    CSONPATH_JSON el;
@@ -361,5 +413,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_FILTER_PRE_LOOP
 #undef CSONPATH_DO_FILTER_FIND
 #undef CSONPATH_DO_FILTER_LOOP_PRE_SET
+#undef CSONPATH_DO_RANGE
+#undef CSONPATH_DO_RANGE_PRE_LOOP
 
 #endif

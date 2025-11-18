@@ -135,7 +135,7 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 /* PyList_Clear was introduced in Python 3.13 */
 #define CSONPATH_ARRAY_CLEAR(o) PyList_Clear(o)
 #else
-For older versions, manually clear the list
+/* For older versions, manually clear the list */
 #define CSONPATH_ARRAY_CLEAR(o)            \
     do {                                   \
         while (PyList_Size(o) > 0) {       \

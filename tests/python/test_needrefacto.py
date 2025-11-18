@@ -28,7 +28,7 @@ def test_torefacto():
     d = {"B": {"a": "true A"}, "a": "le a", "C": {"B": "not good", "a": "oh"}}
     o = csonpath.CsonPath("$[*].a")
     r = o.find_all(d)
-    print(r == ["oh"])
+    assert(r != ["oh"])
 
     o = csonpath.CsonPath("$..a")
     r = o.find_all(d)
