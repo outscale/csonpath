@@ -1072,17 +1072,16 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_DO_RETURN						\
 	if (tmp == value) {						\
 		*need_reloop = 1;					\
-		CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata); \
-		return 1;						\
 	}								\
-	return 0;
+	CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata);	\
+	return 1;
 
 #define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , callback, udata, NULL, need_reloop
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,	\
 	csonpath_child_info_set(&(struct csonpath_child_info ){}, tmp, (intptr_t)key_idx), \
 	&need_reloop_in
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
-#define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, NULL, NULL
+#define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, &(struct csonpath_child_info ){}, NULL
 #define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
 #define CSONPATH_DO_FIND_ALL nb_res += tret;
 #define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
@@ -1101,19 +1100,8 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
   }
 
 #define CSONPATH_PRE_GET(this_idx)					\
-    int check_at = idx + 1;						\
-    int to_check;							\
-    do {								\
-	to_check = cjp->inst_lst[check_at].inst;			\
-	++check_at;							\
-    } while (to_check == CSONPATH_INST_GET_ALL || to_check == CSONPATH_INST_FIND_ALL); \
-    if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
-	CSONPATH_CALL_CALLBACK(						\
-	    callback, ctx,						\
-	    csonpath_child_info_set(&(struct csonpath_child_info ){},	\
-				    ctx, (intptr_t)this_idx), tmp, udata); \
-	return 1;							\
-    }
+  int to_check = cjp->inst_lst[idx].inst;				\
+  csonpath_child_info_set(child_info, ctx, (intptr_t)this_idx)
 
 
 #define CSONPATH_DO_GET_NOTFOUND(this_idx)		\

@@ -58,3 +58,4 @@ def test_callback_more():
     jp = csonpath.CsonPath("$.a")
     syncronyse_in_out("$.a", d, e)
     jp.callback(e, split_line)
+    assert e == {"a": ["wololo", "ayoyoyo", "w0l0l0"]}
