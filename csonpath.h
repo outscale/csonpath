@@ -1005,12 +1005,13 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_PRE_GET_ROOT						\
     int to_check = cjp->inst_lst[idx + 1].inst;				\
     if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
-	if (CSONPATH_IS_OBJ(origin) && CSONPATH_IS_OBJ(to_update))	\
+	if (CSONPATH_IS_OBJ(origin) && CSONPATH_IS_OBJ(to_update)) {	\
 	    return csonpath_sync_root_obj(origin, to_update);		\
-	else if (CSONPATH_IS_ARRAY(origin) && CSONPATH_IS_ARRAY(to_update)) \
+	} else if (CSONPATH_IS_ARRAY(origin) && CSONPATH_IS_ARRAY(to_update)) { \
 	    return csonpath_sync_root_array(origin, to_update);		\
-	else								\
+	} else {							\
 	    CSONPATH_EXCEPTION("can't upate root ($)\n");		\
+	}								\
     }
 
 #define CSONPATH_PRE_GET(this_idx)					\
