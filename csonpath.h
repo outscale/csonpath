@@ -111,6 +111,7 @@ struct csonpath {
     int regex_cnt;
     regex_t *regexs;
 #endif
+		int return_empty_array;
 };
 
 struct csonpath_child_info {
@@ -204,6 +205,9 @@ static inline int csonpath_init(struct csonpath cjp[static 1],
     if (!cjp->path || !cjp->inst_lst) {
 	return -ENOMEM;
     }
+
+	cjp->return_empty_array = 0;
+
     return 0;
 }
 
@@ -845,14 +849,13 @@ need_reloop_in = 0;
 #define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL
 
 #define CSONPATH_DO_FIND_ALL_OUT		\
-    if (!nb_res) {				\
+	if (!cjp->return_empty_array && !nb_res) {				\
 	return CSONPATH_NONE_FOUND_RET;		\
     }						\
     return ret_ar;
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , ret_ar
 #define CSONPATH_DO_EXTRA_DECLATION , CSONPATH_FIND_ALL_RET ret_ar
-
 
 #include "csonpath_do.h"
 

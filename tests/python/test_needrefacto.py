@@ -20,6 +20,11 @@ def test_torefacto():
 
     assert r is None
 
+    o = csonpath.CsonPath("$.C", True)
+    r = o.find_first(d)
+
+    assert r is None
+
     o = csonpath.CsonPath("$[*]")
     r = o.find_all(d)
 

@@ -1,4 +1,5 @@
 #include <Python.h>
+#include <stdio.h>
 
 #define CSONPATH_JSON PyObject *
 
@@ -207,33 +208,53 @@ typedef struct {
 
 
 static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
-				PyObject* dont_care)
+				PyObject* kwargs)
 {
-  PyCsonPathObject *self = (PyCsonPathObject *)subtype->tp_alloc(subtype, 0);
-  const char *s;
+	static char *kwlist[] = {"path", "return_empty_array", NULL};
+	PyCsonPathObject *self = (PyCsonPathObject *)subtype->tp_alloc(subtype, 0);
+	const char *s;
+	int return_empty_array = 0;
+	struct csonpath *ret = NULL;
+	PyObject *py_ret = NULL;
 
-  if (!self)
-    BAD_ARG();
+	if (!self)
+		BAD_ARG();
 
-  if (!PyArg_ParseTuple(args, "s", &s))
-    BAD_ARG();
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|p", kwlist,
+					 &s, &return_empty_array)) {
+		goto error;
+					 }
 
-  struct csonpath *ret = malloc(sizeof *ret);
-  if (!self)
-    return PyErr_NoMemory();
+	ret = malloc(sizeof *ret);
+	if (!ret) {
+		PyErr_NoMemory();
+		goto error;
+	}
 
-  if (csonpath_init(ret, s) < 0)
-    return PyErr_NoMemory();
+	if (csonpath_init(ret, s) < 0) {
+		py_ret = PyErr_NoMemory();
+		goto error_free_ret;
+	}
 
-  if (csonpath_compile(ret) < 0) {
-    char *error = ret->compile_error;
-    PyErr_Format(PyExc_ValueError, "compilation fail %s", error ? error : "(unknow error)");
-    csonpath_destroy(ret);
-    return NULL;
-  }
-  self->cp = ret;
+	ret->return_empty_array = return_empty_array;
 
-  return (PyObject *)self;
+	if (csonpath_compile(ret) < 0) {
+		char *err_str = ret->compile_error;
+		PyErr_Format(PyExc_ValueError, "compilation fail %s",
+				 err_str ? err_str : "(unknow error)");
+		goto error_destroy_ret;
+	}
+
+	self->cp = ret;
+	return (PyObject *)self;
+
+	error_destroy_ret:
+		csonpath_destroy(ret);
+	error_free_ret:
+		free(ret);
+	error:
+		Py_DECREF(self);
+	return py_ret;
 }
 
 static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
@@ -241,8 +262,10 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
     PyObject *json;
 
     if (!PyArg_ParseTuple(args, "O", &json))
-	BAD_ARG();
+        BAD_ARG();
+
     PyObject *ret = csonpath_find_all(self->cp, json);
+
     return ret;
 }
 
@@ -251,8 +274,10 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
     PyObject *json;
 
     if (!PyArg_ParseTuple(args, "O", &json))
-	BAD_ARG();
+        BAD_ARG();
+
     PyObject *ret = csonpath_find_first(self->cp, json);
+
     Py_INCREF(ret);
     return ret;
 }

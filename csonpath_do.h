@@ -382,7 +382,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 
     CSONPATH_DO_POST_OPERATION;
 
-    return ret;
+	return ret;
 }
 
 #ifndef CSONPATH_NO_UNDEF

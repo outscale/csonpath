@@ -60,6 +60,16 @@ int main(void)
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
 
+  assert(csonpath_set_path(&p, "$.array[?a==9999]") == 0);
+  p.return_empty_array = 0;
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret == NULL);
+
+  p.return_empty_array = 1;
+  ret = csonpath_find_first(&p, jobj);
+  assert(ret == NULL);
+  p.return_empty_array = 0;
+
   csonpath_set_path(&p, "$.array[?(@[\"a\"]==\"la\")]");
   ret = csonpath_find_first(&p, jobj);
   assert(ret);
@@ -137,6 +147,18 @@ int main(void)
 
   assert(!csonpath_set_path(&p, "$.ha[?(@[\"i\"][\"h\"] =~ \"gan\")][\"i\"][\"h\"]"));
   assert(csonpath_find_first(&p, jobj));
+
+  assert(!csonpath_set_path(&p, "$.ha[?i.h=~\"no_match_xyz\"]"));
+  p.return_empty_array = 1;
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret != NULL);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 0);
+  json_object_put(ret);
+  p.return_empty_array = 0;
+  ret = csonpath_find_all(&p, jobj);
+  assert(ret == NULL);
+  json_object_put(ret);
 
   json_object_put(jobj);
 
