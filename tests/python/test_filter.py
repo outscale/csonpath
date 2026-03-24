@@ -49,6 +49,23 @@ def test_simple_filter():
 
     assert ret == ["Leodagan"], dict
 
+    dict = {"ha": [{"h": {"h1": "Leodagan"}}, {"h": "George"}]}
+    cp = csonpath.CsonPath('$.ha[?h.h1 =~ "Assim"].h.h1')
+    ret = cp.find_all(dict)
+
+    assert ret is None
+
+    dict = {"ha": [{"h": {"h1": "Leodagan"}}, {"h": "George"}]}
+    cp = csonpath.CsonPath('$.ha[?h.h1 =~ "Assim"].h.h1', return_empty_array=True)
+    ret = cp.find_all(dict)
+
+    assert ret == []
+
+    cp = csonpath.CsonPath('$.ha[?h.h1 =~ "Assim"].h.h1', True)
+    ret = cp.find_all(dict)
+
+    assert ret == []
+
 
 def test_multiple_filters():
     # cf. https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#extensions, last example of filter
@@ -66,3 +83,13 @@ def test_multiple_filters():
     cp = csonpath.CsonPath('$.knights[?laterality = "left" & sub.a = 10].sub')
     ret = cp.find_first(dict)
     assert ret == {"a": 10}
+
+    cp = csonpath.CsonPath('$.knights[?(@.name == "Assim")].laterality')
+    ret = cp.find_first(dict)
+
+    assert ret is None
+
+    cp = csonpath.CsonPath('$.knights[?(@.name == "Assim")].laterality', return_empty_array=True)
+    ret = cp.find_first(dict)
+
+    assert ret is None
