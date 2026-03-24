@@ -135,6 +135,7 @@ print(o.find_first(d))  # Output: "value"
 
 #### Avaible methodes:
 - `CsonPath(path)`: create a new csonpath object.
+- `CsonPath(path, return_empty_array)`: Create a new csonpath object and return an empty list instead of None (like jsonpath-ng).
 - `OBJ.find_first(self, json)`: take a json, return first found occurrence.
 - `OBJ.find_all(self, json)`: take a json, return all found occurrence in a list.
 - `OBJ.remove(self, json)`: take a json, remove all found occurrence from it.
