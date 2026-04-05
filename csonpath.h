@@ -173,12 +173,14 @@ static inline void csonpath_destroy(struct csonpath cjp[static 1])
 	free(cjp->path);
 	free(cjp->inst_lst);
 	free(cjp->compile_error);
+	#ifndef CSONPATH_NO_REGEX
 	if (cjp->regex_cnt) {
 	    for (int i = 0; i < cjp->regex_cnt; ++i) {
 		regfree(&cjp->regexs[i]);
 	    }
 	    free(cjp->regexs);
 	}
+	#endif
 	*cjp = (struct csonpath){};
 }
 
@@ -440,13 +442,16 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		/* = and == are the same here */
 		if (to_check == '=') {
 		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_EQ, &inst_idx);
-		    if (next[0] == '=')
+		    if (next[0] == '=') {
 			++next;
+		    }
+#ifndef CSONPATH_NO_REGEX
 		    else if (next[0] == '~') {
 			cjp->inst_lst[inst_idx - 1].inst = CSONPATH_INST_FILTER_KEY_REG_EQ;
 			regex_idx = cjp->regex_cnt++;
 			++next;
 		    }
+#endif
 		} else if (to_check == '!' && next[0] == '=') {
 		    csonpath_push_inst(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ, &inst_idx);
 		    ++next;
@@ -758,8 +763,8 @@ static _Bool csonpath_make_match(struct csonpath cjp[static 1],
 	break;
     case CSONPATH_INST_FILTER_KEY_REG_EQ:
 #ifdef CSONPATH_NO_REGEX
-	CSONPATH_GETTER_ERR("regex deactivate\n");
-	return  CSONPATH_NONE_FOUND_RET;
+      fprintf(stderr, "regex deactivate");
+      return 0;
 #else
 	if (CSONPATH_IS_STR(el2)) {
 	    int regex_idx = inst->regex_idx;
