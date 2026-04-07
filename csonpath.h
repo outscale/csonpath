@@ -10,7 +10,13 @@
 #endif
 
 #ifndef CSONPATH_NO_REGEX
-#include <regex.h>
+#  ifdef CSONPATH_TINY_REGEX
+#    include <tiny-regex-c/re.h>
+typedef char * csonpath_reg_t;
+#  else
+#    include <regex.h>
+typedef regex_t csonpath_reg_t;
+#  endif
 #endif
 
 #define CSONPATH_UNUSED __attribute__((unused))
@@ -109,9 +115,9 @@ struct csonpath {
     int compiled;
 #ifndef CSONPATH_NO_REGEX
     int regex_cnt;
-    regex_t *regexs;
+    csonpath_reg_t *regexs;
 #endif
-		int return_empty_array;
+    int return_empty_array;
 };
 
 struct csonpath_child_info {
@@ -175,9 +181,11 @@ static inline void csonpath_destroy(struct csonpath cjp[static 1])
 	free(cjp->compile_error);
 	#ifndef CSONPATH_NO_REGEX
 	if (cjp->regex_cnt) {
+#ifndef CSONPATH_TINY_REGEX
 	    for (int i = 0; i < cjp->regex_cnt; ++i) {
 		regfree(&cjp->regexs[i]);
 	    }
+#endif
 	    free(cjp->regexs);
 	}
 	#endif
@@ -495,12 +503,16 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		    if (regex_idx >= 0) {
 			if (!regex_idx)
 			    cjp->regexs = malloc(sizeof *cjp->regexs * 255);
-			int e = regcomp(&cjp->regexs[regex_idx], walker, 0);
 			cjp->inst_lst[inst_idx - 1].regex_idx = regex_idx;
+#  ifdef CSONPATH_TINY_REGEX
+			cjp->regexs[regex_idx] = walker;
+#  else
+			int e = regcomp(&cjp->regexs[regex_idx], walker, 0);
 			if (e) {
 			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error\n");
 			    goto error;
 			}
+#  endif
 		    }
 #endif
 		    ++next;
@@ -767,11 +779,19 @@ static _Bool csonpath_make_match(struct csonpath cjp[static 1],
       return 0;
 #else
 	if (CSONPATH_IS_STR(el2)) {
+#ifdef CSONPATH_TINY_REGEX
+	    int match_len = 0;
+	    int regex_idx = inst->regex_idx;
+	    const char *str = CSONPATH_GET_STR(el2);
+	    re_match(cjp->regexs[regex_idx], str, &match_len);
+	    match = !!match_len;
+#else
 	    int regex_idx = inst->regex_idx;
 	    regex_t *compiled = &cjp->regexs[regex_idx];
 	    int match_len = regexec(compiled, CSONPATH_GET_STR(el2),
 				    0, NULL, 0);
 	    match = match_len == 0;
+#endif
 	}
 	break;
 #endif
