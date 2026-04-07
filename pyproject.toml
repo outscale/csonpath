@@ -9,9 +9,7 @@ readme = "README.md"
 
 [tool.setuptools]
 packages = []  # no Python packages, just an extension
-ext-modules = [
-	 {name="csonpath", sources = ["csonpath_python.c"]}
-]
+ext-modules = [ {name="csonpath",sources=["csonpath_python.c", "tiny-regex-c/re.c"],extra-compile-args=["-std=c99", "-DCSONPATH_TINY_REGEX", "-I./tiny-regex-c/", "-I./", "-O3"]}]
 
 [project.optional-dependencies]
 dev = [
