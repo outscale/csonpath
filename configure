@@ -1,0 +1,23 @@
+#!/bin/bash
+
+CFLAGS=""
+EXTRA_FILES=""
+
+for arg in $@; do
+    echo $( echo "$arg" | cut -d '=' -f 1)
+    if [ "--no-regex" = $arg ]; then
+	CFLAGS="${CFLAGS} -DCSONPATH_NO_REGEX"
+    fi
+    if [ "--tiny-regex" = $arg ]; then
+	CFLAGS="${CFLAGS} -DCSONPATH_TINY_REGEX"
+	EXTRA_FILES="${EXTRA_FILES} tiny-regex-c/re.c"
+    fi
+    if [ "--help" = $arg ]; then
+	echo "help"
+	echo "	--tiny-regex"
+	echo "	--no-regex"
+    fi
+done
+
+echo CFLAGS=$CFLAGS > config.mk
+echo EXTRA_FILES=$EXTRA_FILES >> config.mk

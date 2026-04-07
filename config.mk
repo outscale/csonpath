@@ -1,0 +1,2 @@
+CFLAGS= -DCSONPATH_TINY_REGEX
+EXTRA_FILES= tiny-regex-c/re.c
