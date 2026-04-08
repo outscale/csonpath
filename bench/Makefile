@@ -29,6 +29,9 @@ bench-json-c-gcc: bench-json-c.c
 bench-json-c-gcc-tinyre: bench-json-c.c
 	gcc bench-json-c.c ../tiny-regex-c/re.c -O3 -g -DCSONPATH_TINY_REGEX -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-gcc-tinyre $(shell pkg-config --libs json-c)
 
+bench-json-c-gcc-pcre: bench-json-c.c
+	gcc bench-json-c.c  -O3 -g -DCSONPATH_PCRE2 -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-gcc-pcre $(shell pkg-config --libs json-c libpcre2-8)
+
 bench-json-c-clang: bench-json-c.c
 	clang bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-clang $(shell pkg-config --libs json-c)
 
