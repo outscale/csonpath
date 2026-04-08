@@ -16,13 +16,13 @@ bench-clean:
 CFLAGS+= -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 
 test-json-c-get-a: tests/json-c/get-a.c $(EXTRA_FILES) csonpath_json-c.h csonpath.h csonpath_do.h
-	$(CC) tests/json-c/get-a.c  $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-c-get-a  $(JSON_C_LDFLAGS)
+	$(CC) tests/json-c/get-a.c  $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-c-get-a  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
 test-json-update: tests/json-c/set-a.c csonpath_json-c.h csonpath.h csonpath_do.h
-	$(CC) tests/json-c/set-a.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-update  $(JSON_C_LDFLAGS)
+	$(CC) tests/json-c/set-a.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-update  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
 test-json-filter: tests/json-c/filter.c csonpath_json-c.h csonpath.h csonpath_do.h
-	$(CC) tests/json-c/filter.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-filter  $(JSON_C_LDFLAGS)
+	$(CC) tests/json-c/filter.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-filter  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
 tests-c: test-json-c-get-a test-json-update test-json-filter
 	./test-json-c-get-a
