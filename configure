@@ -14,11 +14,11 @@ for arg in $@; do
 	EXTRA_FILES="${EXTRA_FILES} tiny-regex-c/re.c"
     fi
     if [ "--pcre2-regex" = $arg ]; then
-	CFLAGS="${CFLAGS} -DCSONPATH_PCRE2"
+	CFLAGS="${CFLAGS} -DCSONPATH_PCRE2 $(pkg-config --cflags libpcre2-8)"
 	LDFLAGS="${LDFLAGS} $(pkg-config --libs libpcre2-8)"
     fi
     if [ "--pcre2-posix" = $arg ]; then
-	CFLAGS="${CFLAGS} -DCSONPATH_PCRE2_POSIX"
+	CFLAGS="${CFLAGS} -DCSONPATH_PCRE2_POSIX $(pkg-config --cflags libpcre2-posix)"
 	LDFLAGS="${LDFLAGS} $(pkg-config --libs libpcre2-posix)"
     fi
     if [ "--help" = $arg ]; then
