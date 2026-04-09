@@ -14,9 +14,12 @@
 #    include <tiny-regex-c/re.h>
 typedef char * csonpath_reg_t;
 #  elif defined CSONPATH_PCRE2
-#define PCRE2_CODE_UNIT_WIDTH 8
+#    define PCRE2_CODE_UNIT_WIDTH 8
 #    include <pcre2.h>
 typedef pcre2_code * csonpath_reg_t;
+#  elif defined CSONPATH_PCRE2_POSIX
+#    include <pcre2posix.h>
+typedef regex_t csonpath_reg_t;
 #  else
 #    include <regex.h>
 typedef regex_t csonpath_reg_t;
