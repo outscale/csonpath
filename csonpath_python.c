@@ -233,33 +233,23 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 		goto error;
 					 }
 
-	ret = malloc(sizeof *ret);
+	ret = csonpath_new_no_destroy(s);
 	if (!ret) {
 		PyErr_NoMemory();
 		goto error;
 	}
-
-	if (csonpath_init(ret, s) < 0) {
-		py_ret = PyErr_NoMemory();
-		goto error_free_ret;
+	if (ret->compile_error) {
+		PyErr_Format(PyExc_ValueError, "compilation fail %s",
+			     ret->compile_error);
+		csonpath_destroy(ret);
+		goto error;
 	}
 
 	ret->return_empty_array = return_empty_array;
 
-	if (csonpath_compile(ret) < 0) {
-		char *err_str = ret->compile_error;
-		PyErr_Format(PyExc_ValueError, "compilation fail %s",
-				 err_str ? err_str : "(unknow error)");
-		goto error_destroy_ret;
-	}
-
 	self->cp = ret;
 	return (PyObject *)self;
 
-	error_destroy_ret:
-		csonpath_destroy(ret);
-	error_free_ret:
-		free(ret);
 	error:
 		Py_DECREF(self);
 	return py_ret;
@@ -342,7 +332,7 @@ static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* arg
 static void PyCsonPath_dealloc(PyCsonPathObject *self) {
   if (self->cp) {
     csonpath_destroy(self->cp);
-    free(self->cp);
+    self->cp = NULL;
   }
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -354,7 +344,7 @@ static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
       return Py_False;
     if (!new_path) return Py_False;
 
-    csonpath_set_path(self->cp, new_path);
+    self->cp = csonpath_set_path(self->cp, new_path);
     return Py_True;
 }
 

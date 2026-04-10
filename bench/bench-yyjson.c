@@ -49,15 +49,15 @@ int main() {
 	"$..title",
     };
     size_t query_count = sizeof(queries) / sizeof(queries[0]);
-    struct csonpath p;
+    struct csonpath *p;
     size_t count = 0;
 
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();
 
-	csonpath_init(&p, queries[i]);
+	p = csonpath_new(queries[i]);
 	for (int j = 0; j < 1000; ++j) {
-		struct find_all_ret *ret = csonpath_find_all(&p, jobj);
+		struct find_all_ret *ret = csonpath_find_all(p, jobj);
 		count = ret->i;
 		free_find_all(ret);
 	}
@@ -69,7 +69,7 @@ int main() {
     }
 
     free(json_text);
-    csonpath_destroy(&p);
+    csonpath_destroy(p);
     yyjson_doc_free(jdoc);
     return 0;
 }

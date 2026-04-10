@@ -25,13 +25,13 @@ queries = [
 
 # Benchmark
 for query in queries:
-    start = time.perf_counter()
-    expr = parse(query)
-    for x in range(1000):
-        result = expr.find(data)
-    elapsed = time.perf_counter() - start
-    print(f"jsonpath-ng Query: {query}")
-    print(f"jsonpath-ng Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
+    #start = time.perf_counter()
+    #expr = parse(query)
+    #for x in range(1000):
+    #    result = expr.find(data)
+    #elapsed = time.perf_counter() - start
+    #print(f"jsonpath-ng Query: {query}")
+    #print(f"jsonpath-ng Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
 
     start = time.perf_counter()
     cp = csonpath.CsonPath(query)
