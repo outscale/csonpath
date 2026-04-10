@@ -62,9 +62,16 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
     })
 
 
+#ifdef __TINYC__
+#define CSONPATH_PRAGMA(...)
+#else
+#define CSONPATH_PRAGMA(...) _Pragma(__VA_ARGS__)
+#endif
+
 #define CSONPATH_FOREACH_ARRAY(obj, child, idx)				\
-  for (intptr_t array_len = json_object_array_length(obj), idx = 0;	\
-       ({int r = idx < array_len; child = json_object_array_get_idx(obj, idx); r;}); ++idx)
+    CSONPATH_PRAGMA("GCC unroll 8")					\
+    for (intptr_t array_len = json_object_array_length(obj), idx = 0;	\
+	 ({int r = idx < array_len; child = json_object_array_get_idx(obj, idx); r;}); ++idx)
 
 #define CSONPATH_FOREACH_OBJ(obj, child, key)				\
         struct lh_entry *entry##key;                                           \
@@ -90,6 +97,7 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
     json_object_object_foreach(obj, key_idx_, el) { (void) key_idx_; code } \
   } else if (json_object_is_type(obj, json_type_array)) {		\
     int array_len_ = json_object_array_length(obj);			\
+    CSONPATH_PRAGMA("GCC unroll 8")					\
     for (intptr_t key_idx_ = 0; key_idx_ < array_len_; ++key_idx_) {	\
       el = json_object_array_get_idx(obj, key_idx_);			\
       code								\
