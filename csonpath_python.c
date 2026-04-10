@@ -28,7 +28,6 @@
 
 #define CSONPATH_DECREF(obj)			\
   Py_DECREF(obj);
-  
 
 #define CSONPATH_GET_NUM(obj)			\
     PyLong_AsLong(obj)
@@ -132,6 +131,13 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	) (array, at, el)
 
 
+#ifdef __TINYC__
+#define CSONPATH_PRAGMA(...)
+#else
+#define CSONPATH_PRAGMA(...) _Pragma(__VA_ARGS__)
+#endif
+
+
 #if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 13)
 /* PyList_Clear was introduced in Python 3.13 */
 #define CSONPATH_ARRAY_CLEAR(o) PyList_Clear(o)
@@ -148,6 +154,7 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 #define CSONPATH_OBJ_CLEAR(o) PyDict_Clear(o)
 
 #define CSONPATH_FOREACH_ARRAY(obj, child, idx)				\
+    CSONPATH_PRAGMA("GCC unroll 8")					\
     for (intptr_t array_len = PyList_Size(obj), idx = 0;		\
 	 ({int r = idx < array_len; if (r) child = PyList_GetItem(obj, idx); r;}); ++idx)
 
@@ -170,6 +177,7 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	}								\
   } else if (PyList_Check(obj)) {					\
     int array_len_ = PyList_Size(obj);					\
+    CSONPATH_PRAGMA("GCC unroll 8")					\
     for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {	\
       el = PyList_GetItem(obj, key_idx);				\
       code								\

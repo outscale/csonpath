@@ -261,7 +261,7 @@ static inline void csonpath_push_inst_cpy(struct csonpath cjp[static 1],
     *inst_idx += 1;
 }
 
-static void csonpath_print_instruction(struct csonpath cjp[static 1])
+static void csonpath_print_instruction(const struct csonpath cjp[const static 1])
 {
     int idx = 0;
     for (;cjp->inst_lst[idx].inst != CSONPATH_INST_END; ++idx) {
@@ -703,7 +703,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 		csonpath_push_inst(cjp, inst, &inst_idx);
 		to_check = *walker;
 		goto again;
-	    } 
+	    }
 	    for (next = walker; csonpath_is_dot_operand(*next); ++next);
 	    if (next == walker) {
 		if (*next == '[')
@@ -762,12 +762,11 @@ static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, char 
     return 0;
 }
 
-static CSONPATH_JSON cosnpath_crawl_filter_el(struct csonpath cjp[static 1],
+static CSONPATH_JSON cosnpath_crawl_filter_el(const struct csonpath cjp[const static 1],
 					      int *idx, char **owalker,
 					      CSONPATH_JSON el2,
 					      int filter_next)
 {
-    
     for (; *idx < filter_next; ++(*idx)) {
 	switch (cjp->inst_lst[*idx].inst) {
 	case CSONPATH_INST_GET_OBJ:
@@ -784,12 +783,12 @@ static CSONPATH_JSON cosnpath_crawl_filter_el(struct csonpath cjp[static 1],
 }
 
 
-static _Bool csonpath_make_match(struct csonpath cjp[static 1],
+static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 				 struct csonpath_instruction inst[static 1],
 				 CSONPATH_JSON el2, char *owalker, int operation)
 {
     int operand_instruction = inst->inst;
-    
+
     if (el2 == CSONPATH_NULL)
 	return 0;
     _Bool match = 0;

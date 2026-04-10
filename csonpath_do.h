@@ -113,7 +113,7 @@
 #define csonpath_do_internal__(name) CATCAT(csonpath_, name, _internal)
 #define csonpath_do_internal csonpath_do_internal__(CSONPATH_DO_FUNC_NAME)
 
-static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
+static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const static 1],
 						 CSONPATH_JSON origin,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
@@ -125,7 +125,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 #define csonpath_do_dotdot csonpath_do_dotdot__(CSONPATH_DO_FUNC_NAME)
 
 
-static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
+static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const static 1],
 					       CSONPATH_JSON origin,
 					       CSONPATH_JSON tmp,
 					       CSONPATH_JSON ctx,
@@ -171,7 +171,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
     return tret;
 }
 
-static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
+static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const static 1],
 						 CSONPATH_JSON origin,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
