@@ -135,12 +135,17 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
     CSONPATH_JSON el;
     CSONPATH_DO_DECLARATION;
     const int is_obj = CSONPATH_IS_OBJ(tmp);
+    intptr_t key_idx;
     CSONPATH_DO_RET_TYPE tret = CSONPATH_NONE_FOUND_RET;
 
     CSONPATH_DO_FIND_ALL_PRE_LOOP;
-    CSONPATH_FOREACH(tmp, el, {
+    if (is_obj) {
+	const char *key;
+	CSONPATH_FOREACH_OBJ(tmp, el, key) {
+	    key_idx = (intptr_t)key;
+	    (void)key_idx;
 	    CSONPATH_DO_FOREACH_PRE_SET;
-	    if (is_obj && !strcmp((char *)key_idx, walker)) {
+	    if (!strcmp(key, walker)) {
 		tret = csonpath_do_internal(cjp, origin, el, tmp, idx,
 					    walker + cjp->inst_lst[idx].next
 					    CSONPATH_DO_EXTRA_ARGS_NEESTED);
@@ -151,7 +156,17 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(struct csonpath cjp[static 1],
 					  CSONPATH_DO_EXTRA_ARGS_NEESTED);
 		CSONPATH_DO_FIND_ALL;
 	    }
-	})
+	}
+    } else {
+	CSONPATH_FOREACH_ARRAY(tmp, el, key_idx) {
+	    CSONPATH_DO_FOREACH_PRE_SET;
+	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
+		tret = csonpath_do_dotdot(cjp, origin, el, tmp, idx, walker
+					  CSONPATH_DO_EXTRA_ARGS_NEESTED);
+		CSONPATH_DO_FIND_ALL;
+	    }
+	}
+    }
     CSONPATH_DO_FIND_ALL_OUT;
     return tret;
 }
@@ -240,11 +255,15 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(struct csonpath cjp[static 1],
 	}
 	case CSONPATH_INST_FIND_ALL:
 	{
-	    CSONPATH_DO_RET_TYPE tret =
-		csonpath_do_dotdot(cjp, origin, tmp, ctx, idx + 1,
-				   walker CSONPATH_DO_EXTRA_ARGS_FIND_ALL);
-	    CSONPATH_DO_FIND_ALL_CLEAUP;
-	    return tret;
+	    if (CSONPATH_IS_OBJ(tmp) || CSONPATH_IS_ARRAY(tmp)) {
+		CSONPATH_DO_RET_TYPE tret =
+		    csonpath_do_dotdot(cjp, origin, tmp, ctx, idx + 1,
+				       walker CSONPATH_DO_EXTRA_ARGS_FIND_ALL);
+		CSONPATH_DO_FIND_ALL_CLEAUP;
+		return tret;
+	    } else {
+		return CSONPATH_NONE_FOUND_RET;
+	    }
 	}
 	case CSONPATH_INST_RANGE:
 	{
