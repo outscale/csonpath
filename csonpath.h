@@ -898,7 +898,7 @@ need_reloop_in = 0;
 #define CSONPATH_DO_FUNC_NAME find_first
 #define CSONPATH_DO_RETURN return tmp
 
-#define CSONPATH_DO_FIND_ALL return tret
+#define CSONPATH_DO_FIND_ALL if (tret) return tret
 
 #define CSONPATH_DO_FILTER_FIND return tret
 
