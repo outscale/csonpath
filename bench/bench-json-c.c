@@ -37,18 +37,11 @@ char *generate_json() {
     return json;
 }
 
-int main() {
-    char *json_text = generate_json();
+int main_(const char **queries, int query_count) {
+      char *json_text = generate_json();
 
     struct json_object *jobj = json_tokener_parse(json_text);
 
-    const char *queries[] = {
-	"$.store.book[?(@.price) > 20].title",
-        "$.store.book[*].title",
-	"$.store.book[?title =~ \"Book\"].title",
-        "$..title",
-    };
-    size_t query_count = sizeof(queries) / sizeof(queries[0]);
     struct csonpath p;
     size_t count = 0;
 
@@ -71,4 +64,23 @@ int main() {
     free(json_text);
     csonpath_destroy(&p);
     return 0;
+}
+
+int main(int ac, char **av) {
+    const char *queries[] = {
+	"$.store.book[?(@.price) > 20].title",
+        "$.store.book[*].title",
+	"$.store.book[?title =~ \"Book\"].title",
+        "$..title",
+    };
+    size_t query_count = sizeof(queries) / sizeof(queries[0]);
+    const char *queries_reg[] = {
+	"$.store.book[?title =~ \"Book\"].title",
+	"$.store.book[?title =~ \"Bo*[a-z]\"].title",
+	"$.store.book[?title =~ \"Bo*[a-z] \\d*\"].title",
+    };
+    size_t query_reg_count = sizeof(queries_reg) / sizeof(queries_reg[0]);
+    if (ac > 1)
+      return main_(queries_reg, query_reg_count);
+    return main_(queries, query_count);
 }
