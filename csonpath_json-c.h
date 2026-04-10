@@ -69,7 +69,8 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 #define CSONPATH_FOREACH_OBJ(obj, child, key)				\
         struct lh_entry *entry##key;                                           \
         struct lh_entry *entry_next##key = NULL;                               \
-        for (entry##key = json_object_get_object(obj)->head;                   \
+	struct lh_table *otable = json_object_get_object(obj);		\
+        for (entry##key = otable ? otable->head : NULL;			\
              (entry##key ? (key = (char *)lh_entry_k(entry##key),              \
                            child = (struct json_object *)lh_entry_v(entry##key), \
                            entry_next##key = entry##key->next, entry##key)     \
