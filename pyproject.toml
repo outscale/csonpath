@@ -9,9 +9,7 @@ readme = "README.md"
 
 [tool.setuptools]
 packages = []  # no Python packages, just an extension
-ext-modules = [
-	 {name="csonpath", sources = ["csonpath_python.c"]}
-]
+# Extension module is defined in setup.py for platform-specific sources
 
 [project.optional-dependencies]
 dev = [
