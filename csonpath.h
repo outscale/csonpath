@@ -12,7 +12,7 @@
 #ifndef CSONPATH_NO_REGEX
 #  if defined CSONPATH_TINY_REGEX
 #    include <tiny-regex-c/re.h>
-typedef char * csonpath_reg_t;
+typedef re_t csonpath_reg_t;
 #  elif defined CSONPATH_PCRE2
 #    define PCRE2_CODE_UNIT_WIDTH 8
 #    include <pcre2.h>
@@ -23,6 +23,31 @@ typedef regex_t csonpath_reg_t;
 #  else
 #    include <regex.h>
 typedef regex_t csonpath_reg_t;
+#  endif
+
+#  if defined CSONPATH_TINY_REGEX
+static inline int csonpath_reg_compile(csonpath_reg_t *out, const char *pat) {
+    *out = re_compile(pat);
+    return *out ? 0 : -1;
+}
+static inline _Bool csonpath_reg_exec(csonpath_reg_t reg, const char *str) {
+    int match_len = 0;
+    re_matchp(reg, str, &match_len);
+    return !!match_len;
+}
+static inline void csonpath_reg_free(csonpath_reg_t reg) {
+	free(reg);
+}
+#  elif !defined CSONPATH_PCRE2
+static inline int csonpath_reg_compile(csonpath_reg_t *out, const char *pat)
+{
+    return regcomp(out, pat, 0);
+}
+static inline _Bool csonpath_reg_exec(csonpath_reg_t reg, const char *str)
+{
+    return regexec(&reg, str, 0, NULL, 0) == 0;
+}
+static inline void csonpath_reg_free(csonpath_reg_t reg) { regfree(&reg); }
 #  endif
 #endif
 
@@ -189,25 +214,22 @@ static inline void csonpath_destroy(struct csonpath cjp[static 1])
 	free(cjp->path);
 	free(cjp->inst_lst);
 	free(cjp->compile_error);
-	#ifndef CSONPATH_NO_REGEX
+#ifndef CSONPATH_NO_REGEX
 	if (cjp->regex_cnt) {
-#ifndef CSONPATH_TINY_REGEX
 	    for (int i = 0; i < cjp->regex_cnt; ++i) {
 #ifdef CSONPATH_PCRE2
 		pcre2_code_free(cjp->regexs[i]);
 		pcre2_match_data_free(cjp->match_datas[i]);
 #else
-		regfree(&cjp->regexs[i]);
+		csonpath_reg_free(cjp->regexs[i]);
 #endif
-
 	    }
-#endif
 #ifdef CSONPATH_PCRE2
 	    free(cjp->match_datas);
 #endif
 	    free(cjp->regexs);
 	}
-	#endif
+#endif
 	*cjp = (struct csonpath){};
 }
 
@@ -527,9 +549,7 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 #endif
 			}
 			cjp->inst_lst[inst_idx - 1].regex_idx = regex_idx;
-#  if defined CSONPATH_TINY_REGEX
-			cjp->regexs[regex_idx] = walker;
-#  elif defined CSONPATH_PCRE2
+#ifdef CSONPATH_PCRE2
 			int errorcode;
 			PCRE2_SIZE erroroffset;
 
@@ -546,12 +566,11 @@ static int csonpath_compile(struct csonpath cjp[static 1])
 											   NULL);
 			pcre2_jit_compile(cjp->regexs[regex_idx], PCRE2_JIT_COMPLETE);
 #  else
-			int e = regcomp(&cjp->regexs[regex_idx], walker, 0);
-			if (e) {
+			if (csonpath_reg_compile(&cjp->regexs[regex_idx], walker) != 0) {
 			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error\n");
 			    goto error;
 			}
-#  endif
+#endif
 		    }
 #endif
 		    ++next;
@@ -818,12 +837,7 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 #else
 	if (CSONPATH_IS_STR(el2)) {
 	    int regex_idx = inst->regex_idx;
-#if defined CSONPATH_TINY_REGEX
-	    int match_len = 0;
-	    const char *str = CSONPATH_GET_STR(el2);
-	    re_match(cjp->regexs[regex_idx], str, &match_len);
-	    match = !!match_len;
-#elif defined CSONPATH_PCRE2
+#ifdef CSONPATH_PCRE2
 	    const unsigned char *str = (const unsigned char *)CSONPATH_GET_STR(el2);
 	    int ret = pcre2_match(cjp->regexs[regex_idx], str, PCRE2_ZERO_TERMINATED, 0,
 				  0, cjp->match_datas[regex_idx], NULL);
@@ -839,10 +853,7 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 		return 0;
 	    }
 #else
-	    regex_t *compiled = &cjp->regexs[regex_idx];
-	    int match_len = regexec(compiled, CSONPATH_GET_STR(el2),
-				    0, NULL, 0);
-	    match = match_len == 0;
+	    match = csonpath_reg_exec(cjp->regexs[regex_idx], CSONPATH_GET_STR(el2));
 #endif
 	}
 	break;
