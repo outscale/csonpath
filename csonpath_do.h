@@ -224,7 +224,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		    CSONPATH_DO_FILTER_LOOP_PRE_SET;
 		    el2 = cosnpath_crawl_filter_el(cjp, &owalker, el2, filter_next);
 
-		    if (csonpath_make_match(cjp, el2, &owalker, operation)) {
+		    if (csonpath_make_match(cjp, origin, el2, &owalker, operation)) {
 			if (*owalker == CSONPATH_INST_FILTER_AND) {
 			    ++owalker; /* skip next */
 			    operation = *owalker;
@@ -315,6 +315,35 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		});
 
 	    CSONPATH_DO_GET_ALL_OUT;
+	    break;
+	}
+	case CSONPATH_INST_GET_SUBPATH:
+	{
+	    const char *end_sentinel;
+	    walker = csonpath_walker_next_inst(walker);
+	    CSONPATH_JSON jret = csonpath_find_first_internal(
+		cjp, origin, origin, CSONPATH_NULL, walker, &end_sentinel);
+	    /* here it should point to inst_end, but walker is incr after */
+	    walker = end_sentinel;
+	    if (CSONPATH_IS_NUM(jret)) {
+		int this_idx = CSONPATH_GET_NUM(jret);
+		CSONPATH_PRE_GET(this_idx);
+		tmp = CSONPATH_AT(tmp, this_idx);
+		if (tmp == CSONPATH_NULL) {
+		    CSONPATH_DO_GET_NOTFOUND(this_idx);
+		}
+		CSONPATH_DO_POST_FIND_ARRAY;
+	    } else if (CSONPATH_IS_STR(jret)) {
+		const char *this_idx = CSONPATH_GET_STR(jret);
+		CSONPATH_PRE_GET_OBJ(this_idx);
+		tmp = CSONPATH_GET(tmp, this_idx);
+		if (tmp == CSONPATH_NULL) {
+		    CSONPATH_DO_GET_NOTFOUND(this_idx);
+		}
+		CSONPATH_DO_POST_FIND_OBJ;
+	    } else {
+		CSONPATH_GETTER_ERR("GET_SUBPATH return need to be either number or str");
+	    }
 	    break;
 	}
 	case CSONPATH_INST_GET_OBJ:
