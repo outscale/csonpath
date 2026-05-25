@@ -42,15 +42,15 @@ int main_(const char **queries, int query_count) {
 
     struct json_object *jobj = json_tokener_parse(json_text);
 
-    struct csonpath p;
+    struct csonpath *p;
     size_t count = 0;
 
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();
 
-	csonpath_init(&p, queries[i]);
+	p = csonpath_new(queries[i]);
 	for (int j = 0; j < 1000; ++j) {
-		struct json_object *ret = csonpath_find_all(&p, jobj);
+		struct json_object *ret = csonpath_find_all(p, jobj);
 		count = json_object_array_length(ret);
 		json_object_put(ret);
 	}
@@ -62,7 +62,7 @@ int main_(const char **queries, int query_count) {
     }
 
     free(json_text);
-    csonpath_destroy(&p);
+    csonpath_destroy(p);
     return 0;
 }
 

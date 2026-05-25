@@ -13,8 +13,8 @@ def test_callback():
 
     o.callback(d, split_line)
     assert type(d["c"]) == list
-    assert type(d["c"][0] == "new")
-    assert type(d["c"][1] == "line")
+    assert d["c"][0] == "new"
+    assert d["c"][1] == "line"
 
 
 VALUE_REF: int = 0

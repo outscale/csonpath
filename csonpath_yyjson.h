@@ -26,7 +26,7 @@
 #define CSONPATH_IS_OBJ(obj) (yyjson_get_type(obj) == YYJSON_TYPE_OBJ)
 #define CSONPATH_IS_ARRAY(obj) (yyjson_get_type(obj) == YYJSON_TYPE_ARR)
 #define CSONPATH_IS_STR(obj) (yyjson_get_type(obj) == YYJSON_TYPE_STR)
-#define CSONPATH_IS_NUM(o) (yyjson_get_type(o) == YYJSON_TYPE_STR)
+#define CSONPATH_IS_NUM(o) (yyjson_get_type(o) == YYJSON_TYPE_NUM)
 
 struct csonpath_child_info;
 typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, yyjson_val *, void *);
@@ -139,6 +139,8 @@ static inline void find_all_append(struct find_all_ret *ar, yyjson_val *o) {
 }
 
 static inline void free_find_all(struct find_all_ret *far) {
+    if (!far)
+	return;
     free(far->ret);
     free(far);
 }
