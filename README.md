@@ -36,6 +36,7 @@
   - with regex, using POSIX regcom: `"$.obj[?.field ~= "123"]"`
   - with `&`: `"$.obj[?field != "123" & second = 1]"`
 - support `|`: `"$.obj | $.otherobj"`
+- support subpath: `$.obj[$.key]`, even in filter `$.obj[?field > $.value]`
 ### Functions
 - **Find First**: Retrieve the first value matching a path.
 - **Find All**: Retrieve all values matching a path.
