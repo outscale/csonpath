@@ -1,20 +1,21 @@
-import platform
 import os
-import sys
+import platform
 from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
 
-# Force MinGW compiler on Windows
-if platform.system() == "Windows":
-    # Set compiler before importing distutils
-    os.environ["CC"] = "gcc"
-    # Override distutils to use MinGW
-    from distutils.cygwinccompiler import Mingw32CCompiler
-    from distutils import sysconfig
-    sysconfig.get_config_vars()["CC"] = "gcc"
+
+class BuildExt(build_ext):
+    """Custom build_ext that forces mingw32 on Windows."""
+
+    def finalize_options(self):
+        if platform.system() == "Windows" and self.compiler is None:
+            self.compiler = "mingw32"
+        super().finalize_options()
+
 
 # Base sources
 sources = ["csonpath_python.c"]
-extra_compile_args=["-O3", "-I./"]
+extra_compile_args = ["-O3", "-I./"]
 
 # On Windows, include tiny_regex.c for regex support
 if platform.system() == "Windows":
@@ -30,4 +31,5 @@ extension = Extension(
 
 setup(
     ext_modules=[extension],
+    cmdclass={"build_ext": BuildExt},
 )

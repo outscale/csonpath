@@ -1,5 +1,10 @@
-import csonpath
+import pytest
 import sys
+
+if not hasattr(sys, 'getrefcount'):
+    pytest.skip("refcount tests not applicable on PyPy", allow_module_level=True)
+
+import csonpath
 
 
 def test_update_or_create_refcount_insert_once():

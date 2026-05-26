@@ -1,2 +1,4 @@
-include csonpath.h
-include csonpath_do.h
+include Makefile
+include configure
+include *.h
+recursive-include tiny-regex-c *

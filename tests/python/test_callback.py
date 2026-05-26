@@ -24,6 +24,10 @@ def set_data(parent, idx, cur, data):
     parent[idx] = data
 
 
+@pytest.mark.skipif(
+    not hasattr(sys, 'getrefcount'),
+    reason="refcount not available on PyPy"
+)
 def test_callback_data():
     o = csonpath.CsonPath("$.c")
     d = {"c": "new\nline"}

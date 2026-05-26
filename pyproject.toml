@@ -19,6 +19,13 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
 
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests/python"
+
+[tool.cibuildwheel.windows]
+before-build = "choco install mingw -y"
+
 [tool.bumpversion]
 current_version = "0.11.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"

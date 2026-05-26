@@ -17,12 +17,13 @@ def test_simple_filter():
 
     value = ["wololo"]
 
-    ref_before = sys.getrefcount(value)
+    ref_before = sys.getrefcount(value) if hasattr(sys, 'getrefcount') else None
     ret = cp.update_or_create(dict, value)
-    ref_after = sys.getrefcount(value)
+    ref_after = sys.getrefcount(value) if hasattr(sys, 'getrefcount') else None
 
     assert ret == 1
-    assert ref_before == ref_after - ret
+    if ref_before is not None:
+        assert ref_before == ref_after - ret
     assert dict == {
         "ar": [["wololo"], {"ah": "a 0", "bh": "a 10"}]
     }, "fail result look like: {}".format(dict["ar"][0])
