@@ -1,7 +1,7 @@
 #ifndef CSONPATH_DO_GET_NOTFOUND
 #define CSONPATH_DO_GET_NOTFOUND(this_idx)				\
-    do {								\
-	walker += 1;							\
+  do {									\
+      walker += 1;							\
 	while (*walker != CSONPATH_INST_END) {				\
 	    if (*walker == CSONPATH_INST_OR) {				\
 		goto next_inst;						\
@@ -369,10 +369,10 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    this_idx =  (int)walker[1];
 	    CSONPATH_PRE_GET(this_idx);
 	    tmp = CSONPATH_AT(tmp, this_idx);
+	    walker += 1;
 	    if (tmp == CSONPATH_NULL) {
 		CSONPATH_DO_GET_NOTFOUND(this_idx);
 	    }
-	    walker += 1;
 	    CSONPATH_DO_POST_FIND_ARRAY;
 	    break;
 	}
@@ -385,10 +385,10 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		this_idx = to_num.n;
 		CSONPATH_PRE_GET(this_idx);
 		tmp = CSONPATH_AT(tmp, to_num.n);
+		walker += 5;
 		if (tmp == CSONPATH_NULL) {
 		    CSONPATH_DO_GET_NOTFOUND(this_idx);
 		}
-		walker += 5;
 		CSONPATH_DO_POST_FIND_ARRAY;
 		break;
 	    }

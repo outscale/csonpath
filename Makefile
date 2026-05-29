@@ -3,7 +3,7 @@ JSON_C_LDFLAGS=$(shell pkg-config --libs json-c)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root
 
 bench:
 	make -C bench
@@ -18,6 +18,9 @@ CFLAGS+= -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 test-json-c-get-a: tests/json-c/get-a.c $(EXTRA_FILES) csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/get-a.c  $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-c-get-a  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
+test-json-c-array-root: tests/json-c/root-array.c $(EXTRA_FILES) csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/root-array.c  $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-c-array-root  $(JSON_C_LDFLAGS) $(LDFLAGS)
+
 test-json-update: tests/json-c/set-a.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/set-a.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-update  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
@@ -27,11 +30,12 @@ test-json-filter: tests/json-c/filter.c csonpath_json-c.h csonpath.h csonpath_do
 test-json-subpath: tests/json-c/subpath.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/subpath.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-subpath  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
-tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath
+tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
 	./test-json-subpath
+	./test-json-c-array-root
 
 pip-dev:
 	pip install -e .[dev] --force-reinstall
