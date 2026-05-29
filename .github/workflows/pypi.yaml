@@ -24,12 +24,12 @@ jobs:
         submodules: recursive
 
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.21.3
+      uses: pypa/cibuildwheel@7940a4c0e76eb2030e473a5f864f291f63ee879b # v2.21.3
       env:
         CIBW_SKIP: cp36-* *-win32
         CIBW_BEFORE_BUILD_WINDOWS: "choco install mingw -y"
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: wheels-${{ matrix.os }}
         path: ./wheelhouse/*.whl
@@ -47,7 +47,7 @@ jobs:
         python -m pip install --upgrade build setuptools
         python -m build --sdist .
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: sdist
         path: dist/*.tar.gz
@@ -75,7 +75,7 @@ jobs:
         choco install mingw -y
         echo "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
 
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         name: sdist
         path: dist
@@ -94,7 +94,7 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         path: artifacts
         merge-multiple: true
