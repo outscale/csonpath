@@ -97,6 +97,8 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_GET_SUBPATH,
 	CSONPATH_INST_GET_ARRAY_SMALL,
 	CSONPATH_INST_GET_ARRAY_BIG,
+	CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ,
+	CSONPATH_INST_FILTER_KEY_INFERIOR_EQ,
 	CSONPATH_INST_FILTER_KEY_SUPERIOR,
 	CSONPATH_INST_FILTER_KEY_INFERIOR,
 	CSONPATH_INST_FILTER_KEY_EQ,
@@ -115,22 +117,24 @@ enum csonpath_instuction_raw {
 static int csonpath_instuction_len[] = {
     1, /* 0 CSONPATH_INST_ROOT */
     -1, /* 1 CSONPATH_INST_GET_OBJ */
-    1, /* 1 CSONPATH_INST_GET_SUBPATH */
-    2, /* 2 CSONPATH_INST_GET_ARRAY_SMALL */
-    5, /* 3 CSONPATH_INST_GET_ARRAY_BIG */
-    2, /* 4 CSONPATH_INST_FILTER_KEY_SUPERIOR */
-    2, /* 5 CSONPATH_INST_FILTER_KEY_INFERIOR */
-    2, /* 6 CSONPATH_INST_FILTER_KEY_EQ */
-    2, /* 7 CSONPATH_INST_FILTER_KEY_NOT_EQ */
-    2, /* 8 CSONPATH_INST_FILTER_KEY_REG_EQ */
-    -1, /* 9 CSONPATH_INST_FILTER_OPERAND_STR */
-    1, /* 10 CSONPATH_INST_FILTER_AND */
-    1, /* 11 CSONPATH_INST_GET_ALL */
-    -1, /* 12 CSONPATH_INST_FIND_ALL */
-    1, /* 13 CSONPATH_INST_RANGE */
-    1, /* 14 CSONPATH_INST_OR */
-    1, /* 15 CSONPATH_INST_END */
-    1, /* 16 CSONPATH_INST_BROKEN */
+    1, /* 2 CSONPATH_INST_GET_SUBPATH */
+    2, /* 3 CSONPATH_INST_GET_ARRAY_SMALL */
+    5, /* 4 CSONPATH_INST_GET_ARRAY_BIG */
+    2, /* 5 CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ */
+    2, /* 6 CSONPATH_INST_FILTER_KEY_INFERIOR_EQ */
+    2, /* 7 CSONPATH_INST_FILTER_KEY_SUPERIOR */
+    2, /* 8 CSONPATH_INST_FILTER_KEY_INFERIOR */
+    2, /* 9 CSONPATH_INST_FILTER_KEY_EQ */
+    2, /* A CSONPATH_INST_FILTER_KEY_NOT_EQ */
+    2, /* B CSONPATH_INST_FILTER_KEY_REG_EQ */
+    -1, /* C CSONPATH_INST_FILTER_OPERAND_STR */
+    1, /* D CSONPATH_INST_FILTER_AND */
+    1, /* E CSONPATH_INST_GET_ALL */
+    -1, /* F CSONPATH_INST_FIND_ALL */
+    1, /* 10 CSONPATH_INST_RANGE */
+    1, /* 11 CSONPATH_INST_OR */
+    1, /* 12 CSONPATH_INST_END */
+    1, /* 13 CSONPATH_INST_BROKEN */
 };
 
 /* this should be in an include, but doing so, would break the
@@ -141,6 +145,8 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"GET_SUBPATH",
 	"GET_ARRAY_SMALL",
 	"GET_ARRAY_BIG",
+	"FILTER_KEY_SUPERIOR_EQ",
+	"FILTER_KEY_INFERIOR_EQ",
 	"FILTER_KEY_SUPERIOR",
 	"FILTER_KEY_INFERIOR",
 	"FILTER_KEY_EQ",
@@ -545,9 +551,19 @@ root_again:
 		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ, inst_idx);
 		    ++next;
 		} else if (to_check == '>') {
-		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_SUPERIOR, inst_idx);
+		    if (next[0] == '=') {
+			csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ, inst_idx);
+			++next;
+		    } else {
+		      csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_SUPERIOR, inst_idx);
+		    }
 		} else if (to_check == '<') {
-		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR, inst_idx);
+		    if (next[0] == '=') {
+			csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR_EQ, inst_idx);
+			++next;
+		    } else {
+		      csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR, inst_idx);
+		    }
 		} else {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "'%c': unsuported operation", to_check);
@@ -1255,16 +1271,26 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret))
 		return (!strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)));
 	    return 0;
+	case CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ:
 	case CSONPATH_INST_FILTER_KEY_SUPERIOR:
 	    if (CSONPATH_IS_NUM(el2) && CSONPATH_IS_NUM(jret))
+		if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
+		    return CSONPATH_GET_NUM(el2) >= CSONPATH_GET_NUM(jret);
 		return CSONPATH_GET_NUM(el2) > CSONPATH_GET_NUM(jret);
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret))
+		if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
+		    return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) >= 0;
 		return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) > 0;
 	    return 0;
 	case CSONPATH_INST_FILTER_KEY_INFERIOR:
+	case CSONPATH_INST_FILTER_KEY_INFERIOR_EQ:
 	    if (CSONPATH_IS_NUM(el2) && CSONPATH_IS_NUM(jret))
+		if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
+		    return CSONPATH_GET_NUM(el2) <= CSONPATH_GET_NUM(jret);
 		return CSONPATH_GET_NUM(el2) < CSONPATH_GET_NUM(jret);
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret))
+		if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
+		    return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) <= 0;
 		return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) < 0;
 	    return 0;
 	default:
@@ -1284,27 +1310,45 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	match = csonpath_do_match(operand_instruction, el2, owalker);
 	break;
     case CSONPATH_INST_FILTER_KEY_SUPERIOR:
+    case CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ:
 	if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_STR) {
-	    if (CSONPATH_IS_STR(el2))
+	    if (!CSONPATH_IS_STR(el2))
+		break;
+	    if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
+		match = strcmp(CSONPATH_GET_STR(el2), *owalker) >= 0;
+	    else
 		match = strcmp(CSONPATH_GET_STR(el2), *owalker) > 0;
 	    *owalker += strlen(*owalker) + 1;
 	} else {
 	    if (!CSONPATH_IS_NUM(el2))
 		break;
-	    match = csonpath_int_from_walker(operand_instruction, owalker) <
-		CSONPATH_GET_NUM(el2);
+	    if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
+		match = csonpath_int_from_walker(operand_instruction, owalker) <=
+		    CSONPATH_GET_NUM(el2);
+	    else
+		match = csonpath_int_from_walker(operand_instruction, owalker) <
+		    CSONPATH_GET_NUM(el2);
 	}
 	break;
+    case CSONPATH_INST_FILTER_KEY_INFERIOR_EQ:
     case CSONPATH_INST_FILTER_KEY_INFERIOR:
 	if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_STR) {
-	    if (CSONPATH_IS_STR(el2))
+	    if (!CSONPATH_IS_STR(el2))
+		break;
+	    if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
+		match = strcmp(CSONPATH_GET_STR(el2), *owalker) <= 0;
+	    else
 		match = strcmp(CSONPATH_GET_STR(el2), *owalker) < 0;
 	    *owalker += strlen(*owalker) + 1;
 	} else {
 	    if (!CSONPATH_IS_NUM(el2))
 		break;
-	    match = csonpath_int_from_walker(operand_instruction, owalker) >
-		CSONPATH_GET_NUM(el2);
+	    if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
+		match = csonpath_int_from_walker(operand_instruction, owalker) >=
+		    CSONPATH_GET_NUM(el2);
+	    else
+		match = csonpath_int_from_walker(operand_instruction, owalker) >
+		    CSONPATH_GET_NUM(el2);
 	}
 	break;
     case CSONPATH_INST_FILTER_KEY_REG_EQ:

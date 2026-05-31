@@ -132,3 +132,43 @@ def test_filter_superior_inferior():
     d = {"items": [{"v": 5}]}
     cp = csonpath.CsonPath('$.items[?v > "2"]')
     assert cp.find_all(d) is None
+
+
+def test_filter_superior_inferior_eq():
+    # number >=
+    d = {"items": [{"v": 1}, {"v": 5}, {"v": 10}]}
+    cp = csonpath.CsonPath('$.items[?v >= 5]')
+    assert cp.find_all(d) == [{"v": 5}, {"v": 10}]
+
+    # number <=
+    d = {"items": [{"v": 1}, {"v": 5}, {"v": 10}]}
+    cp = csonpath.CsonPath('$.items[?v <= 5]')
+    assert cp.find_all(d) == [{"v": 1}, {"v": 5}]
+
+    # string >=
+    d = {"items": [{"v": "a"}, {"v": "c"}, {"v": "z"}]}
+    cp = csonpath.CsonPath('$.items[?v >= "c"]')
+    assert cp.find_all(d) == [{"v": "c"}, {"v": "z"}]
+
+    # string <=
+    d = {"items": [{"v": "a"}, {"v": "c"}, {"v": "z"}]}
+    cp = csonpath.CsonPath('$.items[?v <= "c"]')
+    assert cp.find_all(d) == [{"v": "a"}, {"v": "c"}]
+
+    # mix str/num with >= and <=
+    d = {"items": [{"v": 5}]}
+    cp = csonpath.CsonPath('$.items[?v >= "2"]')
+    assert cp.find_all(d) is None
+
+    d = {"items": [{"v": 5}]}
+    cp = csonpath.CsonPath('$.items[?v <= "2"]')
+    assert cp.find_all(d) is None
+
+    # subpath with >= and <= (different code path than inline)
+    d = {"items": [{"v": 10}, {"v": 20}], "threshold": 15}
+    cp = csonpath.CsonPath('$.items[?v >= $.threshold]')
+    assert cp.find_all(d) == [{"v": 20}]
+
+    d = {"items": [{"v": 10}, {"v": 20}], "threshold": 15}
+    cp = csonpath.CsonPath('$.items[?v <= $.threshold]')
+    assert cp.find_all(d) == [{"v": 10}]

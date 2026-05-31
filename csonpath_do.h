@@ -202,6 +202,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	case CSONPATH_INST_FILTER_KEY_NOT_EQ:
 	case CSONPATH_INST_FILTER_KEY_SUPERIOR:
 	case CSONPATH_INST_FILTER_KEY_INFERIOR:
+	case CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ:
+	case CSONPATH_INST_FILTER_KEY_INFERIOR_EQ:
 	{
 	    CSONPATH_JSON el;
 	    int operation_in = *walker, operation = *walker;
