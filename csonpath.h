@@ -562,12 +562,6 @@ root_again:
 		*filter_end = (nb_getter_inst - 1);
 		walker = next;
 		if (*walker == '"' || *walker == '\'' || *walker == '/') {
-		    if (operand_instruction == CSONPATH_INST_FILTER_KEY_SUPERIOR ||
-			operand_instruction == CSONPATH_INST_FILTER_KEY_INFERIOR) {
-			CSONPATH_COMPILE_ERR(tmp, walker - orig, "string unsuported here");
-			goto error;
-		    }
-
 		    char end = *walker;
 		    ++walker;
 		    if (regex_idx < 0) {
@@ -1264,10 +1258,14 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	case CSONPATH_INST_FILTER_KEY_SUPERIOR:
 	    if (CSONPATH_IS_NUM(el2) && CSONPATH_IS_NUM(jret))
 		return CSONPATH_GET_NUM(el2) > CSONPATH_GET_NUM(jret);
+	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret))
+		return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) > 0;
 	    return 0;
 	case CSONPATH_INST_FILTER_KEY_INFERIOR:
 	    if (CSONPATH_IS_NUM(el2) && CSONPATH_IS_NUM(jret))
 		return CSONPATH_GET_NUM(el2) < CSONPATH_GET_NUM(jret);
+	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret))
+		return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) < 0;
 	    return 0;
 	default:
 	    return 0;
@@ -1286,16 +1284,28 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	match = csonpath_do_match(operand_instruction, el2, owalker);
 	break;
     case CSONPATH_INST_FILTER_KEY_SUPERIOR:
-	if (!CSONPATH_IS_NUM(el2))
-	    break;
-	match = csonpath_int_from_walker(operand_instruction, owalker) <
-	    CSONPATH_GET_NUM(el2);
+	if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_STR) {
+	    if (CSONPATH_IS_STR(el2))
+		match = strcmp(CSONPATH_GET_STR(el2), *owalker) > 0;
+	    *owalker += strlen(*owalker) + 1;
+	} else {
+	    if (!CSONPATH_IS_NUM(el2))
+		break;
+	    match = csonpath_int_from_walker(operand_instruction, owalker) <
+		CSONPATH_GET_NUM(el2);
+	}
 	break;
     case CSONPATH_INST_FILTER_KEY_INFERIOR:
-	if (!CSONPATH_IS_NUM(el2))
-	    break;
-	match = csonpath_int_from_walker(operand_instruction, owalker) >
-	    CSONPATH_GET_NUM(el2);
+	if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_STR) {
+	    if (CSONPATH_IS_STR(el2))
+		match = strcmp(CSONPATH_GET_STR(el2), *owalker) < 0;
+	    *owalker += strlen(*owalker) + 1;
+	} else {
+	    if (!CSONPATH_IS_NUM(el2))
+		break;
+	    match = csonpath_int_from_walker(operand_instruction, owalker) >
+		CSONPATH_GET_NUM(el2);
+	}
 	break;
     case CSONPATH_INST_FILTER_KEY_REG_EQ:
 #if defined CSONPATH_NO_REGEX

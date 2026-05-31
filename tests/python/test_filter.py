@@ -106,3 +106,29 @@ def test_filter_on_scalar():
     cp = csonpath.CsonPath('$.ar[?(@.a==1)]')
     assert cp.find_first(42) is None
     assert cp.find_all(42) is None
+
+def test_filter_superior_inferior():
+    # number superior
+    d = {"items": [{"v": 1}, {"v": 5}, {"v": 10}]}
+    cp = csonpath.CsonPath('$.items[?v > 2]')
+    assert cp.find_all(d) == [{"v": 5}, {"v": 10}]
+
+    # number inferior
+    d = {"items": [{"v": 1}, {"v": 5}, {"v": 10}]}
+    cp = csonpath.CsonPath('$.items[?v < 6]')
+    assert cp.find_all(d) == [{"v": 1}, {"v": 5}]
+
+    # string superior
+    d = {"items": [{"v": "a"}, {"v": "c"}, {"v": "z"}]}
+    cp = csonpath.CsonPath('$.items[?v > "b"]')
+    assert cp.find_all(d) == [{"v": "c"}, {"v": "z"}]
+
+    # string inferior
+    d = {"items": [{"v": "a"}, {"v": "c"}, {"v": "z"}]}
+    cp = csonpath.CsonPath('$.items[?v < "b"]')
+    assert cp.find_all(d) == [{"v": "a"}]
+
+    # mixing string and number should fail (return None)
+    d = {"items": [{"v": 5}]}
+    cp = csonpath.CsonPath('$.items[?v > "2"]')
+    assert cp.find_all(d) is None
