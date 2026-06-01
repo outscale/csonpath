@@ -200,3 +200,20 @@ def test_triple_eq():
     d = {"items": [{"v": 1}, {"v": 5}, {"v": 10}]}
     cp = csonpath.CsonPath('$.items[?v === 5]')
     assert cp.find_all(d) == [{"v": 5}]
+
+
+def test_filter_at_without_parenthesis():
+    # @.name (with dot, mandatory)
+    d = {"items": [{"name": "Alice"}, {"name": "Bob"}]}
+    cp = csonpath.CsonPath('$.items[?@.name = "Alice"]')
+    assert cp.find_all(d) == [{"name": "Alice"}]
+
+    # @[name] bracket accessor
+    d = {"items": [{"name": "Alice"}, {"name": "Bob"}]}
+    cp = csonpath.CsonPath('$.items[?@["name"] = "Alice"]')
+    assert cp.find_all(d) == [{"name": "Alice"}]
+
+    # nested @.a.b
+    d = {"items": [{"a": {"b": 1}}, {"a": {"b": 2}}]}
+    cp = csonpath.CsonPath('$.items[?@.a.b = 2]')
+    assert cp.find_all(d) == [{"a": {"b": 2}}]

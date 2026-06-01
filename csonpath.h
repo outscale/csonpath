@@ -479,6 +479,14 @@ root_again:
 		} else if (*walker == '[') {
 		    ++walker;
 		    getter_end = *walker;
+		} else if (*walker == '@') {
+		    ++walker;
+		    if (*walker == '[') {
+			++walker;
+			getter_end = *walker;
+		    } else {
+			CSONPATH_SKIP('.', walker);
+		    }
 		}
 	      filter_again:
 		if (getter_end) {
