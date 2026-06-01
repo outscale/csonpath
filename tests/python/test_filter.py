@@ -194,3 +194,9 @@ def test_filter_exist():
     d = {"items": [{"name": "Alice"}, {"age": 30}]}
     cp = csonpath.CsonPath('$.items[?(@.name)]')
     assert cp.find_first(d) == {"name": "Alice"}
+
+
+def test_triple_eq():
+    d = {"items": [{"v": 1}, {"v": 5}, {"v": 10}]}
+    cp = csonpath.CsonPath('$.items[?v === 5]')
+    assert cp.find_all(d) == [{"v": 5}]

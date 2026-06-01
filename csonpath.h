@@ -542,8 +542,11 @@ root_again:
 		/* = and == are the same here */
 		if (to_check == '=') {
 		    if (next[0] == '=') {
-			csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EQ, inst_idx);
 			++next;
+			/* some implementation support === */
+			if (next[0] == '=')
+			  ++next;
+			csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EQ, inst_idx);
 		    }
 #ifndef CSONPATH_NO_REGEX
 		    else if (next[0] == '~') {
