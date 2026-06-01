@@ -172,3 +172,25 @@ def test_filter_superior_inferior_eq():
     d = {"items": [{"v": 10}, {"v": 20}], "threshold": 15}
     cp = csonpath.CsonPath('$.items[?v <= $.threshold]')
     assert cp.find_all(d) == [{"v": 10}]
+
+
+def test_filter_exist():
+    # exist simple
+    d = {"items": [{"name": "Alice"}, {"age": 30}, {"name": "Bob"}]}
+    cp = csonpath.CsonPath('$.items[?(@.name)]')
+    assert cp.find_all(d) == [{"name": "Alice"}, {"name": "Bob"}]
+
+    # exist with nested field
+    d = {"items": [{"a": {"b": 1}}, {"a": {}}, {"x": 1}]}
+    cp = csonpath.CsonPath('$.items[?(@.a.b)]')
+    assert cp.find_all(d) == [{"a": {"b": 1}}]
+
+    # exist returning empty
+    d = {"items": [{"x": 1}, {"y": 2}]}
+    cp = csonpath.CsonPath('$.items[?(@.z)]')
+    assert cp.find_all(d) is None
+
+    # exist with find_first
+    d = {"items": [{"name": "Alice"}, {"age": 30}]}
+    cp = csonpath.CsonPath('$.items[?(@.name)]')
+    assert cp.find_first(d) == {"name": "Alice"}

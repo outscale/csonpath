@@ -197,6 +197,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    ctx = CSONPATH_NULL;
 	}
 	break;
+	case CSONPATH_INST_FILTER_KEY_EXIST:
 	case CSONPATH_INST_FILTER_KEY_EQ:
 	case CSONPATH_INST_FILTER_KEY_REG_EQ:
 	case CSONPATH_INST_FILTER_KEY_NOT_EQ:

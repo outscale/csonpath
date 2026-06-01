@@ -97,6 +97,7 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_GET_SUBPATH,
 	CSONPATH_INST_GET_ARRAY_SMALL,
 	CSONPATH_INST_GET_ARRAY_BIG,
+	CSONPATH_INST_FILTER_KEY_EXIST,
 	CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ,
 	CSONPATH_INST_FILTER_KEY_INFERIOR_EQ,
 	CSONPATH_INST_FILTER_KEY_SUPERIOR,
@@ -120,6 +121,7 @@ static int csonpath_instuction_len[] = {
     1, /* 2 CSONPATH_INST_GET_SUBPATH */
     2, /* 3 CSONPATH_INST_GET_ARRAY_SMALL */
     5, /* 4 CSONPATH_INST_GET_ARRAY_BIG */
+    2, /* 4.5 CSONPATH_INST_FILTER_KEY_EXIST */
     2, /* 5 CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ */
     2, /* 6 CSONPATH_INST_FILTER_KEY_INFERIOR_EQ */
     2, /* 7 CSONPATH_INST_FILTER_KEY_SUPERIOR */
@@ -145,6 +147,7 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"GET_SUBPATH",
 	"GET_ARRAY_SMALL",
 	"GET_ARRAY_BIG",
+	"FILTER_KEY_EXIST",
 	"FILTER_KEY_SUPERIOR_EQ",
 	"FILTER_KEY_INFERIOR_EQ",
 	"FILTER_KEY_SUPERIOR",
@@ -391,6 +394,17 @@ static int csonpath_compile_(struct csonpath *cjp, const char path[static 1], in
 	return ret;
 }
 
+static void push_filter_getter(struct csonpath *cjp, int *inst_idx, int nb_getter_inst,
+			       char filter_getter[static nb_getter_inst])
+{
+  char *filter_end = &cjp->data[(*inst_idx)++];
+  for (int i = 0; i < nb_getter_inst; ++i) {
+    csonpath_push_char(cjp, filter_getter[i], inst_idx);
+  }
+  *filter_end = (nb_getter_inst - 1);
+
+}
+
 static int csonpath_compile_do(struct csonpath *cjp, const char orig[static 1],
 			       const char walker[static 1], char tmp[static 1],
 			       int *inst_idx, int flag, int end_path,
@@ -525,12 +539,6 @@ root_again:
 		    ++next;
 		}
 
-		if (!*next) {
-		    CSONPATH_COMPILE_ERR(tmp, next - orig,
-					 "filter miss condition");
-
-		    goto error;
-		}
 		/* = and == are the same here */
 		if (to_check == '=') {
 		    if (next[0] == '=') {
@@ -564,18 +572,29 @@ root_again:
 		    } else {
 		      csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_INFERIOR, inst_idx);
 		    }
+		} else if (to_check == ']') {
+		    if (have_parentesis > 0)
+			CSONPATH_COMPILE_ERR(tmp, next - orig, "too many open parentesis");
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EXIST, inst_idx);
+		    for (;isblank(*next); ++next);
+		    push_filter_getter(cjp, inst_idx, nb_getter_inst, filter_getter);
+		    walker = next;
+		    to_check = *walker;
+		    goto again;
 		} else {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "'%c': unsuported operation", to_check);
 		    goto error;
 		}
+		if (!*next) {
+		    CSONPATH_COMPILE_ERR(tmp, next - orig,
+					 "filter miss operand");
+
+		    goto error;
+		}
 		operand_instruction = cjp->data[(*inst_idx) - 1];
 		for (;isblank(*next); ++next);
-		char *filter_end = &cjp->data[(*inst_idx)++];
-		for (int i = 0; i < nb_getter_inst; ++i) {
-		    csonpath_push_char(cjp, filter_getter[i], inst_idx);
-		}
-		*filter_end = (nb_getter_inst - 1);
+		push_filter_getter(cjp, inst_idx, nb_getter_inst, filter_getter);
 		walker = next;
 		if (*walker == '"' || *walker == '\'' || *walker == '/') {
 		    char end = *walker;
@@ -637,6 +656,11 @@ root_again:
 		    to_check = *next;
 		} else if (*walker == '$') { /* handle subpath here */
 		    const char *end_sentinel;
+
+		    if (operand_instruction == CSONPATH_INST_FILTER_KEY_REG_EQ) {
+			CSONPATH_COMPILE_ERR(tmp, walker - orig, "subpath unsuported for regex");
+			goto error;
+		    }
 		    csonpath_push_char(cjp, CSONPATH_INST_GET_SUBPATH, inst_idx);
 		    int ret = csonpath_compile_do(cjp, orig, walker, tmp,
 						  inst_idx, flag, ']', &end_sentinel);
@@ -1250,6 +1274,10 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 				 const char **owalker, int operation)
 {
     int operand_instruction = **owalker;
+
+    if (operation == CSONPATH_INST_FILTER_KEY_EXIST)
+	return el2 != CSONPATH_NULL;
+
     if (operand_instruction == CSONPATH_INST_GET_SUBPATH) {
 	const char *end_sentinel;
 	*owalker = csonpath_walker_next_inst(*owalker);
