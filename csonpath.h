@@ -25,32 +25,6 @@ typedef regex_t csonpath_reg_t;
 typedef regex_t csonpath_reg_t;
 #  endif
 
-#  if defined CSONPATH_TINY_REGEX
-static inline int csonpath_reg_compile(csonpath_reg_t *out, const char *pat) {
-    *out = re_compile(pat);
-    return *out ? 0 : -1;
-}
-static inline _Bool csonpath_reg_exec(csonpath_reg_t reg, const char *str) {
-    int match_len = 0;
-    re_matchp(reg, str, &match_len);
-    return !!match_len;
-}
-static inline void csonpath_reg_free(csonpath_reg_t reg) {
-	free(reg);
-}
-#  elif !defined CSONPATH_PCRE2
-static inline int csonpath_reg_compile(csonpath_reg_t *out, const char *pat)
-{
-    return regcomp(out, pat, 0);
-}
-static inline _Bool csonpath_reg_exec(csonpath_reg_t reg, const char *str)
-{
-    return regexec(&reg, str, 0, NULL, 0) == 0;
-}
-static inline void csonpath_reg_free(csonpath_reg_t reg) { regfree(&reg); }
-#  endif
-#endif
-
 #if defined CSONPATH_TINY_REGEX
 #  define CSONPATH_HAVE_TINY_REGEX 1
 #else
@@ -183,6 +157,56 @@ struct csonpath {
 #endif
     char data[];
 };
+
+#  if defined CSONPATH_TINY_REGEX
+static inline int csonpath_reg_compile(struct csonpath *cjp, int idx, const char *pat, char **errbuff) {
+    (void)errbuff;
+    cjp->regexs[idx] = re_compile(pat);
+    return cjp->regexs[idx] ? 0 : -1;
+}
+static inline _Bool csonpath_reg_exec(csonpath_reg_t reg, const char *str) {
+    int match_len = 0;
+    re_matchp(reg, str, &match_len);
+    return !!match_len;
+}
+static inline void csonpath_reg_free(csonpath_reg_t reg) {
+	free(reg);
+}
+#  elif !defined CSONPATH_PCRE2
+static inline int csonpath_reg_compile(struct csonpath *cjp, int idx, const char *pat, char **errbuff)
+{
+    (void)errbuff;
+    return regcomp(&cjp->regexs[idx], pat, 0);
+}
+
+static inline _Bool csonpath_reg_exec(csonpath_reg_t reg, const char *str)
+{
+    return regexec(&reg, str, 0, NULL, 0) == 0;
+}
+static inline void csonpath_reg_free(csonpath_reg_t reg) { regfree(&reg); }
+#  else
+static inline int csonpath_reg_compile(struct csonpath *cjp, int regex_idx,
+				       const char *pat, char **errbuff)
+{
+  int errorcode;
+  PCRE2_SIZE erroroffset;
+
+  cjp->regexs[regex_idx] = pcre2_compile((unsigned char *)pat,
+					 PCRE2_ZERO_TERMINATED, 0,
+					 &errorcode, &erroroffset, NULL);
+  if (!cjp->regexs[regex_idx]) {
+    static PCRE2_UCHAR buffer[256];
+    pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
+    *errbuff = (char *)buffer;
+    return -1;
+  }
+  cjp->match_datas[regex_idx] = pcre2_match_data_create_from_pattern(cjp->regexs[regex_idx],
+								     NULL);
+  pcre2_jit_compile(cjp->regexs[regex_idx], PCRE2_JIT_COMPLETE);
+  return 0;
+}
+#  endif
+#endif
 
 struct csonpath_child_info {
 	int type;
@@ -634,32 +658,17 @@ root_again:
 			for (next = walker; *next && *next != end; ++next);
 			char *reg_tmp = malloc(next - walker + 1);
 			char *crawler = reg_tmp;
+			char *errbuff = NULL;
 			for (next = walker; *next && *next != end; ++next, ++crawler)
 			    *crawler = *next;
 			*crawler = 0;
-#  if defined CSONPATH_PCRE2
-			int errorcode;
-			PCRE2_SIZE erroroffset;
 
-			cjp->regexs[regex_idx] = pcre2_compile((unsigned char *)reg_tmp,
-							       PCRE2_ZERO_TERMINATED, 0,
-							       &errorcode, &erroroffset, NULL);
-			if (!cjp->regexs[regex_idx]) {
-			    PCRE2_UCHAR buffer[256];
-			    pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
-			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error: \"%s\"\n", buffer);
-			    goto error;
-			}
-			cjp->match_datas[regex_idx] = pcre2_match_data_create_from_pattern(cjp->regexs[regex_idx],
-											   NULL);
-			pcre2_jit_compile(cjp->regexs[regex_idx], PCRE2_JIT_COMPLETE);
-#  else
-			int e = csonpath_reg_compile(&cjp->regexs[regex_idx], reg_tmp);
+			int e = csonpath_reg_compile(cjp, regex_idx, reg_tmp, &errbuff);
 			if (e) {
-			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error\n");
+			    CSONPATH_COMPILE_ERR(tmp, next - orig, "regex has error: %s\n",
+						 errbuff ? errbuff : "(unknow)");
 			    goto error;
 			}
-#  endif
 			free(reg_tmp);
 		    }
 #endif

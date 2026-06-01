@@ -27,7 +27,7 @@ bench_regexs: bench-json-c-gcc-pcrepos bench-json-c-gcc-tinyre bench-json-c-gcc-
 
 
 clean:
-	rm -vf bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-yyjson
+	rm -vf bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-yyjson bench-json-c-gcc-pcrepos bench-json-c-gcc-tinyre bench-json-c-gcc-pcre
 
 bench-json-c-tcc: bench-json-c.c
 	tcc bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-tcc $(shell pkg-config --libs json-c)
