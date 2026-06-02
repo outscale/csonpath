@@ -3,7 +3,7 @@ JSON_C_LDFLAGS=$(shell pkg-config --libs json-c)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index
 
 bench:
 	make -C bench
@@ -30,12 +30,20 @@ test-json-filter: tests/json-c/filter.c csonpath_json-c.h csonpath.h csonpath_do
 test-json-subpath: tests/json-c/subpath.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/subpath.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-subpath  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
-tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root
+test-json-filter-and-missing-key: tests/json-c/filter-and-missing-key.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/filter-and-missing-key.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-filter-and-missing-key  $(JSON_C_LDFLAGS) $(LDFLAGS)
+
+test-json-get-array-big-index: tests/json-c/get-array-big-index.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/get-array-big-index.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-get-array-big-index  $(JSON_C_LDFLAGS) $(LDFLAGS)
+
+tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
 	./test-json-subpath
 	./test-json-c-array-root
+	./test-json-filter-and-missing-key
+	./test-json-get-array-big-index
 
 pip-dev:
 	pip install -e .[dev] --force-reinstall
@@ -46,5 +54,5 @@ tests-py: pip-dev
 tests: tests-py tests-c
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index
 

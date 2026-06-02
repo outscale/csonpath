@@ -161,7 +161,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
 		CSONPATH_DO_FIND_ALL;
 	    }
 	}
-    } else {
+    } else if (CSONPATH_IS_ARRAY(tmp)) {
 	CSONPATH_FOREACH_ARRAY(tmp, el, key_idx) {
 	    CSONPATH_DO_FOREACH_PRE_SET;
 	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
@@ -212,9 +212,15 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 
 	    (void) foreach_idx;
 	    CSONPATH_DO_FILTER_PRE_LOOP;
+	    if (!CSONPATH_IS_ARRAY(tmp)) {
+		CSONPATH_DO_FILTER_OUT;
+		break;
+	    }
 	    CSONPATH_FOREACH_ARRAY(tmp, el, foreach_idx)
 	    {
 		intptr_t key_idx = foreach_idx;
+		filter_next = filter_next_in;
+		operation = operation_in;
 		(void)key_idx;
 		owalker = next;
 	      match_and_or_or:
@@ -226,7 +232,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 
 		    if (csonpath_make_match(cjp, origin, el2, &owalker, operation)) {
 			if (*owalker == CSONPATH_INST_FILTER_AND) {
-			    ++owalker; /* skip next */
+			    ++owalker; /* skip and */
 			    operation = *owalker;
 			    ++owalker;
 			    filter_next = *owalker;
@@ -237,9 +243,6 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 			    csonpath_do_internal(cjp, origin, el, tmp, owalker
 						 CSONPATH_DO_EXTRA_ARGS_NEESTED);
 			CSONPATH_DO_FILTER_FIND;
-		    } else {
-			operation = operation_in;
-			filter_next = filter_next_in;
 		    }
 		}
 	    }
@@ -385,7 +388,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		this_idx = to_num.n;
 		CSONPATH_PRE_GET(this_idx);
 		tmp = CSONPATH_AT(tmp, to_num.n);
-		walker += 5;
+		walker += 4;
 		if (tmp == CSONPATH_NULL) {
 		    CSONPATH_DO_GET_NOTFOUND(this_idx);
 		}

@@ -264,6 +264,8 @@ static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
         BAD_ARG();
 
     PyObject *ret = csonpath_find_all(self->cp, json);
+    if (PyErr_Occurred())
+        return NULL;
 
     return ret;
 }
@@ -276,6 +278,8 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
         BAD_ARG();
 
     PyObject *ret = csonpath_find_first(self->cp, json);
+    if (PyErr_Occurred())
+        return NULL;
 
     Py_INCREF(ret);
     return ret;
@@ -284,7 +288,7 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
 static PyObject *print_instructions(PyCsonPathObject *self, PyObject *args, PyObject *kwds)
 {
     csonpath_print_instruction(self->cp);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 static PyObject *callback(PyCsonPathObject *self, PyObject* args)
@@ -294,6 +298,8 @@ static PyObject *callback(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
 	BAD_ARG();
     int ret = csonpath_callback(self->cp, json, callback, udata);
+    if (PyErr_Occurred())
+        return NULL;
     return PyLong_FromLong(ret);
 }
 
@@ -304,6 +310,8 @@ static PyObject *do_remove(PyCsonPathObject *self, PyObject* args)
   if (!PyArg_ParseTuple(args, "O", &json))
     BAD_ARG();
   int ret = csonpath_remove(self->cp, json);
+  if (PyErr_Occurred())
+      return NULL;
   return PyLong_FromLong(ret);
 }
 
@@ -315,7 +323,7 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
   if (!PyArg_ParseTuple(args, "OO", &json, &value))
       BAD_ARG();
   int ret = csonpath_update_or_create(self->cp, json, value);
-  if (ret < 0) {
+  if (PyErr_Occurred() || ret < 0) {
       return NULL;
   }
   return PyLong_FromLong(ret);
@@ -328,6 +336,9 @@ static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* arg
     if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
 	BAD_ARG();
     int ret = csonpath_update_or_create_callback(self->cp, json, callback, udata);
+    if (PyErr_Occurred() || ret < 0) {
+        return NULL;
+    }
     return PyLong_FromLong(ret);
 }
 
