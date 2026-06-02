@@ -94,3 +94,15 @@ def test_multiple_filters():
     ret = cp.find_first(dict)
 
     assert ret is None
+
+
+def test_filter_on_none():
+    cp = csonpath.CsonPath('$.ar[?(@.a==1)]')
+    assert cp.find_first(None) is None
+    assert cp.find_all(None) is None
+
+
+def test_filter_on_scalar():
+    cp = csonpath.CsonPath('$.ar[?(@.a==1)]')
+    assert cp.find_first(42) is None
+    assert cp.find_all(42) is None

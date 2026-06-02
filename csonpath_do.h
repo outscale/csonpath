@@ -161,7 +161,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
 		CSONPATH_DO_FIND_ALL;
 	    }
 	}
-    } else {
+    } else if (CSONPATH_IS_ARRAY(tmp)) {
 	CSONPATH_FOREACH_ARRAY(tmp, el, key_idx) {
 	    CSONPATH_DO_FOREACH_PRE_SET;
 	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
@@ -212,6 +212,10 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 
 	    (void) foreach_idx;
 	    CSONPATH_DO_FILTER_PRE_LOOP;
+	    if (!CSONPATH_IS_ARRAY(tmp)) {
+		CSONPATH_DO_FILTER_OUT;
+		break;
+	    }
 	    CSONPATH_FOREACH_ARRAY(tmp, el, foreach_idx)
 	    {
 		intptr_t key_idx = foreach_idx;
