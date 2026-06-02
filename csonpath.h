@@ -918,9 +918,9 @@ need_reloop_in = 0;
 #define CSONPATH_NONE_FOUND_RET CSONPATH_NULL
 
 #define CSONPATH_GETTER_ERR(args...) do {	\
-		fprintf(stderr, args);		\
-		return CSONPATH_NULL;		\
-	} while (0)
+	CSONPATH_FORMAT_EXCEPTION(args);	\
+	return CSONPATH_NULL;			\
+    } while (0)
 
 /* Find First */
 
@@ -980,10 +980,10 @@ need_reloop_in = 0;
 
 #define CSONPATH_NONE_FOUND_RET 0
 
-#define CSONPATH_GETTER_ERR(args...) do {	\
-		fprintf(stderr, args);		\
-		return -1;			\
-	} while (0)
+#define CSONPATH_GETTER_ERR(args...) do {		\
+	CSONPATH_FORMAT_EXCEPTION(args);		\
+	return -1;					\
+    } while (0)
 
 #define CSONPATH_DO_ON_FOUND
 
@@ -1104,7 +1104,8 @@ static int csonpath_sync_root_array(CSONPATH_JSON parent, CSONPATH_JSON to_updat
 
     CSONPATH_ARRAY_CLEAR(parent);
     CSONPATH_FOREACH_ARRAY(to_update, child, idx) {
-	CSONPATH_APPEND_AT(parent, idx, child);
+	if (CSONPATH_APPEND_AT(parent, idx, child) < 0)
+	    return -1;
     }
     return 1;
 }
@@ -1116,7 +1117,8 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 
     CSONPATH_OBJ_CLEAR(parent);
     CSONPATH_FOREACH_OBJ(to_update, child, key) {
-	CSONPATH_APPEND_AT(parent, key, child);
+	if (CSONPATH_APPEND_AT(parent, key, child) < 0)
+	    return -1;
     }
     return 1;
 }
@@ -1129,7 +1131,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 	} else if (CSONPATH_IS_ARRAY(origin) && CSONPATH_IS_ARRAY(to_update)) { \
 	    return csonpath_sync_root_array(origin, to_update);		\
 	} else {							\
-	    CSONPATH_EXCEPTION("can't upate root ($)\n");		\
+	    CSONPATH_EXCEPTION("can't update root ($)\n");		\
 	}								\
     }
 
@@ -1141,7 +1143,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 	to_check = *check_at;						\
     } while (to_check == CSONPATH_INST_GET_ALL || to_check == CSONPATH_INST_FIND_ALL); \
     if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
-	CSONPATH_APPEND_AT(ctx, this_idx, to_update);			\
+	if (CSONPATH_APPEND_AT(ctx, this_idx, to_update) < 0) return -1; \
 	return 1;							\
     }
 
@@ -1215,7 +1217,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_PRE_GET_ROOT						\
     int to_check = *walker;						\
     if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR)  { \
-	CSONPATH_GETTER_ERR("can't upate root ($)\n");			\
+	CSONPATH_GETTER_ERR("can't update root ($)\n");			\
 	return CSONPATH_NONE_FOUND_RET;					\
     }
 

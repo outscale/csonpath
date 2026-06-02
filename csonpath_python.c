@@ -313,10 +313,11 @@ static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
   PyObject *value;
 
   if (!PyArg_ParseTuple(args, "OO", &json, &value))
-    BAD_ARG();
+      BAD_ARG();
   int ret = csonpath_update_or_create(self->cp, json, value);
-  if (ret < 0)
+  if (ret < 0) {
       return NULL;
+  }
   return PyLong_FromLong(ret);
 }
 
