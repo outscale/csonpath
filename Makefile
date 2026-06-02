@@ -3,7 +3,7 @@ JSON_C_LDFLAGS=$(shell pkg-config --libs json-c)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union
 
 bench:
 	make -C bench
@@ -36,7 +36,10 @@ test-json-filter-and-missing-key: tests/json-c/filter-and-missing-key.c csonpath
 test-json-get-array-big-index: tests/json-c/get-array-big-index.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/get-array-big-index.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-get-array-big-index  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
-tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index
+test-json-union: tests/json-c/union.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/union.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-union  $(JSON_C_LDFLAGS) $(LDFLAGS)
+
+tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
@@ -44,6 +47,7 @@ tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath t
 	./test-json-c-array-root
 	./test-json-filter-and-missing-key
 	./test-json-get-array-big-index
+	./test-json-union
 
 pip-dev:
 	pip install -e .[dev] --force-reinstall
@@ -54,5 +58,5 @@ tests-py: pip-dev
 tests: tests-py tests-c
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union
 

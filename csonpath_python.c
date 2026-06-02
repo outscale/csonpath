@@ -98,7 +98,13 @@
 static int pydict_try_setitemstring(PyObject *obj,  const char * const at, PyObject *el)
 {
     if (!PyDict_Check(obj)) {
-	PyErr_Format(PyExc_ValueError, "Unable to follow path (%s): Dict expected", at);
+	PyObject* repr = PyObject_Repr(obj);
+	PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+	const char *bytes = PyBytes_AS_STRING(str);
+
+	PyErr_Format(PyExc_ValueError, "Unable to follow path (%s) in %s: Dict expected", at, bytes);
+	Py_XDECREF(repr);
+	Py_XDECREF(str);
 	return -1;
     }
     PyDict_SetItemString(obj, at, el);

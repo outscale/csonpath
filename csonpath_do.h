@@ -189,12 +189,20 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
     while (*walker != CSONPATH_INST_END &&
 	   *walker != CSONPATH_INST_OR) {
 	switch (*walker) {
+	case CSONPATH_INST_UNION_JMP:
+	{
+	    walker = csonpath_skipp_union_jmp(walker);
+	}
+	/* fallthough */
+	case CSONPATH_INST_UNION_END:
+	break;
 	case CSONPATH_INST_ROOT:
 	{
 	    CSONPATH_PRE_GET_ROOT
 	    value = origin;
 	    tmp = value;
 	    ctx = CSONPATH_NULL;
+
 	}
 	break;
 	case CSONPATH_INST_FILTER_KEY_EXIST:
@@ -305,6 +313,37 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    CSONPATH_DO_GET_ALL_OUT;
 	    break;
 	}
+	case CSONPATH_INST_GET_UNION:
+	{
+	    intptr_t key_idx = 0;
+	    int need_reloop_in = 0;
+
+	    (void)need_reloop_in;
+	    (void)key_idx;
+	    do {
+		++walker;
+		int union_cnt = 0;
+		CSONPATH_DO_RET_TYPE tret = csonpath_do_internal(cjp, origin, tmp, CSONPATH_NULL,
+								 walker
+								 CSONPATH_DO_EXTRA_ARGS_NEESTED);
+		CSONPATH_DO_FIND_ALL;
+		while (1) {
+		    walker = csonpath_walker_next_inst(walker);
+		    if (*walker == CSONPATH_INST_GET_UNION)
+			++union_cnt;
+		    if (*walker == CSONPATH_INST_UNION_JMP && !union_cnt)
+			break;
+		    if (*walker == CSONPATH_INST_UNION_END) {
+			if (union_cnt)
+			    --union_cnt;
+			else
+			    break;
+		    }
+		}
+	    } while (*walker != CSONPATH_INST_UNION_END);
+	    CSONPATH_DO_GET_ALL_OUT;
+	    break;
+	}
 	case CSONPATH_INST_GET_ALL:
 	{
 	    CSONPATH_JSON el;
@@ -326,11 +365,12 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	case CSONPATH_INST_GET_SUBPATH:
 	{
 	    const char *end_sentinel;
-	    walker = csonpath_walker_next_inst(walker);
+	    const char *owalker = walker;
+	    owalker = csonpath_walker_next_inst(owalker);
 	    CSONPATH_JSON jret = csonpath_find_first_internal(
-		cjp, origin, origin, CSONPATH_NULL, walker, &end_sentinel);
+		cjp, origin, origin, CSONPATH_NULL, owalker, &end_sentinel);
 	    /* here it should point to inst_end, but walker is incr after */
-	    walker = end_sentinel;
+	    owalker = end_sentinel;
 	    if (CSONPATH_IS_NUM(jret)) {
 		int this_idx = CSONPATH_GET_NUM(jret);
 		CSONPATH_PRE_GET(this_idx);
@@ -350,13 +390,15 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    } else {
 		CSONPATH_GETTER_ERR("GET_SUBPATH return need to be either number or str");
 	    }
+	    walker = owalker;
 	    break;
 	}
 	case CSONPATH_INST_GET_OBJ:
 	{
 	    CSONPATH_UNUSED const char *this_idx = &walker[1];
 
-	    ctx = tmp;
+	    if (tmp != CSONPATH_NULL)
+		ctx = tmp;
 	    CSONPATH_PRE_GET_OBJ(this_idx);
 	    ++walker;
 	    tmp = CSONPATH_GET(tmp, walker);
@@ -371,7 +413,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	{
 	    int this_idx;
 
-	    ctx = tmp;
+	    if (tmp != CSONPATH_NULL)
+		ctx = tmp;
 	    this_idx =  (int)walker[1];
 	    CSONPATH_PRE_GET(this_idx);
 	    tmp = CSONPATH_AT(tmp, this_idx);
@@ -383,7 +426,8 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    break;
 	}
 	case CSONPATH_INST_GET_ARRAY_BIG:
-	    ctx = tmp;
+	    if (tmp != CSONPATH_NULL)
+		ctx = tmp;
 	    {
 		CSONPATH_UNUSED int this_idx;
 		union {int n; char c[4];} to_num =
