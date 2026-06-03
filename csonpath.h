@@ -79,7 +79,6 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_FILTER_KEY_EQ,
 	CSONPATH_INST_FILTER_KEY_NOT_EQ,
 	CSONPATH_INST_FILTER_KEY_REG_EQ,
-	CSONPATH_INST_FILTER_OPERAND_STR,
 	CSONPATH_INST_FILTER_AND,
 	CSONPATH_INST_GET_ALL,
 	CSONPATH_INST_FIND_ALL,
@@ -103,7 +102,6 @@ static int csonpath_instuction_len[] = {
     2, /* 9 CSONPATH_INST_FILTER_KEY_EQ */
     2, /* A CSONPATH_INST_FILTER_KEY_NOT_EQ */
     2, /* B CSONPATH_INST_FILTER_KEY_REG_EQ */
-    -1, /* C CSONPATH_INST_FILTER_OPERAND_STR */
     1, /* D CSONPATH_INST_FILTER_AND */
     1, /* E CSONPATH_INST_GET_ALL */
     -1, /* F CSONPATH_INST_FIND_ALL */
@@ -129,7 +127,6 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"FILTER_KEY_EQ",
 	"FILTER_KEY_NOT_EQ",
 	"FILTER_KEY_REG_EQ",
-	"FILTER_OPERAND_STR",
 	"FILTER_AND",
 	"GET_ALL",
 	"FIND_ALL",
@@ -635,7 +632,7 @@ root_again:
 		    char end = *walker;
 		    ++walker;
 		    if (regex_idx < 0) {
-			csonpath_push_char(cjp, CSONPATH_INST_FILTER_OPERAND_STR, inst_idx);
+			csonpath_push_char(cjp, CSONPATH_INST_GET_OBJ, inst_idx);
 			for (next = walker; *next && *next != end; ++next)
 				csonpath_push_char(cjp, *next, inst_idx);
 			csonpath_push_char(cjp, 0, inst_idx);
@@ -881,7 +878,7 @@ static int csonpath_compile(struct csonpath *cjp, const char path[static 1])
 static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, const char **owalker)
 {
     switch (operand_instruction) {
-    case CSONPATH_INST_FILTER_OPERAND_STR:
+    case CSONPATH_INST_GET_OBJ:
     {
 	_Bool ret = CSONPATH_EQUAL_STR(el2, *owalker);
 	*owalker += strlen(*owalker) + 1;
@@ -1359,7 +1356,7 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	break;
     case CSONPATH_INST_FILTER_KEY_SUPERIOR:
     case CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ:
-	if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_STR) {
+	if (operand_instruction == CSONPATH_INST_GET_OBJ) {
 	    if (!CSONPATH_IS_STR(el2))
 		break;
 	    if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
@@ -1380,7 +1377,7 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	break;
     case CSONPATH_INST_FILTER_KEY_INFERIOR_EQ:
     case CSONPATH_INST_FILTER_KEY_INFERIOR:
-	if (operand_instruction == CSONPATH_INST_FILTER_OPERAND_STR) {
+	if (operand_instruction == CSONPATH_INST_GET_OBJ) {
 	    if (!CSONPATH_IS_STR(el2))
 		break;
 	    if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
