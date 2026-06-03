@@ -31,6 +31,8 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 
 #define CSONPATH_REMOVE(o) json_object_put(o)
 
+#define CSONPATH_IS_NULL(o) (o == NULL || json_object_is_type(o, json_type_null))
+
 #define CSONPATH_IS_OBJ(o) json_object_is_type(o, json_type_object)
 
 #define CSONPATH_IS_ARRAY(o) json_object_is_type(o, json_type_array)

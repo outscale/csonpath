@@ -23,6 +23,8 @@
 
 #define CSONPATH_IS_NUM(o) PyLong_Check(o)
 
+#define CSONPATH_IS_NULL(o) (o == Py_None)
+
 #define CSONPATH_GET_STR(obj)			\
     PyUnicode_AsUTF8(obj)
 

@@ -164,4 +164,39 @@ int main(void)
   json_object_put(jobj);
 
   csonpath_destroy(p);
+
+  /* == null semantics: absent -> match, JSON null -> match, other -> no match */
+  jobj = json_tokener_parse("{"
+    "\"items\": ["
+    "{\"a\": \"x\"},"
+    "{\"a\": null},"
+    "{}"
+    "]"
+    "}");
+
+  assert(jobj);
+  assert((p = csonpath_new("$.items[?a == null]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 2); /* absent and JSON null */
+  json_object_put(ret);
+
+  assert((p = csonpath_set_path(p, "$.items[?a != null]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 1); /* only \"x\" */
+  json_object_put(ret);
+
+  /* ? (existence) matches JSON null too */
+  assert((p = csonpath_set_path(p, "$.items[?(@.a)]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) > 0); /* \"x\" and JSON null */
+  json_object_put(ret);
+
+  json_object_put(jobj);
+  csonpath_destroy(p);
 }

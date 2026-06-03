@@ -94,7 +94,7 @@ static int csonpath_instuction_len[] = {
     1, /* 2 CSONPATH_INST_GET_SUBPATH */
     2, /* 3 CSONPATH_INST_GET_ARRAY_SMALL */
     5, /* 4 CSONPATH_INST_GET_ARRAY_BIG */
-    2, /* 4.5 CSONPATH_INST_FILTER_KEY_EXIST */
+    1, /* 4.5 CSONPATH_INST_FILTER_KEY_EXIST */
     2, /* 5 CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ */
     2, /* 6 CSONPATH_INST_FILTER_KEY_INFERIOR_EQ */
     2, /* 7 CSONPATH_INST_FILTER_KEY_SUPERIOR */
@@ -691,6 +691,10 @@ root_again:
 		    walker = end_sentinel;
 		    next = walker;
 		    to_check = *next;
+		} else if (!strncmp(walker, "null", 4) && !isalnum(walker[4])) {
+		    next = walker + 4;
+		    to_check = *next;
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EXIST, inst_idx);
 		} else {
 		    int n;
 
@@ -883,6 +887,10 @@ static int csonpath_compile(struct csonpath *cjp, const char path[static 1])
 static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, const char **owalker)
 {
     switch (operand_instruction) {
+    case CSONPATH_INST_FILTER_KEY_EXIST:
+    {
+	return CSONPATH_IS_NULL(el2);
+    }
     case CSONPATH_INST_GET_OBJ:
     {
 	_Bool ret = CSONPATH_EQUAL_STR(el2, *owalker);
@@ -919,9 +927,8 @@ static CSONPATH_JSON cosnpath_crawl_filter_el(const struct csonpath cjp[const st
 	switch (**owalker) {
 	case CSONPATH_INST_GET_OBJ:
 	    ++*owalker;
-	    el2 = CSONPATH_GET(el2, *owalker);
-	    if (!el2)
-		return NULL;
+	    if (el2)
+		el2 = CSONPATH_GET(el2, *owalker);
 	    break;
 	default:
 	    CSONPATH_FORMAT_EXCEPTION("unsuported %s inst",
@@ -1297,8 +1304,9 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 {
     int operand_instruction = **owalker;
 
-    if (operation == CSONPATH_INST_FILTER_KEY_EXIST)
+    if (operation == CSONPATH_INST_FILTER_KEY_EXIST) {
 	return el2 != CSONPATH_NULL;
+    }
 
     if (operand_instruction == CSONPATH_INST_GET_SUBPATH) {
 	const char *end_sentinel;
@@ -1349,8 +1357,6 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
     }
     ++*owalker;
 
-    if (el2 == CSONPATH_NULL)
-	return 0;
     _Bool match = 0;
     switch (operation) {
     case CSONPATH_INST_FILTER_KEY_NOT_EQ:
@@ -1361,6 +1367,8 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	break;
     case CSONPATH_INST_FILTER_KEY_SUPERIOR:
     case CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ:
+	if (el2 == CSONPATH_NULL)
+	    return 0;
 	if (operand_instruction == CSONPATH_INST_GET_OBJ) {
 	    if (!CSONPATH_IS_STR(el2))
 		break;
@@ -1382,6 +1390,8 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	break;
     case CSONPATH_INST_FILTER_KEY_INFERIOR_EQ:
     case CSONPATH_INST_FILTER_KEY_INFERIOR:
+	if (el2 == CSONPATH_NULL)
+	    return 0;
 	if (operand_instruction == CSONPATH_INST_GET_OBJ) {
 	    if (!CSONPATH_IS_STR(el2))
 		break;
@@ -1406,6 +1416,8 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	fprintf(stderr, "regex deactivate");
 	return 0;
 #else
+	if (el2 == CSONPATH_NULL)
+	    return 0;
 
 	if (CSONPATH_IS_STR(el2)) {
 	    int regex_idx = **owalker;

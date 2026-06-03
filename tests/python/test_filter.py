@@ -217,3 +217,14 @@ def test_filter_at_without_parenthesis():
     d = {"items": [{"a": {"b": 1}}, {"a": {"b": 2}}]}
     cp = csonpath.CsonPath('$.items[?@.a.b = 2]')
     assert cp.find_all(d) == [{"a": {"b": 2}}]
+
+
+def test_filter_null_semantics():
+    # == null matches both absent and JSON null (None)
+    d = {"items": [{"a": "x"}, {"a": None}, {}]}
+    cp = csonpath.CsonPath('$.items[?a == null]')
+    assert cp.find_all(d) == [{"a": None}, {}]
+
+    # != null matches only present non-null
+    cp = csonpath.CsonPath('$.items[?a != null]')
+    assert cp.find_all(d) == [{"a": "x"}]
