@@ -30,6 +30,10 @@
 
 #define CSONPATH_IS_NULL(o) (o == NULL || yyjson_get_type(o) == YYJSON_TYPE_NULL)
 
+#define CSONPATH_IS_BOOL(o) (yyjson_get_type(o) == YYJSON_TYPE_BOOL)
+
+#define CSONPATH_GET_BOOL(o) yyjson_get_bool(o)
+
 struct csonpath_child_info;
 typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, yyjson_val *, void *);
 

@@ -228,3 +228,22 @@ def test_filter_null_semantics():
     # != null matches only present non-null
     cp = csonpath.CsonPath('$.items[?a != null]')
     assert cp.find_all(d) == [{"a": "x"}]
+
+
+def test_filter_bool_semantics():
+    # == true matches only JSON True
+    d = {"items": [{"a": True}, {"a": False}, {"a": 1}, {"a": "true"}, {}]}
+    cp = csonpath.CsonPath('$.items[?a == true]')
+    assert cp.find_all(d) == [{"a": True}]
+
+    # == false matches only JSON False
+    cp = csonpath.CsonPath('$.items[?a == false]')
+    assert cp.find_all(d) == [{"a": False}]
+
+    # != true matches False, number, string, absent
+    cp = csonpath.CsonPath('$.items[?a != true]')
+    assert cp.find_all(d) == [{"a": False}, {"a": 1}, {"a": "true"}, {}]
+
+    # != false matches True, number, string, absent
+    cp = csonpath.CsonPath('$.items[?a != false]')
+    assert cp.find_all(d) == [{"a": True}, {"a": 1}, {"a": "true"}, {}]

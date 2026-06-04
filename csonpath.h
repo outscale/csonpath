@@ -72,6 +72,8 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_GET_ARRAY_SMALL,
 	CSONPATH_INST_GET_ARRAY_BIG,
 	CSONPATH_INST_FILTER_KEY_EXIST,
+	CSONPATH_INST_FILTER_KEY_TRUE,
+	CSONPATH_INST_FILTER_KEY_FALSE,
 	CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ,
 	CSONPATH_INST_FILTER_KEY_INFERIOR_EQ,
 	CSONPATH_INST_FILTER_KEY_SUPERIOR,
@@ -95,6 +97,8 @@ static int csonpath_instuction_len[] = {
     2, /* 3 CSONPATH_INST_GET_ARRAY_SMALL */
     5, /* 4 CSONPATH_INST_GET_ARRAY_BIG */
     1, /* 4.5 CSONPATH_INST_FILTER_KEY_EXIST */
+    1, /* 4.6 CSONPATH_INST_FILTER_KEY_TRUE */
+    1, /* 4.7 CSONPATH_INST_FILTER_KEY_FALSE */
     2, /* 5 CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ */
     2, /* 6 CSONPATH_INST_FILTER_KEY_INFERIOR_EQ */
     2, /* 7 CSONPATH_INST_FILTER_KEY_SUPERIOR */
@@ -120,6 +124,8 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"GET_ARRAY_SMALL",
 	"GET_ARRAY_BIG",
 	"FILTER_KEY_EXIST",
+	"FILTER_KEY_TRUE",
+	"FILTER_KEY_FALSE",
 	"FILTER_KEY_SUPERIOR_EQ",
 	"FILTER_KEY_INFERIOR_EQ",
 	"FILTER_KEY_SUPERIOR",
@@ -695,6 +701,14 @@ root_again:
 		    next = walker + 4;
 		    to_check = *next;
 		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EXIST, inst_idx);
+		} else if (!strncmp(walker, "true", 4) && !isalnum(walker[4])) {
+		    next = walker + 4;
+		    to_check = *next;
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_TRUE, inst_idx);
+		} else if (!strncmp(walker, "false", 5) && !isalnum(walker[5])) {
+		    next = walker + 5;
+		    to_check = *next;
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_FALSE, inst_idx);
 		} else {
 		    int n;
 
@@ -887,6 +901,18 @@ static int csonpath_compile(struct csonpath *cjp, const char path[static 1])
 static _Bool csonpath_do_match(int operand_instruction, CSONPATH_JSON el2, const char **owalker)
 {
     switch (operand_instruction) {
+    case CSONPATH_INST_FILTER_KEY_TRUE:
+    {
+	if (!CSONPATH_IS_BOOL(el2))
+	    return 0;
+	return CSONPATH_GET_BOOL(el2) == 1;
+    }
+    case CSONPATH_INST_FILTER_KEY_FALSE:
+    {
+	if (!CSONPATH_IS_BOOL(el2))
+	    return 0;
+	return CSONPATH_GET_BOOL(el2) == 0;
+    }
     case CSONPATH_INST_FILTER_KEY_EXIST:
     {
 	return CSONPATH_IS_NULL(el2);

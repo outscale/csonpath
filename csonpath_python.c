@@ -25,6 +25,11 @@
 
 #define CSONPATH_IS_NULL(o) (o == Py_None)
 
+#define CSONPATH_IS_BOOL(o) PyBool_Check(o)
+
+/* that one assume CSONPATH_IS_BOOL have been called before calling CSONPATH_GET_BOOL */
+#define CSONPATH_GET_BOOL(o) (o == Py_True)
+
 #define CSONPATH_GET_STR(obj)			\
     PyUnicode_AsUTF8(obj)
 

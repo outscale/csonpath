@@ -199,4 +199,60 @@ int main(void)
 
   json_object_put(jobj);
   csonpath_destroy(p);
+
+  /* == true / == false semantics */
+  jobj = json_tokener_parse("{"
+    "\"items\": ["
+    "{\"a\": true},"
+    "{\"a\": false},"
+    "{\"a\": 1},"
+    "{\"a\": \"true\"},"
+    "{}"
+    "]"
+    "}");
+
+  assert(jobj);
+
+  /* == true matches only JSON true */
+  assert((p = csonpath_new("$.items[?a == true]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 1); /* only true */
+  json_object_put(ret);
+
+  /* == false matches only JSON false */
+  assert((p = csonpath_set_path(p, "$.items[?a == false]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 1); /* only false */
+  json_object_put(ret);
+
+  /* != true matches false, number, string, absent */
+  assert((p = csonpath_set_path(p, "$.items[?a != true]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 4); /* false, 1, "true", absent */
+  json_object_put(ret);
+
+  /* != false matches true, number, string, absent */
+  assert((p = csonpath_set_path(p, "$.items[?a != false]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 4); /* true, 1, "true", absent */
+  json_object_put(ret);
+
+  /* ? (existence) matches both true and false */
+  assert((p = csonpath_set_path(p, "$.items[?(@.a)]")));
+  ret = csonpath_find_all(p, jobj);
+  assert(ret);
+  assert(json_object_is_type(ret, json_type_array));
+  assert(json_object_array_length(ret) == 4); /* true, false, 1, "true" */
+  json_object_put(ret);
+
+  json_object_put(jobj);
+  csonpath_destroy(p);
 }
