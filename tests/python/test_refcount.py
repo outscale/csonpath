@@ -43,7 +43,7 @@ def test_update_or_create_refcount_insert_twice():
 
 
 def test_update_or_create_refcount_replaces_and_releases_old():
-    old_value = "old-------"
+    old_value = ["old-------"]
     new_value = ["new"]
     d = {"a": old_value}
     cp = csonpath.CsonPath("$.a")
