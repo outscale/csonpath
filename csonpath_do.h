@@ -187,8 +187,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 
     (void)ctx; /* maybe unused */
 
-    while (*walker != CSONPATH_INST_END &&
-	   *walker != CSONPATH_INST_OR) {
+    while (!csonpath_is_endish_inst(*walker)) {
 	switch (*walker) {
 	case CSONPATH_INST_UNION_JMP:
 	{

@@ -1045,7 +1045,7 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 				 const char **owalker, int operation);
 
 
-static _Bool csonpath_is_endish_inst(int instruction)
+static inline _Bool csonpath_is_endish_inst(int instruction)
 {
     return instruction == CSONPATH_INST_END || instruction == CSONPATH_INST_OR;
 }
@@ -1234,7 +1234,7 @@ again:
 
 #define CSONPATH_PRE_GET_ROOT						\
     int to_check = walker[1];						\
-    if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR) { \
+    if (csonpath_is_endish_inst(to_check)) {				\
 	if (CSONPATH_IS_OBJ(origin) && CSONPATH_IS_OBJ(to_update)) {	\
 	    return csonpath_sync_root_obj(origin, to_update);		\
 	} else if (CSONPATH_IS_ARRAY(origin) && CSONPATH_IS_ARRAY(to_update)) { \
@@ -1282,7 +1282,7 @@ again:
     ({									\
 	const char *tmp_wal = csonpath_walker_next_inst(walker);	\
 	int is_array = 1;						\
-	for (; *tmp_wal && *tmp_wal != CSONPATH_INST_END && *tmp_wal != CSONPATH_INST_OR; \
+	for (; *tmp_wal && !csonpath_is_endish_inst(*tmp_wal);		\
 	     tmp_wal = csonpath_walker_next_inst(walker)) {		\
 	    if (*tmp_wal == CSONPATH_INST_GET_UNION)			\
 		tmp_wal = csonpath_skipp_union_jmp(tmp_wal);		\
@@ -1436,7 +1436,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 
 #define CSONPATH_PRE_GET_ROOT						\
     int to_check = *walker;						\
-    if (to_check == CSONPATH_INST_END || to_check == CSONPATH_INST_OR)  { \
+    if (csonpath_is_endish_inst(to_check))  { \
 	CSONPATH_GETTER_ERR("can't update root ($)\n");			\
 	return CSONPATH_NONE_FOUND_RET;					\
     }
