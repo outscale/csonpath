@@ -223,8 +223,6 @@ typedef struct {
     struct csonpath *cp;
 } PyCsonPathObject;
 
-#define CAPSULE_NAME "csonpath_capsule"
-
 #define BAD_ARG() ({fprintf(stderr, "bad argument\n"); PyErr_BadArgument(); return NULL;})
 
 
