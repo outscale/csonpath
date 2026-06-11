@@ -46,6 +46,7 @@ int main() {
     const char *queries[] = {
 	"$.store.book[?(@.price) > 20].title",
 	"$.store.book[*].title",
+        "$.store.book[*]['title','category']",
 	"$.store.book[?title =~ /Book/].title",
 	"$..title",
     };

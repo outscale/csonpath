@@ -19,19 +19,21 @@ data = {
 queries = [
     "$.store.book[?(@.price) > 20].title",
     "$.store.book[*].title",
+    "$.store.book[*]['title','category']",
     '$.store.book[?(@.title) =~ "Book"].title',
     "$..title",
 ]
 
 # Benchmark
 for query in queries:
-    #start = time.perf_counter()
-    #expr = parse(query)
-    #for x in range(1000):
-    #    result = expr.find(data)
-    #elapsed = time.perf_counter() - start
-    #print(f"jsonpath-ng Query: {query}")
-    #print(f"jsonpath-ng Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
+    start = time.perf_counter()
+    expr = parse(query)
+    for x in range(100):
+        result = expr.find(data)
+    # this one is so slow, that I do 100 loop instead of 1k, and multip,y result per 10
+    elapsed = (time.perf_counter() - start) * 10
+    print(f"jsonpath-ng Query: {query}")
+    print(f"jsonpath-ng Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
 
     start = time.perf_counter()
     cp = csonpath.CsonPath(query)
@@ -68,6 +70,12 @@ for query in queries:
                     for l in d:
                         rec_get_title(l, out)
             rec_get_title(data, result)
+        elif query == "$.store.book[*]['title','category']":
+            result = []
+            books = data["store"]["book"]
+            for b in books:
+                result.append(b["title"])
+                result.append(b["category"])
         elif query == "$.store.book[*].title":
             result = []
             books = data["store"]["book"]
