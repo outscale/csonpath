@@ -1315,8 +1315,8 @@ static int csonpath_sync_root_array(CSONPATH_JSON parent, CSONPATH_JSON to_updat
 {
     CSONPATH_JSON child;
     size_t idx;
-    (void) idx;
 
+    (void) idx;
     CSONPATH_ARRAY_CLEAR(parent);
     CSONPATH_FOREACH_ARRAY(to_update, child, idx) {
 	if (CSONPATH_APPEND_AT(parent, idx, child) < 0)
@@ -1330,6 +1330,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
     CSONPATH_JSON child;
     const char *key;
 
+    (void )key;
     CSONPATH_OBJ_CLEAR(parent);
     CSONPATH_FOREACH_OBJ(to_update, child, key) {
 	if (CSONPATH_APPEND_AT(parent, key, child) < 0)

@@ -23,8 +23,15 @@ jobs:
     - name: install     dependencies
       run: |
         sudo apt-get update --fix-missing
-        sudo apt-get install -y -f -o Acquire::Retries=3 libjson-c-dev  pkg-config
-    - name: Build and test json-c
+        sudo apt-get install -y -f -o Acquire::Retries=3 libjson-c-dev cmake pkg-config
+    - name: Build and install yyjson
+      run: |
+        git clone --depth 1 https://github.com/ibireme/yyjson.git /tmp/yyjson
+        cmake -S /tmp/yyjson -B /tmp/yyjson/build -DCMAKE_BUILD_TYPE=Release
+        cmake --build /tmp/yyjson/build --parallel
+        sudo cmake --install /tmp/yyjson/build
+        sudo ldconfig
+    - name: Build and test json-c/yyjson
       run: |
         make
         make tests-c

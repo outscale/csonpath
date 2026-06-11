@@ -1,9 +1,13 @@
 JSON_C_CFLAGS=$(shell pkg-config --cflags json-c)
 JSON_C_LDFLAGS=$(shell pkg-config --libs json-c)
+YYJSON_CFLAGS=$(shell pkg-config --cflags yyjson)
+YYJSON_LDFLAGS=$(shell pkg-config --libs yyjson)
 
 include config.mk
 
 all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union
+
+YYJSON_TESTS=test-yyjson
 
 bench:
 	make -C bench
@@ -39,7 +43,10 @@ test-json-get-array-big-index: tests/json-c/get-array-big-index.c csonpath_json-
 test-json-union: tests/json-c/union.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/union.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-union  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
-tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union
+test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do.h
+	$(CC) tests/yyjson/test-yyjson.c $(EXTRA_FILES) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-yyjson $(YYJSON_LDFLAGS) $(LDFLAGS)
+
+ tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-yyjson
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
@@ -48,6 +55,7 @@ tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath t
 	./test-json-filter-and-missing-key
 	./test-json-get-array-big-index
 	./test-json-union
+	./test-yyjson
 
 pip-dev:
 	pip install -e .[dev] --force-reinstall
@@ -58,5 +66,5 @@ tests-py: pip-dev
 tests: tests-py tests-c
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-yyjson
 

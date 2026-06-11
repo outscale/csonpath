@@ -139,6 +139,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
     intptr_t key_idx;
     CSONPATH_DO_RET_TYPE tret = CSONPATH_NONE_FOUND_RET;
     const char *next_inst = NULL;
+    (void)ctx;
 
     CSONPATH_DO_FIND_ALL_PRE_LOOP;
     if (is_obj) {
