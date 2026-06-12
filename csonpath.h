@@ -315,7 +315,11 @@ static inline struct csonpath *csonpath_new_ex(const char path[static 1], int fl
      * max inst is use so we know, we will never overflow.
      */
     int max_inst = strlen(path) / 2 + 1;
-    struct csonpath *ret = malloc(sizeof *ret + CSONPATH_BYTE_PER_INST * max_inst + strlen(path) + 1);
+    int extra = 0;
+    for (const char *tmp = path; *tmp; ++tmp)
+      if (*tmp == ',')
+	++extra;
+    struct csonpath *ret = malloc(sizeof *ret + CSONPATH_BYTE_PER_INST * max_inst + strlen(path) + 1 + extra);
     if (!ret) {
 	return NULL;
     }
