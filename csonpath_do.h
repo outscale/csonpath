@@ -371,11 +371,14 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		cjp, origin, origin, CSONPATH_NULL, owalker, &end_sentinel);
 	    /* here it should point to inst_end, but walker is incr after */
 	    owalker = end_sentinel;
+	    if (tmp != CSONPATH_NULL)
+		ctx = tmp;
 	    if (CSONPATH_IS_NUM(jret)) {
 		int this_idx = CSONPATH_GET_NUM(jret);
 		CSONPATH_PRE_GET(this_idx);
 		tmp = CSONPATH_AT(tmp, this_idx);
 		if (tmp == CSONPATH_NULL) {
+		    walker = owalker;
 		    CSONPATH_DO_GET_NOTFOUND(this_idx);
 		}
 		CSONPATH_DO_POST_FIND_ARRAY;
@@ -384,6 +387,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		CSONPATH_PRE_GET_OBJ(this_idx);
 		tmp = CSONPATH_GET(tmp, this_idx);
 		if (tmp == CSONPATH_NULL) {
+		    walker = owalker;
 		    CSONPATH_DO_GET_NOTFOUND(this_idx);
 		}
 		CSONPATH_DO_POST_FIND_OBJ;
