@@ -370,8 +370,16 @@ static void csonpath_print_instruction(const struct csonpath cjp[const static 1]
 	return;
     }
     int cnt = 0;
-    for (;*walker != CSONPATH_INST_END; walker = csonpath_walker_next_inst(walker)) {
+    int cnt_sub = 0;
+    for (;cnt_sub > 0 || *walker != CSONPATH_INST_END; walker = csonpath_walker_next_inst(walker)) {
+	for (int i = 0; i < cnt_sub; ++i) {
+	    printf("  ");
+	}
 	printf("%d: %s\n", (int)(intptr_t)(walker - origin), csonpath_instuction_str[(int)*walker]);
+	if (*walker == CSONPATH_INST_END)
+	  --cnt_sub;
+	else if (*walker == CSONPATH_INST_GET_SUBPATH)
+	  ++cnt_sub;
 	if (cnt++ == 1000) {
 	    printf("%d: TOO MUCH INSTRUCTION, BAIL OUT\n", (int)(intptr_t)(walker - origin));
 	    return;
