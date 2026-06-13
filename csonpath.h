@@ -1369,7 +1369,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 
 #define CSONPATH_PRE_GET_OBJ(this_idx)					\
     if (tmp != CSONPATH_NULL && !CSONPATH_IS_OBJ(tmp)) {		\
-	CSONPATH_GETTER_ERR("Unable to follow path: Dict expected");	\
+	CSONPATH_GETTER_ERR("Unable to follow path(%s): Dict expected", this_idx); \
     }									\
     CSONPATH_UPDATE_CHECK_EXIST(CSONPATH_NEW_OBJECT);			\
     csonpath_child_info_set(child_info, tmp, (intptr_t)this_idx);
@@ -1377,7 +1377,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 
 #define CSONPATH_PRE_GET(this_idx)					\
     if (tmp != CSONPATH_NULL && !CSONPATH_IS_ARRAY(tmp)) {		\
-	CSONPATH_GETTER_ERR("Unable to follow path: List expected");	\
+	CSONPATH_GETTER_ERR("Unable to follow path(%d): List expected", this_idx); \
     }									\
     CSONPATH_UPDATE_CHECK_EXIST(CSONPATH_NEW_ARRAY);			\
     csonpath_child_info_set(child_info, tmp, this_idx);
