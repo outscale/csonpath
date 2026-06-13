@@ -1075,24 +1075,6 @@ static const char *csonpath_skipp_union_jmp(const char *walker)
     return walker;
 }
 
-/* helper use multiple times */
-#define CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)			\
-    do {								\
-	int append_ret = 0;						\
-	if (to_check == CSONPATH_INST_GET_OBJ) {			\
-	    tmp = CSONPATH_NEW_OBJECT();				\
-	    append_ret = CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	    CSONPATH_DECREF(tmp);					\
-	} else {							\
-	    tmp = CSONPATH_NEW_ARRAY();					\
-	    append_ret = CSONPATH_APPEND_AT(ctx, this_idx, tmp);	\
-	    CSONPATH_DECREF(tmp);					\
-	}								\
-	if (append_ret < 0) return append_ret;				\
-	goto next_inst;							\
-    } while (0)
-
-
 #define CSONPATH_GOTO_ON_RELOOP(where)			\
     nb_res += tret; if (need_reloop_in) goto where;
 
@@ -1454,14 +1436,21 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
     }
 
 
+#define CSONPATH_PRE_GET_OBJ(this_idx)					\
+    if (tmp != CSONPATH_NULL && !CSONPATH_IS_OBJ(tmp)) {		\
+	CSONPATH_GETTER_ERR("Unable to follow path(%s): Dict expected", this_idx); \
+    }									\
+    CSONPATH_UPDATE_CHECK_EXIST(CSONPATH_NEW_OBJECT);			\
+    csonpath_child_info_set(child_info, tmp, (intptr_t)this_idx);
+
 #define CSONPATH_PRE_GET(this_idx)					\
-    int to_check = *walker;						\
-    csonpath_child_info_set(child_info, ctx, (intptr_t)this_idx)
+    if (tmp != CSONPATH_NULL && !CSONPATH_IS_ARRAY(tmp)) {		\
+	CSONPATH_GETTER_ERR("Unable to follow path(%d): List expected", this_idx); \
+    }									\
+    CSONPATH_UPDATE_CHECK_EXIST(CSONPATH_NEW_ARRAY);			\
+    csonpath_child_info_set(child_info, tmp, this_idx);
 
-
-#define CSONPATH_DO_GET_NOTFOUND(this_idx)		\
-    CSONPATH_DO_GET_NOTFOUND_UPDATER(this_idx)
-
+#define CSONPATH_DO_GET_NOTFOUND(osef) goto next_inst;
 
 #include "csonpath_do.h"
 
