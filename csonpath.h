@@ -1195,6 +1195,11 @@ need_reloop_in = 0;
 	    if (need_reloop_in){ goto range_again; };			\
 	})
 
+#define CSONPATH_DO_GET_UNION_POST ({					\
+	    if (tret < 0) return -1;					\
+	    nb_res += tret;						\
+	})
+
 #define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, NULL

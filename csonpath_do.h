@@ -100,9 +100,10 @@
 #define CSONPATH_DO_RANGE CSONPATH_DO_FIND_ALL
 #endif
 
-#ifndef CSONPATH_DO_RANGE
-#define CSONPATH_DO_RANGE CSONPATH_DO_FIND_ALL
+#ifndef CSONPATH_DO_GET_UNION_POST
+#define CSONPATH_DO_GET_UNION_POST CSONPATH_DO_FIND_ALL
 #endif
+
 
 #ifndef CSONPATH_DO_RANGE_PRE_LOOP
 #define CSONPATH_DO_RANGE_PRE_LOOP CSONPATH_DO_FIND_ALL_PRE_LOOP
@@ -326,7 +327,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		CSONPATH_DO_RET_TYPE tret = csonpath_do_internal(cjp, origin, tmp, CSONPATH_NULL,
 								 walker
 								 CSONPATH_DO_EXTRA_ARGS_NEESTED);
-		CSONPATH_DO_FIND_ALL;
+		CSONPATH_DO_GET_UNION_POST;
 		while (1) {
 		    walker = csonpath_walker_next_inst(walker);
 		    if (*walker == CSONPATH_INST_GET_UNION)
@@ -516,5 +517,6 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_RANGE
 #undef CSONPATH_DO_RANGE_PRE_LOOP
 #undef CSONPATH_PRE_GET_OBJ
+#undef CSONPATH_DO_GET_UNION_POST
 
 #endif
