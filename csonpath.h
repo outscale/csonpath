@@ -231,6 +231,14 @@ struct csonpath_child_info {
 #define CSONPATH_ERROR_MAX_SIZE 1024
 #define CSONPATH_TMP_BUF_SIZE 256
 
+#define CSONPATH_FILTER_PUSH(dst, cnt, c, walk_ptr) do {		\
+	if ((cnt + 1) >= CSONPATH_TMP_BUF_SIZE) {			\
+	    CSONPATH_COMPILE_ERR(tmp, walk_ptr - orig, "%s", "filter key too long"); \
+	    goto error;							\
+	}								\
+	(dst)[(cnt)++] = (c);						\
+    } while (0)
+
 /* I'm assuming error message won't be longer than 125 */
 #define CSONPATH_COMPILE_ERR(tmp, idx, args...) do {			\
 	int ltmp  = strlen(tmp), lidx, oidx = idx;			\
@@ -455,7 +463,6 @@ static void push_filter_getter(struct csonpath *cjp, int *inst_idx, int nb_gette
     csonpath_push_char(cjp, filter_getter[i], inst_idx);
   }
   *filter_end = (nb_getter_inst - 1);
-
 }
 
 static int csonpath_compile_do(struct csonpath *cjp, const char orig[static 1],
@@ -547,7 +554,7 @@ root_again:
 		}
 	      filter_again_root:
 		inst = CSONPATH_INST_GET_OBJ;
-		filter_getter[nb_getter_inst++] = CSONPATH_INST_GET_OBJ;
+		CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, CSONPATH_INST_GET_OBJ, walker);
 		++walker;
 
 		/* skipp blank */
@@ -585,12 +592,12 @@ root_again:
 		    }
 		    ++walker;
 		    for (next = walker; *next != getter_end; ++next)
-			filter_getter[nb_getter_inst++] = *next;
-		    filter_getter[nb_getter_inst++] = 0;
+			CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, *next, next);
+		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, 0, next);
 		} else {
 		    for (next = walker; csonpath_is_dot_operand(*next); ++next)
-			filter_getter[nb_getter_inst++] = *next;
-		    filter_getter[nb_getter_inst++] = 0;
+			CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, *next, next);
+		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, 0, next);
 		}
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
@@ -606,11 +613,11 @@ root_again:
 		}
 		if (to_check == '.') {
 		    walker = next + 1;
-		    filter_getter[nb_getter_inst++] = CSONPATH_INST_GET_OBJ;
+		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, CSONPATH_INST_GET_OBJ, walker);
 		    goto filter_again;
 		} else if (to_check == '[') {
 		    walker = next + 1;
-		    filter_getter[nb_getter_inst++] = CSONPATH_INST_GET_OBJ;
+		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, CSONPATH_INST_GET_OBJ, walker);
 		    getter_end = *walker;
 		    goto filter_again;
 		}

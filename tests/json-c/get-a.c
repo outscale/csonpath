@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include "csonpath_json-c.h"
 
@@ -144,6 +146,28 @@ int main(void)
   iret = csonpath_remove(p, jobj);
   assert(iret == 1);
   assert(!json_object_object_get(jobj, "array"));
+
+  /* Test with a large key (>255 chars) to overflow a char length storage */
+  {
+    const int key_len = 300;
+    char *big_key = malloc(key_len + 1);
+    memset(big_key, 'k', key_len);
+    big_key[key_len] = '\0';
+
+    struct json_object *big_obj = json_object_new_object();
+    json_object_object_add(big_obj, big_key, json_object_new_string("big_value"));
+
+    char *path = malloc(key_len + 10);
+    sprintf(path, "$['%s']", big_key);
+    TRY(p = csonpath_set_path(p, path));
+    ret = csonpath_find_first(p, big_obj);
+    assert(ret);
+    assert(!strcmp(json_object_get_string(ret), "big_value"));
+
+    free(path);
+    json_object_put(big_obj);
+    free(big_key);
+  }
 
   json_object_put(jobj);
   csonpath_destroy(p);

@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include "csonpath_json-c.h"
 
@@ -254,5 +256,34 @@ int main(void)
   json_object_put(ret);
 
   json_object_put(jobj);
+
+  /* Test filter with a large key (>255 chars) to overflow a char length storage */
+  {
+    const int key_len = 300;
+    char *big_key = malloc(key_len + 1);
+    memset(big_key, 'k', key_len);
+    big_key[key_len] = '\0';
+
+    struct json_object *big_obj = json_object_new_object();
+    struct json_object *big_arr = json_object_new_array();
+    struct json_object *el1 = json_object_new_object();
+    struct json_object *el2 = json_object_new_object();
+    json_object_object_add(el1, big_key, json_object_new_string("match"));
+    json_object_object_add(el2, big_key, json_object_new_string("no"));
+    json_object_array_add(big_arr, el1);
+    json_object_array_add(big_arr, el2);
+    json_object_object_add(big_obj, "arr", big_arr);
+
+    char *path = malloc(key_len + 50);
+    sprintf(path, "$.arr[?['%s'] = \"match\"]", big_key);
+    p = csonpath_new(path);
+    assert(p == NULL); /* clé trop longue : doit refuser de compiler */
+    (void)ret;
+
+    free(path);
+    json_object_put(big_obj);
+    free(big_key);
+  }
+
   csonpath_destroy(p);
 }
