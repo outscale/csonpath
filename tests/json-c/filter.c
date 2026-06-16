@@ -257,6 +257,35 @@ int main(void)
 
   json_object_put(jobj);
 
+  /* Test filter with a medium key (200 chars): must match.
+   * If char is signed and csonpath_do.h lacks an unsigned char cast,
+   * the runtime filter_next becomes negative and silently skips the key. */
+  {
+#define KEY_LEN 200
+    char key[KEY_LEN + 1];
+    memset(key, 'k', KEY_LEN);
+    key[KEY_LEN] = '\0';
+
+    struct json_object *obj = json_object_new_object();
+    struct json_object *arr = json_object_new_array();
+    struct json_object *el = json_object_new_object();
+    json_object_object_add(el, key, json_object_new_string("y"));
+    json_object_array_add(arr, el);
+    json_object_object_add(obj, "arr", arr);
+
+    char path[KEY_LEN + 50];
+    snprintf(path, sizeof(path), "$.arr[?['%s']=\"y\"]", key);
+    p = csonpath_new(path);
+    assert(p);
+    ret = csonpath_find_all(p, obj);
+    assert(ret && json_object_is_type(ret, json_type_array)
+           && json_object_array_length(ret) == 1);
+    json_object_put(ret);
+    json_object_put(obj);
+    csonpath_destroy(p);
+#undef KEY_LEN
+  }
+
   /* Test filter with a large key (>255 chars) to overflow a char length storage */
   {
     const int key_len = 300;

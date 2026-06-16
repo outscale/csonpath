@@ -218,7 +218,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    CSONPATH_JSON el;
 	    int operation_in = *walker, operation = *walker;
 	    const char *owalker;
-	    int filter_next_in = *(walker+1), filter_next = *(walker+1);
+	    int filter_next_in = (unsigned char)*(walker+1), filter_next = (unsigned char)*(walker+1);
 	    const char *next = walker + 2;
 	    int foreach_idx;
 
