@@ -1411,9 +1411,9 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME update_or_create_callback
 #define CSONPATH_DO_RETURN						\
-	if (tmp == value) {						\
+	if (need_reloop && tmp == value) {				\
 		*need_reloop = 1;					\
-	}								\
+	}									\
 	CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata);	\
 	return 1;
 
@@ -1434,7 +1434,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
 #define CSONPATH_PRE_GET_ROOT						\
-    int to_check = *walker;						\
+    int to_check = walker[1];						\
     if (csonpath_is_endish_inst(to_check))  { \
 	CSONPATH_GETTER_ERR("can't update root ($)\n");			\
 	return CSONPATH_NONE_FOUND_RET;					\

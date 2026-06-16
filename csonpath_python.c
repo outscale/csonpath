@@ -107,6 +107,10 @@ static int pydict_try_setitemstring(PyObject *obj,  const char * const at, PyObj
 	Py_XDECREF(str);
 	return -1;
     }
+    if (!at) {
+        PyErr_SetString(PyExc_TypeError, "dict keys must be strings");
+        return -1;
+    }
     PyDict_SetItemString(obj, at, el);
     return 1;
 }
@@ -193,6 +197,11 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
     CSONPATH_PRAGMA("GCC unroll 8")					\
     for (intptr_t key_idx = 0; key_idx < array_len_; ++key_idx) {	\
       el = PyList_GetItem(obj, key_idx);				\
+      if (!el) {							\
+        PyErr_SetString(PyExc_RuntimeError,				\
+                        "list was modified during iteration");		\
+        break;								\
+      }									\
       code								\
 	}								\
   }
@@ -298,6 +307,10 @@ static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
 
 static PyObject *print_instructions(PyCsonPathObject *self, PyObject *args, PyObject *kwds)
 {
+    if (!self->cp) {
+        PyErr_SetString(PyExc_RuntimeError, "compiled path is NULL");
+        return NULL;
+    }
     csonpath_print_instruction(self->cp);
     Py_RETURN_NONE;
 }
@@ -365,10 +378,22 @@ static void PyCsonPath_dealloc(PyCsonPathObject *self) {
 static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
     const char *new_path;
     if (!PyArg_ParseTuple(args, "s", &new_path))
-      return Py_False;
+      return NULL;
     if (!new_path) return Py_False;
 
-    self->cp = csonpath_set_path(self->cp, new_path);
+    struct csonpath *new_cjp = csonpath_new_ex(new_path, CSONPATH_NO_DETROY);
+    if (!new_cjp) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    if (new_cjp->compile_error) {
+        PyErr_Format(PyExc_ValueError, "compilation fail %s",
+                     new_cjp->compile_error);
+        csonpath_destroy(new_cjp);
+        return NULL;
+    }
+    csonpath_destroy(self->cp);
+    self->cp = new_cjp;
     return Py_True;
 }
 
