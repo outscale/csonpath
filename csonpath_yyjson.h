@@ -63,7 +63,7 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
     })
 
 #define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata)   \
-    callback(ctx, child_info, tmp, udata)
+    (callback(ctx, child_info, tmp, udata), 0)
 
 
 #define CSONPATH_FOREACH(obj, el, code)		\

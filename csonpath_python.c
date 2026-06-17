@@ -68,15 +68,23 @@
 
 #define CSONPATH_CALLBACK_DATA PyObject *
 
-#define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata) do { \
+#define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata) \
+    ({								\
+	int _cb_ok = 0;							\
 	PyObject *arglist;						\
+	PyObject *_cb_ret;						\
 	if (child_info->type == CSONPATH_STR)				\
 	    arglist = Py_BuildValue("(OsOO)", ctx, child_info->key, tmp, udata); \
 	else								\
 	    arglist = Py_BuildValue("(OiOO)", ctx, child_info->idx, tmp, udata); \
-	PyObject_CallObject(callback, arglist);				\
+	_cb_ret = PyObject_CallObject(callback, arglist);		\
 	Py_DECREF(arglist);						\
-    } while (0)
+	if (!_cb_ret)							\
+	    _cb_ok = -1;						\
+	else								\
+	    Py_DECREF(_cb_ret);						\
+	_cb_ok;								\
+    })
 
 /* assuming each modification of the object need to go out of the loop */
 #define CSONPATH_NEED_FOREACH_REDO(o)	1
@@ -322,8 +330,9 @@ static PyObject *callback(PyCsonPathObject *self, PyObject* args)
     if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
 	BAD_ARG();
     int ret = csonpath_callback(self->cp, json, callback, udata);
-    if (PyErr_Occurred())
+    if (PyErr_Occurred() || ret < 0) {
         return NULL;
+    }
     return PyLong_FromLong(ret);
 }
 
@@ -334,7 +343,7 @@ static PyObject *do_remove(PyCsonPathObject *self, PyObject* args)
   if (!PyArg_ParseTuple(args, "O", &json))
     BAD_ARG();
   int ret = csonpath_remove(self->cp, json);
-  if (PyErr_Occurred())
+  if (PyErr_Occurred() || ret < 0)
       return NULL;
   return PyLong_FromLong(ret);
 }

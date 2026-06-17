@@ -23,7 +23,7 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 #define CSONPATH_CALLBACK_DATA void *
 
 #define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata)	\
-  callback(ctx, child_info, tmp, udata)
+  (callback(ctx, child_info, tmp, udata), 0)
 
 
 #define CSONPATH_NEED_FOREACH_REDO(o)		\

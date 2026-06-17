@@ -1110,7 +1110,7 @@ need_reloop_in = 0;
 
 #define CSONPATH_DO_FIND_ALL_OUT if (end_sentinel) *end_sentinel = walker;  return CSONPATH_NULL
 
-#define CSONPATH_DO_EXTRA_DECLATION , const char **end_sentinel
+#define CSONPATH_DO_EXTRA_DECLARATION , const char **end_sentinel
 #define CSONPATH_DO_EXTRA_ARGS_IN , NULL
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , end_sentinel
 
@@ -1143,7 +1143,7 @@ need_reloop_in = 0;
     return ret_ar;
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , ret_ar
-#define CSONPATH_DO_EXTRA_DECLATION , CSONPATH_FIND_ALL_RET ret_ar
+#define CSONPATH_DO_EXTRA_DECLARATION , CSONPATH_FIND_ALL_RET ret_ar
 
 #include "csonpath_do.h"
 
@@ -1207,7 +1207,7 @@ need_reloop_in = 0;
 	    nb_res += tret;						\
 	})
 
-#define CSONPATH_DO_EXTRA_DECLATION , struct csonpath_child_info child_info, int *need_reloop
+#define CSONPATH_DO_EXTRA_DECLARATION , struct csonpath_child_info child_info, int *need_reloop
 
 #define CSONPATH_DO_EXTRA_ARGS_IN , (struct csonpath_child_info) {.type = CSONPATH_NONE}, NULL
 
@@ -1280,7 +1280,7 @@ again:
 		csonpath_child_info_set(&(struct csonpath_child_info ){}, tmp, (intptr_t)key_idx), &need_reloop_in
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_JSON to_update
 #define CSONPATH_DO_EXTRA_ARGS_IN , to_update, &(struct csonpath_child_info ){}, NULL
-#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
+#define CSONPATH_DO_EXTRA_DECLARATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
 #define CSONPATH_DO_FIND_ALL nb_res += tret;
 #define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
 
@@ -1388,18 +1388,20 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME callback
 #define CSONPATH_DO_RETURN  do {					\
-    CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata); return 1;} \
-  while (0)
+	if (CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata) < 0) \
+	    return -1;							\
+	return 1;}							\
+    while (0)
 
 #define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , callback, udata, child_info
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,		\
     csonpath_child_info_set(child_info, tmp, (intptr_t)key_idx)
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
 #define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, &(struct csonpath_child_info ){}
-#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info
+#define CSONPATH_DO_EXTRA_DECLARATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info
 
-#define CSONPATH_DO_FIND_ALL nb_res += tret;
-#define CSONPATH_DO_FILTER_FIND nb_res += tret;
+#define CSONPATH_DO_FIND_ALL do { if (tret < 0) return tret; nb_res += tret; } while (0)
+#define CSONPATH_DO_FILTER_FIND do { if (tret < 0) return tret; nb_res += tret; } while (0)
 
 #define CSONPATH_DO_FIND_ALL_OUT return nb_res;
 
@@ -1418,21 +1420,22 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME update_or_create_callback
 #define CSONPATH_DO_RETURN						\
-	if (need_reloop && tmp == value) {				\
-		*need_reloop = 1;					\
-	}									\
-	CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata);	\
-	return 1;
+    if (need_reloop && tmp == value) {					\
+	*need_reloop = 1;						\
+    }									\
+    if (CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata) < 0) \
+	return -1;							\
+    return 1;
 
 #define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , callback, udata, NULL, need_reloop
-#define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,	\
+#define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,		\
 	csonpath_child_info_set(&(struct csonpath_child_info ){}, tmp, (intptr_t)key_idx), \
 	&need_reloop_in
 #define CSONPATH_DO_EXTRA_ARGS , CSONPATH_CALLBACK callback, CSONPATH_CALLBACK_DATA udata
 #define CSONPATH_DO_EXTRA_ARGS_IN , callback, udata, &(struct csonpath_child_info ){}, NULL
-#define CSONPATH_DO_EXTRA_DECLATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
-#define CSONPATH_DO_FIND_ALL nb_res += tret;
-#define CSONPATH_DO_FILTER_FIND CSONPATH_GOTO_ON_RELOOP(filter_again)
+#define CSONPATH_DO_EXTRA_DECLARATION CSONPATH_DO_EXTRA_ARGS, struct csonpath_child_info *child_info, int *need_reloop
+#define CSONPATH_DO_FIND_ALL do { if (tret < 0) return tret; nb_res += tret; } while (0)
+#define CSONPATH_DO_FILTER_FIND do { if (tret < 0) return tret; CSONPATH_GOTO_ON_RELOOP(filter_again); } while (0)
 
 #define CSONPATH_DO_FIND_ALL_PRE_LOOP int need_reloop_in = 0;
 

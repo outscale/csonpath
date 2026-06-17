@@ -150,3 +150,39 @@ def test_update_or_create_callback_on_root():
     cp = csonpath.CsonPath('$')
     with pytest.raises(ValueError, match="can't update root"):
         cp.update_or_create_callback({'a': 1}, lambda *a: None)
+
+
+def test_callback_exception_with_multiple_matches():
+    """A callback that raises on the first match must stop iteration."""
+    cp = csonpath.CsonPath('$.a[*]')
+    d = {'a': [1, 2]}
+
+    def cb(ctx, idx, val, ud):
+        raise ValueError('boom')
+
+    with pytest.raises(ValueError, match='boom'):
+        cp.callback(d, cb)
+
+
+def test_callback_exception_recursive_descent():
+    """Same via recursive descent with multiple matches."""
+    cp = csonpath.CsonPath('$..b')
+    d = {'x': {'b': 1}, 'y': {'b': 2}}
+
+    def cb(ctx, k, val, ud):
+        raise ValueError('boom')
+
+    with pytest.raises(ValueError, match='boom'):
+        cp.callback(d, cb)
+
+
+def test_update_or_create_callback_exception_with_multiple_matches():
+    """update_or_create_callback with multiple matches raising."""
+    cp = csonpath.CsonPath('$.a[*]')
+    d = {'a': [1, 2]}
+
+    def cb(ctx, idx, val, ud):
+        raise ValueError('boom')
+
+    with pytest.raises(ValueError, match='boom'):
+        cp.update_or_create_callback(d, cb)

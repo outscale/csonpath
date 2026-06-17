@@ -36,8 +36,8 @@
 #define CSONPATH_DO_POST_FIND_ARRAY
 #endif
 
-#ifndef CSONPATH_DO_EXTRA_DECLATION
-#define CSONPATH_DO_EXTRA_DECLATION
+#ifndef CSONPATH_DO_EXTRA_DECLARATION
+#define CSONPATH_DO_EXTRA_DECLARATION
 #endif
 
 #ifndef CSONPATH_DO_FIND_ALL_CLEAUP
@@ -121,7 +121,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 						 CSONPATH_JSON origin,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
-						 const char *walker CSONPATH_DO_EXTRA_DECLATION);
+						 const char *walker CSONPATH_DO_EXTRA_DECLARATION);
 
 
 #define csonpath_do_dotdot__(name) CATCAT(csonpath_, name, _dotdot)
@@ -132,7 +132,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
 					       CSONPATH_JSON origin,
 					       CSONPATH_JSON tmp,
 					       CSONPATH_JSON ctx,
-					       const char *walker CSONPATH_DO_EXTRA_DECLATION)
+					       const char *walker CSONPATH_DO_EXTRA_DECLARATION)
 {
     CSONPATH_JSON el;
     CSONPATH_DO_DECLARATION;
@@ -181,7 +181,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 						 CSONPATH_JSON origin,
 						 CSONPATH_JSON value,
 						 CSONPATH_JSON ctx,
-						 const char *walker CSONPATH_DO_EXTRA_DECLATION)
+						 const char *walker CSONPATH_DO_EXTRA_DECLARATION)
 {
     CSONPATH_JSON tmp = value;
     CSONPATH_DO_DECLARATION;
@@ -504,7 +504,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 #undef CSONPATH_DO_EXTRA_ARGS_IN
 #undef CSONPATH_DO_EXTRA_ARGS_FIND_ALL
 #undef CSONPATH_DO_EXTRA_ARGS
-#undef CSONPATH_DO_EXTRA_DECLATION
+#undef CSONPATH_DO_EXTRA_DECLARATION
 #undef CSONPATH_DO_FIND_ALL_PRE_LOOP
 #undef CSONPATH_DO_FOREACH_PRE_SET
 #undef CSONPATH_DO_GET_ALL_OUT
