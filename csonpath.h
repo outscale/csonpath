@@ -1165,10 +1165,12 @@ need_reloop_in = 0;
 
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_RETURN						\
-	({if (ctx == in_ctx && need_reloop &&				\
-	      CSONPATH_NEED_FOREACH_REDO(ctx))				\
-			*need_reloop = 1;				\
-		CSONPATH_REMOVE_CHILD(ctx, child_info); return 1;})
+    ({if (ctx == in_ctx && need_reloop &&				\
+	  CSONPATH_NEED_FOREACH_REDO(ctx))				\
+	    *need_reloop = 1;						\
+	if (child_info.type == CSONPATH_NONE)				\
+	    return 0;							\
+	CSONPATH_REMOVE_CHILD(ctx, child_info); return 1;})
 
 #define CSONPATH_PRE_GET_OBJ(val)		\
     const char *to_del = val;
