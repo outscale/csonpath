@@ -1399,6 +1399,12 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 	return 1;}							\
     while (0)
 
+#define CSONPATH_DO_PRE_OPERATION		\
+  if (callback == NULL) {			\
+    CSONPATH_GETTER_ERR("callback is NULL\n");	\
+    return -1;					\
+  }
+
 #define CSONPATH_DO_EXTRA_ARGS_FIND_ALL , callback, udata, child_info
 #define CSONPATH_DO_EXTRA_ARGS_NEESTED , callback, udata,		\
     csonpath_child_info_set(child_info, tmp, (intptr_t)key_idx)
@@ -1422,6 +1428,12 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 
 #define CSONPATH_DO_DECLARATION			\
 	int nb_res = 0;
+
+#define CSONPATH_DO_PRE_OPERATION		\
+  if (callback == NULL) {			\
+    CSONPATH_GETTER_ERR("callback is NULL\n");	\
+    return -1;					\
+  }
 
 #define CSONPATH_DO_RET_TYPE int
 #define CSONPATH_DO_FUNC_NAME update_or_create_callback
