@@ -903,12 +903,16 @@ root_again:
 		++walker;
 		next = walker;
 		csonpath_push_char(cjp, inst, inst_idx);
-		while (*next != end) {
-		    /* \" should be ignored */
+		while (*next && *next != end) {
+		    /* TODO: \" should be ignored */
 		    csonpath_push_char(cjp, *next, inst_idx);
 		    ++next;
 		    while (*next == '\\')
 			++next;
+		}
+		if (!*next) {
+		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
+					 "unclosed string in bracket");
 		}
 		++next; // skipp end
 		csonpath_push_char(cjp, 0, inst_idx);

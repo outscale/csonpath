@@ -5,7 +5,7 @@ YYJSON_LDFLAGS=$(shell pkg-config --libs yyjson)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors
 
 YYJSON_TESTS=test-yyjson
 
@@ -46,10 +46,13 @@ test-json-union: tests/json-c/union.c csonpath_json-c.h csonpath.h csonpath_do.h
 test-json-audit-bugs: tests/json-c/audit-bugs.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/audit-bugs.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-audit-bugs  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
+test-json-crash-vectors: tests/json-c/crash-vectors.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/crash-vectors.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-crash-vectors  $(JSON_C_LDFLAGS) $(LDFLAGS)
+
 test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do.h
 	$(CC) tests/yyjson/test-yyjson.c $(EXTRA_FILES) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-yyjson $(YYJSON_LDFLAGS) $(LDFLAGS)
 
- tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-yyjson
+ tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
@@ -59,6 +62,7 @@ test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do
 	./test-json-get-array-big-index
 	./test-json-union
 	./test-json-audit-bugs
+	./test-json-crash-vectors
 	./test-yyjson
 
 pip-dev:
@@ -70,5 +74,5 @@ tests-py: pip-dev
 tests: tests-py tests-c
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-yyjson
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson
 
