@@ -33,6 +33,7 @@ jobs:
         sudo ldconfig
     - name: Build and test json-c/yyjson
       run: |
+        ./configure --asan
         make
         make tests-c
     - name: build and test python

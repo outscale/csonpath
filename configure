@@ -21,12 +21,17 @@ for arg in $@; do
 	CFLAGS="${CFLAGS} -DCSONPATH_PCRE2_POSIX $(pkg-config --cflags libpcre2-posix)"
 	LDFLAGS="${LDFLAGS} $(pkg-config --libs libpcre2-posix)"
     fi
+    if [ "--asan" = $arg ]; then
+	CFLAGS="${CFLAGS} -fsanitize=address -fno-omit-frame-pointer"
+	LDFLAGS="${LDFLAGS} -fsanitize=address"
+    fi
     if [ "--help" = $arg ]; then
 	echo "help"
 	echo "	--tiny-regex"
 	echo "	--pcre2-regex"
 	echo "	--pcre2-posix"
 	echo "	--no-regex"
+	echo "	--asan"
     fi
 done
 
