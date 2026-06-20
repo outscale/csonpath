@@ -33,9 +33,6 @@
 #define CSONPATH_GET_STR(obj)			\
     PyUnicode_AsUTF8(obj)
 
-#define CSONPATH_DECREF(obj)			\
-  Py_DECREF(obj);
-
 #define CSONPATH_GET_NUM(obj)			\
     PyLong_AsLong(obj)
 

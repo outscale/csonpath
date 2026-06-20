@@ -48,10 +48,6 @@ typedef regex_t csonpath_reg_t;
 #define CSONPATH_FIND_ALL_RET_INIT CSONPATH_NEW_ARRAY
 #endif
 
-#ifndef CSONPATH_DECREF
-#define CSONPATH_DECREF(obj)
-#endif
-
 #ifndef CSONPATH_FORMAT_EXCEPTION
 #define CSONPATH_FORMAT_EXCEPTION(args...) fprintf(stderr, args)
 #endif
@@ -1371,14 +1367,14 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 #define CSONPATH_UPDATE_CHECK_EXIST(mk_cnt)				\
     if (tmp == CSONPATH_NULL) {						\
 	int append_ret = 0;						\
+	if (child_info->type == CSONPATH_NONE)				\
+	    CSONPATH_GETTER_ERR("CSONPATH_NONE is nope\n");		\
 	tmp = mk_cnt();							\
 	if (child_info->type == CSONPATH_INTEGER)			\
 	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->idx, tmp);	\
 	else if (child_info->type == CSONPATH_STR)			\
 	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->key, tmp);	\
-	else								\
-	    CSONPATH_GETTER_ERR("CSONPATH_NONE is nope\n");		\
-	CSONPATH_DECREF(tmp);						\
+	CSONPATH_REMOVE(tmp);						\
 	if (append_ret < 0) return append_ret;				\
 	ctx = tmp;							\
     }
