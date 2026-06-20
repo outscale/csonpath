@@ -256,6 +256,7 @@ int main(void)
   json_object_put(ret);
 
   json_object_put(jobj);
+  csonpath_destroy(p);
 
   /* Test filter with a medium key (200 chars): must match.
    * If char is signed and csonpath_do.h lacks an unsigned char cast,

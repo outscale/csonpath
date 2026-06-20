@@ -41,6 +41,7 @@ int main(void)
     /* Must return exactly one element (the first one). */
     assert(json_object_array_length(ret) == 1);
 
+    json_object_put(ret);
     json_object_put(jobj);
     csonpath_destroy(cp);
 

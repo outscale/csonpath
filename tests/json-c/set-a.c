@@ -58,7 +58,9 @@ int main(void)
 
   p = csonpath_set_path(p, "$");
   printf("check error happen:\n");
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a encore 0")) == -1);
+  json_object *tmp = json_object_new_string("la y'a encore 0");
+  assert(csonpath_update_or_create(p, jobj, tmp) == -1);
+  json_object_put(tmp);
 
   json_object_put(jobj);
   csonpath_destroy(p);
