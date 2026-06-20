@@ -465,6 +465,15 @@ static void push_filter_getter(struct csonpath *cjp, int *inst_idx, int nb_gette
   *filter_end = (nb_getter_inst - 1);
 }
 
+static _Bool consonpath_check_tmp_walker(const char tmp_walk[static 1], int cnt_brackets)
+{
+    if (!*tmp_walk)
+	return 0;
+    if (cnt_brackets)
+	return 1;
+    return (*tmp_walk != ']');
+}
+
 static int csonpath_compile_do(struct csonpath *cjp, const char orig[static 1],
 			       const char walker[static 1], char tmp[static 1],
 			       int *inst_idx, int flag, int end_path,
@@ -499,8 +508,9 @@ root_again:
 	  do_array:
 	    if (!in_union) {
 		int cnt_brackets = 0;
-		for (const char *tmp_walk = walker + 1;
-		     *tmp_walk && *tmp_walk != ']' && !cnt_brackets;
+		const char *tmp_walk;
+		for (tmp_walk = walker + 1;
+		     consonpath_check_tmp_walker(tmp_walk, cnt_brackets);
 		     ++tmp_walk) {
 		    if (!cnt_brackets && *tmp_walk == ',') {
 			csonpath_push_char(cjp, CSONPATH_INST_GET_UNION, inst_idx);
@@ -511,10 +521,16 @@ root_again:
 			++cnt_brackets;
 		    if (cnt_brackets && *tmp_walk == ']')
 			--cnt_brackets;
-		    if (*tmp_walk == '"')
+		    if (*tmp_walk == '"') {
 			for (++tmp_walk; *tmp_walk != '"' && *tmp_walk; ++tmp_walk);
-		    if (*tmp_walk == '\'')
-			for (++tmp_walk; *tmp_walk !=  '\'' && *tmp_walk; ++tmp_walk);
+		    }
+		    else if (*tmp_walk == '\'') {
+			for (++tmp_walk; *tmp_walk != '\'' && *tmp_walk; ++tmp_walk);
+		    }
+		    if (!*tmp_walk) break;
+		}
+		if (!tmp_walk[0]) {
+			CSONPATH_COMPILE_ERR(tmp, walker - orig, "unclose union");
 		}
 	    }
 	    ++walker;
