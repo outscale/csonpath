@@ -5,7 +5,7 @@
   !defined(CSONPATH_EQUAL_STR) || !defined(CSONPATH_CALL_CALLBACK) || \
   !defined(CSONPATH_FOREACH_EXT) || !defined(CSONPATH_APPEND_AT) || \
   !defined(CSONPATH_REMOVE_CHILD) || !defined(CSONPATH_NEED_FOREACH_REDO) || \
-  !defined(CSONPATH_ARRAY_APPEND_INCREF) || !defined(CSONPATH_REMOVE)
+  !defined(CSONPATH_ARRAY_APPEND) || !defined(CSONPATH_REMOVE)
 # error "some definitions are missing"
 #endif
 
@@ -1145,7 +1145,7 @@ need_reloop_in = 0;
 
 #define CSONPATH_DO_FUNC_NAME find_all
 #define CSONPATH_DO_RET_TYPE CSONPATH_FIND_ALL_RET
-#define CSONPATH_DO_RETURN ({CSONPATH_ARRAY_APPEND_INCREF(ret_ar, tmp); return ret_ar;})
+#define CSONPATH_DO_RETURN ({CSONPATH_ARRAY_APPEND(ret_ar, tmp); return ret_ar;})
 
 #define CSONPATH_DO_FIND_ALL						\
     if (tret) ++nb_res;							\
@@ -1285,9 +1285,9 @@ again:
     if (child_info->type != CSONPATH_NONE) {				\
 	if (need_reloop) *need_reloop = 1;				\
 	if (child_info->type == CSONPATH_INTEGER)			\
-	    return CSONPATH_APPEND_AT(ctx, child_info->idx, to_update); \
+	    return CSONPATH_APPEND_AT(ctx, child_info->idx, to_update, 1); \
 	else								\
-	    return CSONPATH_APPEND_AT(ctx, child_info->key, to_update); \
+	    return CSONPATH_APPEND_AT(ctx, child_info->key, to_update, 1); \
 	return 1;							\
     }									\
     return 0;
@@ -1343,7 +1343,7 @@ static int csonpath_sync_root_array(CSONPATH_JSON parent, CSONPATH_JSON to_updat
     (void) idx;
     CSONPATH_ARRAY_CLEAR(parent);
     CSONPATH_FOREACH_ARRAY(to_update, child, idx) {
-	if (CSONPATH_APPEND_AT(parent, idx, child) < 0)
+	if (CSONPATH_APPEND_AT(parent, idx, child, 1) < 0)
 	    return -1;
     }
     return 1;
@@ -1357,7 +1357,7 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
     (void )key;
     CSONPATH_OBJ_CLEAR(parent);
     CSONPATH_FOREACH_OBJ(to_update, child, key) {
-	if (CSONPATH_APPEND_AT(parent, key, child) < 0)
+	if (CSONPATH_APPEND_AT(parent, key, child, 1) < 0)
 	    return -1;
     }
     return 1;
@@ -1371,9 +1371,9 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
 	    CSONPATH_GETTER_ERR("CSONPATH_NONE is nope\n");		\
 	tmp = mk_cnt();							\
 	if (child_info->type == CSONPATH_INTEGER)			\
-	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->idx, tmp);	\
+	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->idx, tmp, 1); \
 	else if (child_info->type == CSONPATH_STR)			\
-	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->key, tmp);	\
+	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->key, tmp, 1); \
 	CSONPATH_REMOVE(tmp);						\
 	if (append_ret < 0) return append_ret;				\
 	ctx = tmp;							\
@@ -1393,7 +1393,6 @@ static int csonpath_sync_root_obj(CSONPATH_JSON parent, CSONPATH_JSON to_update)
     }									\
     CSONPATH_UPDATE_CHECK_EXIST(CSONPATH_NEW_ARRAY);			\
     csonpath_child_info_set(child_info, tmp, this_idx);
-
 
 
 #include "csonpath_do.h"

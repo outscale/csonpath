@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "csonpath_json-c.h"
 
@@ -84,7 +84,11 @@ int main(void)
 
   /* 9. update_or_create sur union -> doit updater au moins un élément */
   assert((p = csonpath_set_path(p, "$['a','z']")));
-  iret = csonpath_update_or_create(p, jobj, json_object_new_string("modified"));
+  {
+      json_object *v = json_object_new_string("modified");
+      iret = csonpath_update_or_create(p, jobj, v);
+      json_object_put(v);
+  }
   assert(iret >= 1);
 
   /* 10. union sur sous-champs d'array : $.array[*].['x','y'] -> find_all */

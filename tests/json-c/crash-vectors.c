@@ -284,6 +284,7 @@ static void test_update_array_element(void)
     struct json_object *jobj = json_tokener_parse("{\"a\":[1,2,3]}");
     struct json_object *val = json_object_new_int(42);
     int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
     assert(ret == 1);
     assert(json_object_get_int(
         json_object_array_get_idx(
@@ -299,6 +300,7 @@ static void test_update_array_out_of_bounds_gaps(void)
     struct json_object *jobj = json_tokener_parse("{\"a\":[1,2,3]}");
     struct json_object *val = json_object_new_int(42);
     int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
     assert(ret == 1);
     struct json_object *arr = json_object_object_get(jobj, "a");
     assert(json_object_array_length(arr) == 6);

@@ -95,13 +95,10 @@
 
 #define CSONPATH_ARRAY_APPEND(list, el) PyList_Append(list, el)
 
-/* I don't think incrref is needed with python */
-#define CSONPATH_ARRAY_APPEND_INCREF(array, el) ({	\
-      PyList_Append(array, el);				\
-    })
 
-static int pydict_try_setitemstring(PyObject *obj,  const char * const at, PyObject *el)
+static int pydict_try_setitemstring(PyObject *obj, const char * const at, PyObject *el, int do_incref)
 {
+    (void)do_incref;
     if (!PyDict_Check(obj)) {
 	PyObject* repr = PyObject_Repr(obj);
 	PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
@@ -116,12 +113,14 @@ static int pydict_try_setitemstring(PyObject *obj,  const char * const at, PyObj
         PyErr_SetString(PyExc_TypeError, "dict keys must be strings");
         return -1;
     }
-    PyDict_SetItemString(obj, at, el);
+    if (PyDict_SetItemString(obj, at, el) < 0)
+	return -1;
     return 1;
 }
 
-static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *el)
+static int python_set_or_insert_item(PyObject *array, Py_ssize_t at, PyObject *el, int do_incref)
 {
+    (void)do_incref;
     if (!PyList_Check(array)) {
 	PyErr_Format(PyExc_ValueError, "Unable to follow path: List expected");
 	return -1;
@@ -134,23 +133,25 @@ static int python_set_or_insert_item(PyObject *array,  Py_ssize_t at, PyObject *
 	PyList_Insert(array, at, el);
     } else {
 	Py_INCREF(el);
-	if (PyList_SetItem(array, at, el) < 0)
-	  Py_DECREF(el);
+	if (PyList_SetItem(array, at, el) < 0) {
+	    Py_DECREF(el);
+	    return -1;
+	}
     }
     return 1;
 }
 
-#define CSONPATH_APPEND_AT(array, at, el)			\
-    _Generic((at),						\
-	     int: python_set_or_insert_item,			\
-	     unsigned int: python_set_or_insert_item,		\
-	     long: python_set_or_insert_item,			\
-	     unsigned long: python_set_or_insert_item,		\
-	     long long: python_set_or_insert_item,		\
-	     unsigned long long: python_set_or_insert_item,	\
-	     const char *: pydict_try_setitemstring,		\
-	     char *: pydict_try_setitemstring			\
-	) (array, at, el)
+#define CSONPATH_APPEND_AT(array, at, el, do_incref)			\
+    _Generic((at),							\
+	     int: python_set_or_insert_item,				\
+	     unsigned int: python_set_or_insert_item,			\
+	     long: python_set_or_insert_item,				\
+	     unsigned long: python_set_or_insert_item,			\
+	     long long: python_set_or_insert_item,			\
+	     unsigned long long: python_set_or_insert_item,		\
+	     const char *: pydict_try_setitemstring,			\
+	     char *: pydict_try_setitemstring				\
+	) (array, at, el, do_incref)
 
 
 #ifdef __TINYC__

@@ -111,7 +111,7 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 #define CSONPATH_OBJ_CLEAR(o)			\
   fail_on_non_mut(NULL)
 
-#define CSONPATH_APPEND_AT(array, at, el)	\
+#define CSONPATH_APPEND_AT(array, at, el, do_incref)	\
   fail_on_non_mut(NULL)				\
 
 
@@ -134,7 +134,7 @@ struct find_all_ret {
 
 #define CSONPATH_FIND_ALL_RET struct find_all_ret *
 
-#define CSONPATH_ARRAY_APPEND_INCREF(ar, o)		\
+#define CSONPATH_ARRAY_APPEND(ar, o)		\
     _Generic(ar,					\
 	     struct find_all_ret *: find_all_append,	\
 	     yyjson_val *: fail_on_non_mut)(ar, o)

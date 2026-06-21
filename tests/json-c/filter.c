@@ -77,7 +77,9 @@ int main(void)
   assert(ret);
 
   assert((p = csonpath_set_path(p, "$.array[?(@[\"a\"]==\"la\")]")));
-  int iret = csonpath_update_or_create(p, jobj, json_object_new_string("la y'a l'C"));
+  json_object *filter_val = json_object_new_string("la y'a l'C");
+  int iret = csonpath_update_or_create(p, jobj, filter_val);
+  json_object_put(filter_val);
   assert(iret == 1);
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(jobj_ar, 0)), "la y'a l'C"));
 

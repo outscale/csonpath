@@ -14,37 +14,47 @@ int main(void)
 {
   struct csonpath *p;
   struct json_object *jobj = json_tokener_parse(json_str);
-  struct json_object *ret;
+  struct json_object *ret, *val;
 
   assert((p = csonpath_new("$.c")));
   ret = csonpath_find_first(p, jobj);
   assert(!ret);
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a l'C")) == 1);
+
+  val = json_object_new_string("la y'a l'C");
+  assert(csonpath_update_or_create(p, jobj, val) == 1);
+  json_object_put(val);
   ret = csonpath_find_first(p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'C"));
 
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a l'gros C")) == 1);
+  val = json_object_new_string("la y'a l'gros C");
+  assert(csonpath_update_or_create(p, jobj, val) == 1);
+  json_object_put(val);
   ret = csonpath_find_first(p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'gros C"));
 
   p = csonpath_set_path(p, "$['array'][0]");
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a l'D")) == 1);
+  val = json_object_new_string("la y'a l'D");
+  assert(csonpath_update_or_create(p, jobj, val) == 1);
+  json_object_put(val);
   ret = csonpath_find_first(p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'D"));
 
   p = csonpath_set_path(p, "$.ar2[0].o");
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a l'E")) == 1);
+  val = json_object_new_string("la y'a l'E");
+  assert(csonpath_update_or_create(p, jobj, val) == 1);
+  json_object_put(val);
   ret = csonpath_find_first(p, jobj);
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'E"));
 
   p = csonpath_set_path(p, "$['ar2'][*].p");
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a l'F")) == 2);
+  val = json_object_new_string("la y'a l'F");
+  assert(csonpath_update_or_create(p, jobj, val) == 2);
+  json_object_put(val);
   ret = csonpath_find_first(p, jobj);
-  json_object_get(ret); // update references counter
   assert(ret);
   assert(!strcmp(json_object_get_string(ret), "la y'a l'F"));
   ret = csonpath_find_all(p, jobj);
@@ -54,13 +64,15 @@ int main(void)
   json_object_put(ret);
 
   p = csonpath_set_path(p, "$..0");
-  assert(csonpath_update_or_create(p, jobj, json_object_new_string("la y'a encore 0")) == 1);
+  val = json_object_new_string("la y'a encore 0");
+  assert(csonpath_update_or_create(p, jobj, val) == 1);
+  json_object_put(val);
 
   p = csonpath_set_path(p, "$");
   printf("check error happen:\n");
-  json_object *tmp = json_object_new_string("la y'a encore 0");
-  assert(csonpath_update_or_create(p, jobj, tmp) == -1);
-  json_object_put(tmp);
+  val = json_object_new_string("la y'a encore 0");
+  assert(csonpath_update_or_create(p, jobj, val) == -1);
+  json_object_put(val);
 
   json_object_put(jobj);
   csonpath_destroy(p);
