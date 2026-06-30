@@ -15,7 +15,7 @@ bench:
 bench-clean:
 	make -C bench clean
 
-.PHONY: all clean tests pip-dev pip-dev bench bench-clean
+.PHONY: all clean tests pip-dev pip-dev bench bench-clean tests-cli
 
 CFLAGS+= -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 
@@ -65,6 +65,12 @@ test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do
 	./test-json-crash-vectors
 	./test-yyjson
 
+csonpath: cli/csonpath_cli.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) cli/csonpath_cli.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -I./ -o csonpath $(JSON_C_LDFLAGS) $(LDFLAGS)
+
+tests-cli: csonpath
+	bash tests/cli/run.sh
+
 pip-dev:
 	pip install -e .[dev] --force-reinstall
 
@@ -74,5 +80,5 @@ tests-py: pip-dev
 tests: tests-py tests-c
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson csonpath
 

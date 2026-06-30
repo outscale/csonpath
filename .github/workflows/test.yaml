@@ -36,6 +36,7 @@ jobs:
         ./configure --asan
         make
         make tests-c
+        make tests-cli
     - name: build and test python
       run: |
         make tests-py

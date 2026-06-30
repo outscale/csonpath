@@ -53,6 +53,7 @@ Unlike many JSONPath libraries, csonpath is **backend-agnostic**: it can work wi
 - [Usage](#-usage)
 - [C API Reference](#-c-api-reference)
 - [Python API Reference](#-python-api-reference)
+- [CLI](#%EF%B8%8F-cli)
 - [Custom Backends](#-custom-backends)
 - [Running Tests](#-running-tests)
 - [Directory Structure](#-directory-structure)
@@ -240,6 +241,76 @@ Free the csonpath object.
 - **`update_or_create(json, value)`** — Replace matches with `value`, or create the path.
 - **`callback(json, callback, callback_data=None)`** — Call `callback(parent, idx, current, callback_data)` for every match.
 - **`update_or_create_callback(json, callback, callback_data=None)`** — Same as `callback`, but creates missing parent objects along the path.
+
+---
+
+## 🖥️ CLI
+
+A standalone C CLI is available in `cli/csonpath_cli.c`. It links directly against `json-c` and the csonpath C core, so it works without Python.
+
+```sh
+make csonpath          # build ./csonpath
+make tests-cli         # run shell tests
+```
+
+It reads JSON from stdin, a file (`-f`), or a string (`-s`) and exposes the library operations through action flags.
+
+```sh
+# Get the first match (default)
+echo '{"a": "value", "array": [1, 2, 3]}' | ./csonpath '$.a'
+# => "value"
+
+# Find all matches
+echo '{"items": [{"price": 5}, {"price": 15}]}' | ./csonpath -a '$.items[?price > 10]'
+# => [{"price":15}]
+
+# One match per line
+echo '{"array": [1, 2, 3]}' | ./csonpath -a -o lines '$.array[*]'
+# => 1
+# => 2
+# => 3
+
+# Set or create a value
+echo '{"a": 1}' | ./csonpath --set '42' '$.x.y.z'
+# => {"a":1,"x":{"y":{"z":42}}}
+
+# Or with a positional value
+echo '{"a": 1}' | ./csonpath '$.x.y.z' '42'
+
+# Remove matches
+echo '{"a": 1, "b": 2}' | ./csonpath -d '$.b'
+# => {"a":1}
+
+# Edit a file in place
+./csonpath -f data.json -p -i --set '"2.0"' '$.version'
+```
+
+### Options
+
+| Option | Description |
+|---|---|
+| `-a`, `--all` | Return all matches instead of the first one. |
+| `-d`, `--delete` | Remove matches and print the modified JSON. |
+| `--set VALUE` | Set `PATH` to `VALUE` (JSON). |
+| `VALUE` (positional) | Alternative to `--set`. |
+| `-r`, `--raw` | Treat the value as a raw string. |
+| `-i`, `--in-place` | Edit `FILE` in place (requires `--file`). |
+| `--strict` | Exit with an error if `--delete` removes nothing. |
+| `-f FILE`, `--file FILE` | Read JSON from `FILE` instead of stdin. |
+| `-s JSON`, `--string JSON` | Read JSON from a string. |
+| `-j`, `--jq-like` | Allow jq-style paths without a leading `$`. |
+| `-p`, `--pretty` | Pretty-print JSON output. |
+| `-o {json,pretty,raw,lines}` | Output format (default: `json`). |
+| `-e`, `--empty-array` | Return `[]` instead of nothing when `-a` matches nothing. |
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success. |
+| `1` | No match found, or `--strict` delete found nothing. |
+| `EINVAL` | Usage error, JSON parse error, JSONPath compilation error, or invalid JSON value. |
+| `errno` | I/O error (e.g. `ENOENT`, `EACCES`). |
 
 ---
 
