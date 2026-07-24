@@ -1,3 +1,6 @@
+import gc
+import weakref
+
 import pytest
 import sys
 
@@ -80,3 +83,38 @@ def test_update_or_create_refcount_shared_subobject():
     # Should be +1 for the direct insertion
     assert ret2 == 1
     assert ref_after2 == ref_after + 1
+
+
+def test_fuzzer_keeps_obj_alive_after_caller_frame_returns():
+    """The fuzzer must hold a strong reference to the user-supplied object.
+
+    Before the fix, the fuzzer stored ``obj`` as a borrowed reference. When
+    ``obj`` was a local variable and the fuzzer outlived the function frame,
+    the object could be garbage-collected, leaving the fuzzer with dangling
+    pointers and causing segfaults or use-after-free errors on ``step()``.
+    """
+
+    def make_fuzzer():
+        obj = {"str": "hello", "items": ["a", "b", "c"]}
+        return csonpath.Fuzzer(["$.str", "$.items[*]"], seed=1, obj=obj)
+
+    f = make_fuzzer()
+    gc.collect()
+    # This used to crash or read freed memory.
+    assert f.step() in {
+        csonpath.MODIFY_STR,
+        csonpath.MODIFY_CNT_TYPE,
+        csonpath.MODIFY_STR_TYPE,
+    }
+
+
+def test_fuzzer_releases_obj_on_destruction():
+    obj = {"str": "hello"}
+    ref_before = sys.getrefcount(obj)
+    f = csonpath.Fuzzer(["$.str"], seed=1, obj=obj)
+    # The fuzzer now owns one reference.
+    assert sys.getrefcount(obj) == ref_before + 1
+    del f
+    gc.collect()
+    # After destruction the reference must be released.
+    assert sys.getrefcount(obj) == ref_before

@@ -69,6 +69,8 @@ typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, 
 #define CSONPATH_FOREACH(obj, el, code)		\
     CSONPATH_FOREACH_EXT(obj, el, ({code}), key_idx)
 
+#define CSONPATH_ARRAY_LENGTH(o) ((intptr_t)yyjson_arr_size(o))
+
 #define CSONPATH_FOREACH_ARRAY(obj, el, key_idx_)	\
   intptr_t max_;					\
   yyjson_arr_foreach(obj, key_idx_, max_, el)

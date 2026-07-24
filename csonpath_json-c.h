@@ -31,6 +31,8 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 
 #define CSONPATH_REMOVE(o) json_object_put(o)
 
+#define CSONPATH_INREF(o) json_object_get(o)
+
 #define CSONPATH_IS_NULL(o) (o == NULL || json_object_is_type(o, json_type_null))
 
 #define CSONPATH_IS_OBJ(o) json_object_is_type(o, json_type_object)
@@ -73,6 +75,8 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 #else
 #define CSONPATH_PRAGMA(...) _Pragma(__VA_ARGS__)
 #endif
+
+#define CSONPATH_ARRAY_LENGTH(o) ((size_t)json_object_array_length(o))
 
 #define CSONPATH_FOREACH_ARRAY(obj, child, idx)				\
     CSONPATH_PRAGMA("GCC unroll 8")					\
@@ -120,6 +124,12 @@ typedef void (*json_c_callback)(json_object *, struct csonpath_child_info *, jso
 #define CSONPATH_NEW_ARRAY() json_object_new_array()
 
 #define CSONPATH_NEW_OBJECT() json_object_new_object()
+
+#define CSONPATH_NEW_STR(s) json_object_new_string(s)
+
+#define CSONPATH_NEW_INT(n) json_object_new_int(n)
+
+#define CSONPATH_NEW_BOOL(b) json_object_new_boolean(b)
 
 static int json_object_try_object_add(struct json_object *obj, const char * const at,
 				      struct json_object *el, int do_incref)

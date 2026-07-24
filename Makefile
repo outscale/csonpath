@@ -5,7 +5,7 @@ YYJSON_LDFLAGS=$(shell pkg-config --libs yyjson)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-json-my-fuzz test-json-my-fuzz-state
 
 YYJSON_TESTS=test-yyjson
 
@@ -49,10 +49,16 @@ test-json-audit-bugs: tests/json-c/audit-bugs.c csonpath_json-c.h csonpath.h cso
 test-json-crash-vectors: tests/json-c/crash-vectors.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/crash-vectors.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-crash-vectors  $(JSON_C_LDFLAGS) $(LDFLAGS)
 
+test-json-my-fuzz: tests/json-c/my_fuzz.c csonpath_json-c.h csonpath_my_fuzzing.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/my_fuzz.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-my-fuzz $(JSON_C_LDFLAGS) $(LDFLAGS)
+
+test-json-my-fuzz-state: tests/json-c/my_fuzz_state.c csonpath_json-c.h csonpath_my_fuzzing.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/my_fuzz_state.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-my-fuzz-state $(JSON_C_LDFLAGS) $(LDFLAGS)
+
 test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do.h
 	$(CC) tests/yyjson/test-yyjson.c $(EXTRA_FILES) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-yyjson $(YYJSON_LDFLAGS) $(LDFLAGS)
 
- tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson
+tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-json-my-fuzz test-json-my-fuzz-state
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
@@ -64,6 +70,8 @@ test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do
 	./test-json-audit-bugs
 	./test-json-crash-vectors
 	./test-yyjson
+	./test-json-my-fuzz
+	./test-json-my-fuzz-state
 
 csonpath: cli/csonpath_cli.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) cli/csonpath_cli.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -I./ -o csonpath $(JSON_C_LDFLAGS) $(LDFLAGS)
@@ -80,5 +88,5 @@ tests-py: pip-dev
 tests: tests-py tests-c
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson csonpath
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-json-my-fuzz test-json-my-fuzz-state csonpath
 

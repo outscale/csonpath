@@ -11,9 +11,17 @@
 
 #define CSONPATH_REMOVE(o) Py_XDECREF(o)
 
+#define CSONPATH_INREF(o) Py_INCREF(o)
+
 #define CSONPATH_NEW_OBJECT() PyDict_New()
 
 #define CSONPATH_NEW_ARRAY() PyList_New(0)
+
+#define CSONPATH_NEW_STR(s) PyUnicode_FromString(s)
+
+#define CSONPATH_NEW_INT(n) PyLong_FromLong(n)
+
+#define CSONPATH_NEW_BOOL(b) PyBool_FromLong((b) ? 1 : 0)
 
 #define CSONPATH_IS_OBJ(o) PyDict_Check(o)
 
@@ -176,6 +184,8 @@ static int python_set_or_insert_item(PyObject *array, Py_ssize_t at, PyObject *e
 
 #define CSONPATH_OBJ_CLEAR(o) PyDict_Clear(o)
 
+#define CSONPATH_ARRAY_LENGTH(o) ((size_t)PyList_Size(o))
+
 #define CSONPATH_FOREACH_ARRAY(obj, child, idx)				\
     CSONPATH_PRAGMA("GCC unroll 8")					\
     for (intptr_t array_len = PyList_Size(obj), idx = 0;		\
@@ -232,11 +242,17 @@ static PyObject *csonpath_python_at(PyObject *obj, int at) {
 }
 
 #include "csonpath.h"
+#include "csonpath_my_fuzzing.h"
 
 typedef struct {
     PyObject_HEAD
     struct csonpath *cp;
 } PyCsonPathObject;
+
+typedef struct {
+    PyObject_HEAD
+    struct csonpath_fuzzer *fuzzer;
+} PyCsonPathFuzzerObject;
 
 #define BAD_ARG() ({fprintf(stderr, "bad argument\n"); PyErr_BadArgument(); return NULL;})
 
@@ -381,6 +397,73 @@ static void PyCsonPath_dealloc(PyCsonPathObject *self) {
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
+static PyObject *PyCsonPathFuzzer_new(PyTypeObject *subtype, PyObject* args,
+				      PyObject* kwargs)
+{
+	static char *kwlist[] = {"paths", "seed", "obj", "skip_objects", "dry_run", NULL};
+	PyCsonPathFuzzerObject *self = (PyCsonPathFuzzerObject *)subtype->tp_alloc(subtype, 0);
+	PyObject *paths;
+	PyObject *obj;
+	PyObject *skip_objects = NULL;
+	unsigned int seed = 0;
+	int dry_run = 0;
+	struct csonpath_fuzzer *fuzzer = NULL;
+
+	if (!self)
+		BAD_ARG();
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OIO|Op", kwlist,
+					 &paths, &seed, &obj, &skip_objects, &dry_run)) {
+		goto error;
+	}
+
+	if (!PyList_Check(paths)) {
+		PyErr_SetString(PyExc_TypeError, "paths must be a list");
+		goto error;
+	}
+
+	fuzzer = csonpath_fuzzer_new(paths, seed, obj);
+	if (!fuzzer) {
+		PyErr_SetString(PyExc_ValueError, "failed to create fuzzer");
+		goto error;
+	}
+
+	fuzzer->dry_run = dry_run;
+
+	if (skip_objects && skip_objects != Py_None) {
+		if (!PyList_Check(skip_objects)) {
+			PyErr_SetString(PyExc_TypeError, "skip_objects must be a list");
+			goto error;
+		}
+		Py_ssize_t n = PyList_Size(skip_objects);
+		for (Py_ssize_t i = 0; i < n; ++i) {
+			PyObject *target = PyList_GetItem(skip_objects, i);
+			csonpath_fuzzer_mark_seen(fuzzer, target);
+		}
+	}
+
+	self->fuzzer = fuzzer;
+	return (PyObject *)self;
+
+ error:
+	Py_DECREF(self);
+	return NULL;
+}
+
+static PyObject *PyCsonPathFuzzer_step(PyCsonPathFuzzerObject *self, PyObject* Py_UNUSED(args))
+{
+	enum csonpath_fuzzer_action action = csonpath_fuzz_step(self->fuzzer);
+	return PyLong_FromLong((long)action);
+}
+
+static void PyCsonPathFuzzer_dealloc(PyCsonPathFuzzerObject *self) {
+	if (self->fuzzer) {
+		csonpath_fuzzer_destroy(self->fuzzer);
+		self->fuzzer = NULL;
+	}
+	Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
 
 static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
     const char *new_path;
@@ -403,6 +486,21 @@ static PyObject *PyCsonPath_set_path(PyCsonPathObject *self, PyObject* args) {
     self->cp = new_cjp;
     return Py_True;
 }
+
+static PyMethodDef csonpath_fuzzer_py_method[] = {
+    {"step", (PyCFunction)PyCsonPathFuzzer_step, METH_VARARGS, "apply one fuzz step"},
+    {NULL, NULL, 0, NULL}
+};
+
+static PyTypeObject PyCsonPathFuzzerType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "csonpath.Fuzzer",
+    .tp_basicsize = sizeof(PyCsonPathFuzzerObject),
+    .tp_dealloc = (destructor)PyCsonPathFuzzer_dealloc,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_methods = csonpath_fuzzer_py_method,
+    .tp_new = PyCsonPathFuzzer_new
+};
 
 static PyMethodDef csonpath_py_method[] = {
     {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
@@ -438,11 +536,19 @@ PyMODINIT_FUNC PyInit_csonpath(void) {
   PyObject *m;
   if (PyType_Ready(&PyCsonPathType) < 0)
     return NULL;
+  if (PyType_Ready(&PyCsonPathFuzzerType) < 0)
+    return NULL;
 
   m = PyModule_Create(&csonpath_py_mod);
   if (!m) return NULL;
 
   PyModule_AddObject(m, "CsonPath", (PyObject *)&PyCsonPathType);
+  PyModule_AddObject(m, "Fuzzer", (PyObject *)&PyCsonPathFuzzerType);
+
+  PyModule_AddIntConstant(m, "MODIFY_STR", CSONPATH_FUZZER_MODIFY_STR);
+  PyModule_AddIntConstant(m, "MODIFY_CNT_TYPE", CSONPATH_FUZZER_MODIFY_CNT_TYPE);
+  PyModule_AddIntConstant(m, "MODIFY_STR_TYPE", CSONPATH_FUZZER_MODIFY_STR_TYPE);
+  PyModule_AddIntConstant(m, "NO_ACTION_LEFT", CSONPATH_FUZZER_NO_ACTION_LEFT);
 
   return m;
 }
