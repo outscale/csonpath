@@ -162,7 +162,7 @@ static struct csonpath_fuzzer *csonpath_fuzzer_new(CSONPATH_JSON path_list,
 		CSONPATH_JSON p = CSONPATH_AT(path_list, i);
 		if (!CSONPATH_IS_STR(p))
 			continue;
-		const char *s = CSONPATH_GET_STR(p);
+		CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(p);
 		f->paths[f->path_count] = csonpath_new(s);
 		if (f->paths[f->path_count])
 			++f->path_count;

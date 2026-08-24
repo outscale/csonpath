@@ -384,7 +384,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		}
 		CSONPATH_DO_POST_FIND_ARRAY;
 	    } else if (CSONPATH_IS_STR(jret)) {
-		const char *this_idx = CSONPATH_GET_STR(jret);
+		CSONPATH_CLEANUP_STR const char *this_idx = CSONPATH_GET_STR(jret);
 		CSONPATH_PRE_GET_OBJ(this_idx);
 		tmp = CSONPATH_GET(tmp, this_idx);
 		if (tmp == CSONPATH_NULL) {
@@ -462,7 +462,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 #define csonpath_do__(name) CAT(csonpath_, name)
 #define csonpath_do_ csonpath_do__(CSONPATH_DO_FUNC_NAME)
 
-static CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
+CSONPATH_STATINLINE CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
 					 CSONPATH_JSON value CSONPATH_DO_EXTRA_ARGS)
 {
     char *walker = cjp->data;

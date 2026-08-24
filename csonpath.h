@@ -9,6 +9,12 @@
 # error "some definitions are missing"
 #endif
 
+/* Backends that never allocate in GET_STR leave this empty; backends that do
+ * (e.g. Rust) define it to the cleanup attribute, see CSONPATH_CLEANUP_STR. */
+#ifndef CSONPATH_CLEANUP_STR
+#  define CSONPATH_CLEANUP_STR
+#endif
+
 #ifndef CSONPATH_NO_REGEX
 #  if defined CSONPATH_TINY_REGEX
 #    include <tiny-regex-c/re.h>
@@ -34,6 +40,10 @@ typedef regex_t csonpath_reg_t;
 
 #define CSONPATH_UNUSED __attribute__((unused))
 #define MAY_ALIAS __attribute__((__may_alias__))
+
+#ifndef CSONPATH_STATINLINE
+# define CSONPATH_STATINLINE static inline
+#endif
 
 #ifndef CSONPATH_FOREACH
 # define CSONPATH_FOREACH(obj, el, code)	\
@@ -280,7 +290,7 @@ static inline struct csonpath_child_info *csonpath_child_info_set(struct csonpat
     return child_info;
 }
 
-static inline void csonpath_destroy(struct csonpath *cjp)
+CSONPATH_STATINLINE void csonpath_destroy(struct csonpath *cjp)
 {
     if (!cjp)
 	return;
@@ -314,7 +324,7 @@ static int csonpath_compile_do(struct csonpath *cjp, const char orig[static 1],
 			       int *inst_idx, int flag, int end_path, const char **end_sentinel);
 
 
-static inline struct csonpath *csonpath_new_ex(const char path[static 1], int flag) {
+CSONPATH_STATINLINE struct csonpath *csonpath_new_ex(const char path[static 1], int flag) {
     /*
      * max inst is use so we know, we will never overflow.
      */
@@ -340,11 +350,11 @@ static inline struct csonpath *csonpath_new_ex(const char path[static 1], int fl
     return ret;
 }
 
-static inline struct csonpath *csonpath_new(const char path[static 1]) {
+CSONPATH_STATINLINE struct csonpath *csonpath_new(const char path[static 1]) {
     return csonpath_new_ex(path, 0);
 }
 
-static inline struct csonpath *csonpath_set_path(struct csonpath cjp[static 1],
+CSONPATH_STATINLINE struct csonpath *csonpath_set_path(struct csonpath cjp[static 1],
 						 const char path[static 1])
 {
     csonpath_destroy(cjp);
@@ -1524,7 +1534,9 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 		return CSONPATH_GET_NUM(el2) != CSONPATH_GET_NUM(jret);
 	    }
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret)) {
-		return (!!strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)));
+		CSONPATH_CLEANUP_STR const char *s1 = CSONPATH_GET_STR(el2);
+		CSONPATH_CLEANUP_STR const char *s2 = CSONPATH_GET_STR(jret);
+		return (!!strcmp(s1, s2));
 	    }
 	    return 0;
 	case CSONPATH_INST_FILTER_KEY_EQ:
@@ -1532,7 +1544,9 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 		return CSONPATH_GET_NUM(el2) == CSONPATH_GET_NUM(jret);
 	    }
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret)) {
-		return (!strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)));
+		CSONPATH_CLEANUP_STR const char *s1 = CSONPATH_GET_STR(el2);
+		CSONPATH_CLEANUP_STR const char *s2 = CSONPATH_GET_STR(jret);
+		return (!strcmp(s1, s2));
 	    }
 	    return 0;
 	case CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ:
@@ -1545,9 +1559,13 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	    }
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret)) {
 		if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ) {
-		    return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) >= 0;
+		    CSONPATH_CLEANUP_STR const char *s1 = CSONPATH_GET_STR(el2);
+		    CSONPATH_CLEANUP_STR const char *s2 = CSONPATH_GET_STR(jret);
+		    return strcmp(s1, s2) >= 0;
 		}
-		return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) > 0;
+		CSONPATH_CLEANUP_STR const char *s1 = CSONPATH_GET_STR(el2);
+		CSONPATH_CLEANUP_STR const char *s2 = CSONPATH_GET_STR(jret);
+		return strcmp(s1, s2) > 0;
 	    }
 	    return 0;
 	case CSONPATH_INST_FILTER_KEY_INFERIOR:
@@ -1560,9 +1578,13 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	    }
 	    if (CSONPATH_IS_STR(el2) && CSONPATH_IS_STR(jret)) {
 		if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ) {
-		    return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) <= 0;
+		    CSONPATH_CLEANUP_STR const char *s1 = CSONPATH_GET_STR(el2);
+		    CSONPATH_CLEANUP_STR const char *s2 = CSONPATH_GET_STR(jret);
+		    return strcmp(s1, s2) <= 0;
 		}
-		return strcmp(CSONPATH_GET_STR(el2), CSONPATH_GET_STR(jret)) < 0;
+		CSONPATH_CLEANUP_STR const char *s1 = CSONPATH_GET_STR(el2);
+		CSONPATH_CLEANUP_STR const char *s2 = CSONPATH_GET_STR(jret);
+		return strcmp(s1, s2) < 0;
 	    }
 	    return 0;
 	default:
@@ -1586,10 +1608,11 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	if (operand_instruction == CSONPATH_INST_GET_OBJ) {
 	    if (!CSONPATH_IS_STR(el2))
 		break;
+	    CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(el2);
 	    if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
-		match = strcmp(CSONPATH_GET_STR(el2), *owalker) >= 0;
+		match = strcmp(s, *owalker) >= 0;
 	    else
-		match = strcmp(CSONPATH_GET_STR(el2), *owalker) > 0;
+		match = strcmp(s, *owalker) > 0;
 	    *owalker += strlen(*owalker) + 1;
 	} else {
 	    if (!CSONPATH_IS_NUM(el2))
@@ -1609,10 +1632,11 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	if (operand_instruction == CSONPATH_INST_GET_OBJ) {
 	    if (!CSONPATH_IS_STR(el2))
 		break;
+	    CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(el2);
 	    if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
-		match = strcmp(CSONPATH_GET_STR(el2), *owalker) <= 0;
+		match = strcmp(s, *owalker) <= 0;
 	    else
-		match = strcmp(CSONPATH_GET_STR(el2), *owalker) < 0;
+		match = strcmp(s, *owalker) < 0;
 	    *owalker += strlen(*owalker) + 1;
 	} else {
 	    if (!CSONPATH_IS_NUM(el2))
@@ -1636,10 +1660,11 @@ static _Bool csonpath_make_match(const struct csonpath cjp[const static 1],
 	if (CSONPATH_IS_STR(el2)) {
 	    int regex_idx = **owalker;
 	    ++*owalker;
+	    CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(el2);
 #	if !defined CSONPATH_PCRE2
-	    match = csonpath_reg_exec(cjp->regexs[regex_idx], CSONPATH_GET_STR(el2));
+	    match = csonpath_reg_exec(cjp->regexs[regex_idx], s);
 #	else
-	    const unsigned char *str = (const unsigned char *)CSONPATH_GET_STR(el2);
+	    const unsigned char *str = (const unsigned char *)s;
 	    int ret = pcre2_match(cjp->regexs[regex_idx], str, PCRE2_ZERO_TERMINATED, 0,
 				  0, cjp->match_datas[regex_idx], NULL);
 
