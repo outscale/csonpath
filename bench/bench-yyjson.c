@@ -4,43 +4,101 @@
 #include <time.h>
 #include "csonpath_yyjson.h"
 
+static int bench_csv_mode = 0;
+
 double now_seconds() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
 }
 
-// Example: generate large JSON dataset in memory
-char *generate_json() {
-    // WARNING: This is very naive string building — for real use, use a JSON library!
-    // Here we create: { "store": { "book": [ ... ], "bicycle": { ... } } }
-    size_t buf_size = 1024 * 1024; // 1 MB to start
-    char *json = malloc(buf_size);
-    if (!json) { perror("malloc"); exit(1); }
+static void csv_header(void) {
+    if (getenv("BENCH_CSV_HEADER"))
+        printf("category,query,results,time\n");
+}
 
-    strcpy(json, "{ \"store\": { \"book\": [");
+static void csv_row(const char *category, const char *query, size_t results, double time) {
+    if (!bench_csv_mode) return;
+    printf("%s,\"", category);
+    for (const char *p = query; *p; ++p) {
+        if (*p == '"') putchar('"');
+        putchar(*p);
+    }
+    printf("\",%zu,%.6f\n", results, time);
+}
+
+static void csv_total(const char *category, double total) {
+    if (bench_csv_mode)
+        printf("%s,TOTAL,0,%.6f\n", category, total);
+}
+
+static yyjson_mut_val *build_deep_obj(yyjson_mut_doc *doc) {
+    yyjson_mut_val *cur = yyjson_mut_int(doc, 42);
+    for (char c = 'l'; c >= 'a'; --c) {
+        yyjson_mut_val *wrap = yyjson_mut_obj(doc);
+        char key[2] = {c, '\0'};
+        yyjson_mut_obj_add(wrap, yyjson_mut_strcpy(doc, key), cur);
+        cur = wrap;
+    }
+    return cur;
+}
+
+static yyjson_mut_val *build_deep_mixed(yyjson_mut_doc *doc) {
+    yyjson_mut_val *cur = yyjson_mut_int(doc, 42);
+    for (char c = 'l'; c >= 'a'; --c) {
+        if ((c - 'a' + 1) % 3 == 0 && c != 'l') {
+            yyjson_mut_val *arr = yyjson_mut_arr(doc);
+            yyjson_mut_arr_add_val(arr, cur);
+            cur = arr;
+        }
+        yyjson_mut_val *wrap = yyjson_mut_obj(doc);
+        char key[2] = {c, '\0'};
+        yyjson_mut_obj_add(wrap, yyjson_mut_strcpy(doc, key), cur);
+        cur = wrap;
+    }
+    return cur;
+}
+
+static yyjson_doc *build_data(void) {
+    yyjson_mut_doc *mdoc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *root = yyjson_mut_obj(mdoc);
+    yyjson_mut_val *store = yyjson_mut_obj(mdoc);
+    yyjson_mut_val *books = yyjson_mut_arr(mdoc);
+    yyjson_mut_val *deep_obj_proto = build_deep_obj(mdoc);
+    yyjson_mut_val *deep_mixed_proto = build_deep_mixed(mdoc);
 
     for (int i = 0; i < 5000; i++) {
-        char entry[128];
-        snprintf(entry, sizeof(entry),
-                 "{\"category\":\"fiction\",\"title\":\"Book %d\",\"price\":%d}%s",
-                 i, (i % 50) + 5, (i < 4999) ? "," : "");
-        if (strlen(json) + strlen(entry) + 64 > buf_size) {
-            buf_size *= 2;
-            json = realloc(json, buf_size);
-            if (!json) { perror("realloc"); exit(1); }
-        }
-        strcat(json, entry);
+        yyjson_mut_val *book = yyjson_mut_obj(mdoc);
+        yyjson_mut_obj_add(book, yyjson_mut_strcpy(mdoc, "category"), yyjson_mut_strcpy(mdoc, "fiction"));
+        char title[32];
+        snprintf(title, sizeof(title), "Book %d", i);
+        yyjson_mut_obj_add(book, yyjson_mut_strcpy(mdoc, "title"), yyjson_mut_strcpy(mdoc, title));
+        yyjson_mut_obj_add(book, yyjson_mut_strcpy(mdoc, "price"), yyjson_mut_int(mdoc, (i % 50) + 5));
+        yyjson_mut_val *deep_obj = yyjson_mut_val_mut_copy(mdoc, deep_obj_proto);
+        yyjson_mut_val *deep_mixed = yyjson_mut_val_mut_copy(mdoc, deep_mixed_proto);
+        yyjson_mut_obj_add(book, yyjson_mut_strcpy(mdoc, "deep_obj"), deep_obj);
+        yyjson_mut_obj_add(book, yyjson_mut_strcpy(mdoc, "deep_mixed"), deep_mixed);
+        yyjson_mut_arr_add_val(books, book);
     }
 
-    strcat(json, "], \"bicycle\": {\"color\": \"red\", \"price\": 19.95} } }");
-    return json;
+    yyjson_mut_val *bicycle = yyjson_mut_obj(mdoc);
+    yyjson_mut_obj_add(bicycle, yyjson_mut_strcpy(mdoc, "color"), yyjson_mut_strcpy(mdoc, "red"));
+    yyjson_mut_obj_add(bicycle, yyjson_mut_strcpy(mdoc, "price"), yyjson_mut_real(mdoc, 19.95));
+
+    yyjson_mut_obj_add(store, yyjson_mut_strcpy(mdoc, "book"), books);
+    yyjson_mut_obj_add(store, yyjson_mut_strcpy(mdoc, "bicycle"), bicycle);
+    yyjson_mut_obj_add(root, yyjson_mut_strcpy(mdoc, "store"), store);
+    yyjson_mut_doc_set_root(mdoc, root);
+
+    yyjson_doc *jdoc = yyjson_mut_doc_imut_copy(mdoc, NULL);
+    yyjson_mut_doc_free(mdoc);
+    return jdoc;
 }
 
 int main() {
-    char *json_text = generate_json();
+    bench_csv_mode = getenv("BENCH_CSV") != NULL;
 
-    struct yyjson_doc *jdoc = yyjson_read(json_text, strlen(json_text), 0);
+    struct yyjson_doc *jdoc = build_data();
     yyjson_val *jobj = yyjson_doc_get_root(jdoc);
 
     const char *queries[] = {
@@ -49,28 +107,41 @@ int main() {
         "$.store.book[*]['title','category']",
 	"$.store.book[?title =~ /Book/].title",
 	"$..title",
+        "$.store.book[*].deep_obj.a.b.c.d.e.f.g.h.i.j.k.l",
+        "$.store.book[*].deep_mixed.a.b.c[0].d.e.f[0].g.h.i[0].j.k.l",
     };
     size_t query_count = sizeof(queries) / sizeof(queries[0]);
     struct csonpath *p;
     size_t count = 0;
+    double total = 0.0;
+    const int iters = 250;
+    const double scale = 4.0;
+
+    csv_header();
 
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();
 
 	p = csonpath_new(queries[i]);
-	for (int j = 0; j < 1000; ++j) {
+	for (int j = 0; j < iters; ++j) {
 		struct find_all_ret *ret = csonpath_find_all(p, jobj);
 		count = ret ? ret->i : 0;
 		free_find_all(ret);
 	}
 
         double elapsed = now_seconds() - start;
-        printf("recompile Query: %s\n", queries[i]);
-        printf("Results: %zu, in 1000 loop, Time: %.6f seconds\n\n", count, elapsed);
+        total += elapsed * scale;
+        if (bench_csv_mode) {
+            csv_row("yyjson", queries[i], count, elapsed * scale);
+        } else {
+            printf("recompile Query: %s\n", queries[i]);
+            printf("Results: %zu, in %d loop, Time: %.6f seconds\n\n", count, iters, elapsed);
+        }
 
     }
 
-    free(json_text);
+    csv_total("yyjson", total);
+
     csonpath_destroy(p);
     yyjson_doc_free(jdoc);
     return 0;

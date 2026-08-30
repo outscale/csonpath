@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+echo category,query,results,time
+BENCH_CSV=1 ./bench-json-c-tcc
+BENCH_CSV=1 ./bench-json-c-gcc
+BENCH_CSV=1 ./bench-json-c-clang
+BENCH_CSV=1 ./bench-yyjson
+BENCH_CSV=1 ./bench-jsoncons
+BENCH_CSV=1 node bench-jsonpath.js
+BENCH_CSV=1 python3 bench-jsonpath-ng.py
+BENCH_CSV=1 ./target/release/jsonpath_benchmark
+BENCH_CSV=1 ../rust/target/release/bench

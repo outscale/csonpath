@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Pivot benchmark CSV results into a comparison table or CSV.
+
+Usage:
+    ./pivot results.csv
+    ./aggregate | ./pivot
+    ./aggregate | ./pivot --csv
+"""
+
+import csv
+import sys
+from collections import defaultdict
+
+
+QUERY_MAP = {
+    '$.store.book[?(@.price) > 20].title': '$.store.book[?(@.price > 20)].title',
+    '$.store.book[?(@.price > 20)].title': '$.store.book[?(@.price > 20)].title',
+    '$.store.book[?title =~ "Book"].title': '$.store.book[?(@.title =~ /Book/)].title',
+    '$.store.book[?title =~ /Book/].title': '$.store.book[?(@.title =~ /Book/)].title',
+    '$.store.book[?(@.title =~ /Book/)].title': '$.store.book[?(@.title =~ /Book/)].title',
+    '$.store.book[?(@.title) =~ "Book"].title': '$.store.book[?(@.title =~ /Book/)].title',
+    '$.store.book[?(@.title.match(/Book/))].title': '$.store.book[?(@.title =~ /Book/)].title',
+}
+
+
+def main():
+    csv_mode = False
+    files = []
+    for a in sys.argv[1:]:
+        if a == "--csv":
+            csv_mode = True
+        else:
+            files.append(open(a, newline=""))
+    if not files:
+        files = [sys.stdin]
+
+    rows = []
+    for f in files:
+        rows.extend(csv.reader(f))
+    for f in files:
+        if f is not sys.stdin:
+            f.close()
+
+    data = defaultdict(dict)
+    totals = {}
+
+    for row in rows:
+        if not row or len(row) < 4:
+            continue
+        category, query, _results, time_str = row[0], row[1], row[2], row[3]
+        if category.lower() == "category":
+            continue
+        try:
+            time_val = float(time_str)
+        except ValueError:
+            continue
+
+        query = QUERY_MAP.get(query, query)
+
+        if query == "TOTAL":
+            totals[category] = time_val
+        else:
+            data[query][category] = time_val
+
+    categories = sorted(totals.keys() | {c for q in data.values() for c in q.keys()})
+    queries = sorted(data.keys())
+
+    if not categories or not queries:
+        print("no benchmark data found", file=sys.stderr)
+        sys.exit(1)
+
+    if csv_mode:
+        writer = csv.writer(sys.stdout)
+        writer.writerow(["query"] + categories)
+        for query in queries:
+            row = [query]
+            for cat in categories:
+                v = data[query].get(cat)
+                row.append(f"{v:.6f}" if v is not None else "")
+            writer.writerow(row)
+        row = ["TOTAL"]
+        for cat in categories:
+            v = totals.get(cat)
+            row.append(f"{v:.6f}" if v is not None else "")
+        writer.writerow(row)
+        return
+
+    query_w = max(len(q) for q in queries + ["Query"])
+    cat_w = max(len(c) for c in categories + ["TOTAL"])
+    if cat_w < 8:
+        cat_w = 8
+
+    def cell(v):
+        return f"{v:.3f}" if isinstance(v, float) else "-"
+
+    header = "Query".ljust(query_w)
+    for cat in categories:
+        header += " | " + cat.rjust(cat_w)
+    print(header)
+
+    sep = "-" * len(header)
+    print(sep)
+
+    for query in queries:
+        line = query.ljust(query_w)
+        for cat in categories:
+            line += " | " + cell(data[query].get(cat)).rjust(cat_w)
+        print(line)
+
+    print(sep)
+    line = "TOTAL".ljust(query_w)
+    for cat in categories:
+        line += " | " + cell(totals.get(cat)).rjust(cat_w)
+    print(line)
+
+
+if __name__ == "__main__":
+    main()
