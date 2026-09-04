@@ -6,7 +6,7 @@
 
 **csonpath** is a partial [JSONPath](https://goessner.net/articles/JsonPath/) implementation in C, with Python bindings. It allows you to query, update, and remove data from JSON objects using path expressions.
 
-Unlike many JSONPath libraries, csonpath is **backend-agnostic**: it can work with any C library or environment that manipulates array, object, and scalar types—not just JSON. Out of the box, backends for [json-c](https://github.com/json-c/json-c) and Python are provided.
+Unlike many JSONPath libraries, csonpath is **backend-agnostic**: it can work with any C library or environment that manipulates array, object, and scalar types—not just JSON. Out of the box, backends for [json-c](https://github.com/json-c/json-c), [yyjson](https://github.com/ibireme/yyjson), Python and Rust (via `serde_json`) are provided.
 
 ---
 
@@ -77,6 +77,20 @@ Just include the header in your project. There is no separate install step requi
 Make sure to link against `json-c` when compiling:
 ```sh
 gcc myapp.c -o myapp $(pkg-config --cflags --libs json-c)
+```
+
+### C (Rust backend)
+The Rust backend is located in `rust/`. It builds both a safe Rust API and the C glue required by the csonpath core.
+
+```sh
+cd rust
+cargo build
+cargo test
+```
+
+To use it from C, include the backend header and link against the produced static library:
+```c
+#include "rust/csonpath_rust_backend.h"
 ```
 
 ### Python
@@ -322,7 +336,9 @@ To create a custom backend, define the required macros and types in a header fil
 
 For more details, see the existing backend implementations:
 - `csonpath_json-c.h` — json-c backend
+- `csonpath_yyjson.h` — yyjson backend
 - `csonpath_python.c` — Python backend
+- `rust/csonpath_rust_backend.h` — Rust / serde_json backend
 
 ---
 
@@ -331,6 +347,12 @@ For more details, see the existing backend implementations:
 ### C Tests
 ```sh
 make tests-c
+```
+
+### Rust Tests
+```sh
+cd rust
+cargo test
 ```
 
 ### Python Tests
@@ -351,7 +373,10 @@ make tests
 |---|---|
 | `csonpath.h`, `csonpath_do.h` | Core implementation (header-only style) |
 | `csonpath_json-c.h` | json-c backend |
+| `csonpath_yyjson.h` | yyjson backend |
 | `csonpath_python.c` | Python C extension backend |
+| `rust/` | Rust backend (safe API, FFI, C glue) |
+| `csonpath_my_fuzzing.h` | Fuzzer helpers (C) |
 | `tests/` | C and Python test suites |
 | `bench/` | Performance benchmarks |
 
