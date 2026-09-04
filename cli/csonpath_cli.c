@@ -21,7 +21,7 @@
 #include "json.h"
 #include "csonpath_json-c.h"
 
-#define VERSION "0.16.0"
+#define VERSION "0.17.0"
 
 #define FLAG_JQ_LIKE     (1U << 0)
 #define FLAG_RAW         (1U << 1)
