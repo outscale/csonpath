@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "csonpath_yyjson.h"
+#include "csonpath_yyjson_const.h"
 
 const char *json_str = "{\"a\":\"x\",\"b\":{\"B\":\"y\"},\"array\":[0,\"ah\",\"oh\"],\"items\":[{\"name\":\"A\",\"price\":10},{\"name\":\"B\",\"price\":50}],\"key\":\"a\",\"threshold\":20}";
 

@@ -26,3 +26,19 @@ def test_update_or_create_callback_subpath_index_empty_array():
         parent[idx] = ud
     p.update_or_create_callback(d, cb, "hello")
     assert d == {"metrics": [{"name": "hello"}], "_idx": 0}
+
+
+def test_extra_objs_find_first():
+    """$N can switch to an extra root passed from Python."""
+    obj = {"a": {"a": "oh"}}
+    extra = {"b": "a"}
+    p = csonpath.CsonPath("$.a[$1.b]")
+    assert p.find_first(obj, extra_objs=[extra]) == "oh"
+
+
+def test_extra_objs_find_all():
+    """$N works with find_all too."""
+    obj = {"a": {"a": "oh"}}
+    extra = {"b": "a"}
+    p = csonpath.CsonPath("$.a[$1.b]")
+    assert p.find_all(obj, extra_objs=[extra]) == ["oh"]

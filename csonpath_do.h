@@ -110,11 +110,13 @@
 #endif
 
 #ifndef CAT
-# define CATCAT(a, b, c) a ## b ## c
-# define CAT(a, b) a ## b
+# define CATCAT_(a, b, c) a ## b ## c
+# define CATCAT(a, b, c) CATCAT_(a, b, c)
+# define CAT_(a, b) a ## b
+# define CAT(a, b) CAT_(a, b)
 #endif
 
-#define csonpath_do_internal__(name) CATCAT(csonpath_, name, _internal)
+#define csonpath_do_internal__(name) CATCAT(CSONPATH_FUNC(csonpath_), name, _internal)
 #define csonpath_do_internal csonpath_do_internal__(CSONPATH_DO_FUNC_NAME)
 
 static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const static 1],
@@ -124,7 +126,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 						 const char *walker CSONPATH_DO_EXTRA_DECLARATION);
 
 
-#define csonpath_do_dotdot__(name) CATCAT(csonpath_, name, _dotdot)
+#define csonpath_do_dotdot__(name) CATCAT(CSONPATH_FUNC(csonpath_), name, _dotdot)
 #define csonpath_do_dotdot csonpath_do_dotdot__(CSONPATH_DO_FUNC_NAME)
 
 
@@ -206,6 +208,20 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 
 	}
 	break;
+	case CSONPATH_SWITCH_ROOT:
+	{
+	    int root_idx = (unsigned char)walker[1];
+	    if (cjp->extra_roots == CSONPATH_NULL ||
+		(size_t)root_idx >= (size_t)CSONPATH_ARRAY_LENGTH((CSONPATH_JSON)cjp->extra_roots)) {
+		CSONPATH_GETTER_ERR("extra root index %d out of bounds\n",
+				    root_idx);
+	    }
+	    value = CSONPATH_AT((CSONPATH_JSON)cjp->extra_roots, root_idx);
+	    tmp = value;
+	    ctx = CSONPATH_NULL;
+	    ++walker;
+	}
+	break;
 	case CSONPATH_INST_FILTER_KEY_EXIST:
 	case CSONPATH_INST_FILTER_KEY_EQ:
 	case CSONPATH_INST_FILTER_KEY_REG_EQ:
@@ -240,9 +256,9 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 		    CSONPATH_JSON el2 = el;
 
 		    CSONPATH_DO_FILTER_LOOP_PRE_SET;
-		    el2 = cosnpath_crawl_filter_el(cjp, &owalker, el2, filter_next);
+		    el2 = CSONPATH_FUNC(csonpath_crawl_filter_el)(cjp, &owalker, el2, filter_next);
 
-		    if (csonpath_make_match(cjp, origin, el2, &owalker, operation)) {
+		    if (CSONPATH_FUNC(csonpath_make_match)(cjp, origin, el2, &owalker, operation)) {
 			if (*owalker == CSONPATH_INST_FILTER_AND) {
 			    ++owalker; /* skip and */
 			    operation = *owalker;
@@ -368,7 +384,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    const char *end_sentinel;
 	    const char *owalker = walker;
 	    owalker = csonpath_walker_next_inst(owalker);
-	    CSONPATH_JSON jret = csonpath_find_first_internal(
+	    CSONPATH_JSON jret = CSONPATH_FUNC(csonpath_find_first_internal)(
 		cjp, origin, origin, CSONPATH_NULL, owalker, &end_sentinel);
 	    /* here it should point to inst_end, but walker is incr after */
 	    owalker = end_sentinel;
@@ -459,7 +475,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
     CSONPATH_DO_RETURN;
 }
 
-#define csonpath_do__(name) CAT(csonpath_, name)
+#define csonpath_do__(name) CAT(CSONPATH_FUNC(csonpath_), name)
 #define csonpath_do_ csonpath_do__(CSONPATH_DO_FUNC_NAME)
 
 CSONPATH_STATINLINE CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],

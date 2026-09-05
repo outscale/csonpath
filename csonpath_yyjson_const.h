@@ -1,0 +1,200 @@
+#ifndef CSONPATH_YYJSON_CONST_H_
+#define CSONPATH_YYJSON_CONST_H_
+
+/*
+ * !!!!!! WARNING !!!!!!!
+ * This lib implement csonpath with yyjson_val, and as sure
+ * are not mutable,so only non mutable functions work here
+ * also, it has its own return type for find_all:
+ * struct find_all_ret *, which need to be free using:
+ * free_find_all
+ */
+
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include "yyjson.h"
+
+/* Optional prefix: define CSONPATH_USE_PREFIX before including this header
+ * to get yyjson_csonpath_* symbols instead of unprefixed ones. */
+#ifdef CSONPATH_USE_PREFIX
+# undef CSONPATH_API_PREFIX
+# define CSONPATH_API_PREFIX yyjson_
+#else
+# undef CSONPATH_API_PREFIX
+# define CSONPATH_API_PREFIX
+#endif
+
+#include "csonpath_undef.h"
+
+#define CSONPATH_JSON yyjson_val *
+
+#define CSONPATH_NULL NULL
+
+#define CSONPATH_GET yyjson_obj_get
+
+#define CSONPATH_AT yyjson_arr_get
+
+#define CSONPATH_IS_OBJ(obj) (yyjson_get_type(obj) == YYJSON_TYPE_OBJ)
+#define CSONPATH_IS_ARRAY(obj) (yyjson_get_type(obj) == YYJSON_TYPE_ARR)
+#define CSONPATH_IS_STR(obj) (yyjson_get_type(obj) == YYJSON_TYPE_STR)
+#define CSONPATH_IS_NUM(o) (yyjson_get_type(o) == YYJSON_TYPE_NUM)
+
+#define CSONPATH_IS_NULL(o) (o == NULL || yyjson_get_type(o) == YYJSON_TYPE_NULL)
+
+#define CSONPATH_IS_BOOL(o) (yyjson_get_type(o) == YYJSON_TYPE_BOOL)
+
+#define CSONPATH_GET_BOOL(o) yyjson_get_bool(o)
+
+struct csonpath_child_info;
+typedef void (*yyjson_val_callback)(yyjson_val *, struct csonpath_child_info *, yyjson_val *, void *);
+
+#define CSONPATH_CALLBACK yyjson_val_callback
+
+#define CSONPATH_CALLBACK_DATA void *
+
+#define CSONPATH_GET_STR(obj)			\
+    yyjson_get_str(obj)
+
+#define CSONPATH_GET_NUM(obj)			\
+    yyjson_get_num(obj)
+
+
+#define CSONPATH_EQUAL_STR(obj, to_cmp)	({			\
+      _Bool r = 0;						\
+      if (yyjson_get_type(obj) == YYJSON_TYPE_STR)		\
+	  r = !strcmp(yyjson_get_str(obj), to_cmp);		\
+      r;							\
+    })
+
+#define CSONPATH_EQUAL_NUM(obj, to_cmp)	({			\
+      _Bool r = 0;						\
+      if (yyjson_get_type(obj) == YYJSON_TYPE_NUM)		\
+	r = yyjson_get_num(obj) == to_cmp;			\
+      r;							\
+    })
+
+#define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata)   \
+    (callback(ctx, child_info, tmp, udata), 0)
+
+
+#define CSONPATH_FOREACH(obj, el, code)		\
+    CSONPATH_FOREACH_EXT(obj, el, ({code}), key_idx)
+
+#define CSONPATH_ARRAY_LENGTH(o) ((intptr_t)yyjson_arr_size(o))
+
+#define CSONPATH_FOREACH_ARRAY(obj, el, key_idx_)	\
+  intptr_t max_;					\
+  yyjson_arr_foreach(obj, key_idx_, max_, el)
+
+#define CSONPATH_FOREACH_OBJ(obj, val, key)			\
+    intptr_t idx_, max_;					\
+    yyjson_val *key_;						\
+    for ((idx_) = 0,						\
+	     (max_) = yyjson_obj_size(obj),			\
+	     (key_) = (obj) ? unsafe_yyjson_get_first(obj) : NULL,	\
+	     (val) = (key_) + 1;					\
+	 ({int r = (idx_) < (max_); if (r) key = yyjson_get_str(key_); r; }); \
+	 (idx_)++,							\
+	     (key_) = unsafe_yyjson_get_next(val),			\
+	     (val) = (key_) + 1)
+
+#define CSONPATH_FOREACH_EXT(obj, el, code, key_idx_)			\
+    if (yyjson_get_type(obj) == YYJSON_TYPE_ARR) {			\
+	intptr_t key_idx_, max_;					\
+	yyjson_val *val;						\
+	(void)val;							\
+	yyjson_arr_foreach(obj, key_idx_, max_,  el) {			\
+	    (void) key_idx_; code;					\
+	}								\
+    } else if (yyjson_get_type(obj) == YYJSON_TYPE_OBJ) {		\
+	intptr_t idx_, max_;						\
+	yyjson_val *key, *val;						\
+	(void)val;							\
+	(void)key;							\
+	yyjson_obj_foreach(obj, idx_, max_, key, el) {			\
+	    const char *key_idx_ = yyjson_get_str(key);			\
+	    (void) key_idx_; code;					\
+	}								\
+    }
+
+
+#define CSONPATH_ARRAY_CLEAR(o)			\
+  fail_on_non_mut(NULL)
+
+#define CSONPATH_OBJ_CLEAR(o)			\
+  fail_on_non_mut(NULL)
+
+#define CSONPATH_APPEND_AT(array, at, el, do_incref)	\
+  fail_on_non_mut(NULL)				\
+
+
+#define CSONPATH_REMOVE_CHILD(a, b)		\
+  fail_on_non_mut(NULL)
+
+#define CSONPATH_NEED_FOREACH_REDO(o) 0
+
+struct find_all_ret {
+    int size;
+    int i;
+    yyjson_val **ret;
+};
+
+#define CSONPATH_FIND_ALL_RET_INIT()					\
+    ({									\
+	struct find_all_ret *r = malloc(sizeof *r);			\
+	*r = (struct find_all_ret){.size = 1024,.ret = malloc(sizeof *r->ret * 1024)}; \
+	r;})
+
+#define CSONPATH_FIND_ALL_RET struct find_all_ret *
+
+#define CSONPATH_ARRAY_APPEND(ar, o)		\
+    _Generic(ar,					\
+	     struct find_all_ret *: find_all_append,	\
+	     yyjson_val *: fail_on_non_mut)(ar, o)
+
+static inline void find_all_append(struct find_all_ret *ar, yyjson_val *o) {
+    if (ar->i + 1 >= ar->size) {
+	ar->size = ar->size << 1;
+	ar->ret = realloc(ar->ret, ar->size * sizeof *ar->ret);
+    }
+    ar->ret[ar->i++] = o;
+}
+
+static inline void free_find_all(struct find_all_ret *far) {
+    if (!far)
+	return;
+    free(far->ret);
+    free(far);
+}
+
+static inline int fail_on_non_mut(yyjson_val *o_) {
+    fprintf(stderr, "unssuported on mut");
+    abort();
+    (void)o_;
+    return -1;
+}
+
+static inline yyjson_val *csonpath_yyjson_new_array_(void) {
+    fail_on_non_mut(NULL);
+    return NULL;
+}
+
+#define CSONPATH_NEW_ARRAY() csonpath_yyjson_new_array_()
+
+static inline yyjson_val *csonpath_yyjson_new_object_(void) {
+    fail_on_non_mut(NULL);
+    return NULL;
+}
+
+#define CSONPATH_NEW_OBJECT() csonpath_yyjson_new_object_()
+
+
+#define CSONPATH_REMOVE(o)						\
+    _Generic(o,								\
+	     struct find_all_ret *: free_find_all,			\
+	     yyjson_val *: fail_on_non_mut)(o)
+
+#include "csonpath.h"
+
+#endif

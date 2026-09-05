@@ -1,5 +1,6 @@
 #include <Python.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define CSONPATH_JSON PyObject *
 
@@ -254,6 +255,29 @@ typedef struct {
     struct csonpath_fuzzer *fuzzer;
 } PyCsonPathFuzzerObject;
 
+static int csonpath_python_set_extra_roots(struct csonpath *cp, PyObject *extra_objs)
+{
+    if (extra_objs == NULL || extra_objs == Py_None)
+	return 0;
+    if (!PyList_Check(extra_objs) && !PyTuple_Check(extra_objs)) {
+	PyErr_SetString(PyExc_TypeError, "extra_objs must be a list or tuple");
+	return -1;
+    }
+    PyObject *list = PySequence_List(extra_objs);
+    if (!list)
+	return -1;
+    cp->extra_roots = list;
+    return 0;
+}
+
+static void csonpath_python_clear_extra_roots(struct csonpath *cp)
+{
+    if (cp->extra_roots != CSONPATH_NULL) {
+	Py_DECREF(cp->extra_roots);
+	cp->extra_roots = CSONPATH_NULL;
+    }
+}
+
 #define BAD_ARG() ({fprintf(stderr, "bad argument\n"); PyErr_BadArgument(); return NULL;})
 
 
@@ -298,28 +322,42 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 	return py_ret;
 }
 
-static PyObject *find_all(PyCsonPathObject *self, PyObject* args)
+static PyObject *find_all(PyCsonPathObject *self, PyObject* args, PyObject* kwargs)
 {
     PyObject *json;
+    PyObject *extra_objs = Py_None;
+    static char *kwlist[] = {"json", "extra_objs", NULL};
 
-    if (!PyArg_ParseTuple(args, "O", &json))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist,
+				     &json, &extra_objs))
         BAD_ARG();
 
+    if (csonpath_python_set_extra_roots(self->cp, extra_objs) < 0)
+	return NULL;
+
     PyObject *ret = csonpath_find_all(self->cp, json);
+    csonpath_python_clear_extra_roots(self->cp);
     if (PyErr_Occurred())
         return NULL;
 
     return ret;
 }
 
-static PyObject *find_first(PyCsonPathObject *self, PyObject* args)
+static PyObject *find_first(PyCsonPathObject *self, PyObject* args, PyObject* kwargs)
 {
     PyObject *json;
+    PyObject *extra_objs = Py_None;
+    static char *kwlist[] = {"json", "extra_objs", NULL};
 
-    if (!PyArg_ParseTuple(args, "O", &json))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist,
+				     &json, &extra_objs))
         BAD_ARG();
 
+    if (csonpath_python_set_extra_roots(self->cp, extra_objs) < 0)
+	return NULL;
+
     PyObject *ret = csonpath_find_first(self->cp, json);
+    csonpath_python_clear_extra_roots(self->cp);
     if (PyErr_Occurred())
         return NULL;
 
@@ -337,52 +375,76 @@ static PyObject *print_instructions(PyCsonPathObject *self, PyObject *args, PyOb
     Py_RETURN_NONE;
 }
 
-static PyObject *callback(PyCsonPathObject *self, PyObject* args)
+static PyObject *callback(PyCsonPathObject *self, PyObject* args, PyObject* kwargs)
 {
     PyObject *json, *callback, *udata = Py_None;
+    PyObject *extra_objs = Py_None;
+    static char *kwlist[] = {"json", "callback", "udata", "extra_objs", NULL};
 
-    if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OO", kwlist,
+				     &json, &callback, &udata, &extra_objs))
 	BAD_ARG();
+    if (csonpath_python_set_extra_roots(self->cp, extra_objs) < 0)
+	return NULL;
     int ret = csonpath_callback(self->cp, json, callback, udata);
+    csonpath_python_clear_extra_roots(self->cp);
     if (PyErr_Occurred() || ret < 0) {
         return NULL;
     }
     return PyLong_FromLong(ret);
 }
 
-static PyObject *do_remove(PyCsonPathObject *self, PyObject* args)
+static PyObject *do_remove(PyCsonPathObject *self, PyObject* args, PyObject* kwargs)
 {
   PyObject *json;
+  PyObject *extra_objs = Py_None;
+  static char *kwlist[] = {"json", "extra_objs", NULL};
 
-  if (!PyArg_ParseTuple(args, "O", &json))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|$O", kwlist,
+				   &json, &extra_objs))
     BAD_ARG();
+  if (csonpath_python_set_extra_roots(self->cp, extra_objs) < 0)
+      return NULL;
   int ret = csonpath_remove(self->cp, json);
+  csonpath_python_clear_extra_roots(self->cp);
   if (PyErr_Occurred() || ret < 0)
       return NULL;
   return PyLong_FromLong(ret);
 }
 
-static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args)
+static PyObject *update_or_create(PyCsonPathObject *self, PyObject* args, PyObject* kwargs)
 {
   PyObject *json;
   PyObject *value;
+  PyObject *extra_objs = Py_None;
+  static char *kwlist[] = {"json", "value", "extra_objs", NULL};
 
-  if (!PyArg_ParseTuple(args, "OO", &json, &value))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|$O", kwlist,
+				   &json, &value, &extra_objs))
       BAD_ARG();
+  if (csonpath_python_set_extra_roots(self->cp, extra_objs) < 0)
+      return NULL;
   int ret = csonpath_update_or_create(self->cp, json, value);
+  csonpath_python_clear_extra_roots(self->cp);
   if (PyErr_Occurred() || ret < 0) {
       return NULL;
   }
   return PyLong_FromLong(ret);
 }
 
-static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* args)
+static PyObject *update_or_create_callback(PyCsonPathObject *self, PyObject* args, PyObject* kwargs)
 {
     PyObject *json, *callback, *udata = Py_None;
+    PyObject *extra_objs = Py_None;
+    static char *kwlist[] = {"json", "callback", "udata", "extra_objs", NULL};
 
-    if (!PyArg_ParseTuple(args, "OO|O", &json, &callback, &udata))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|OO", kwlist,
+				     &json, &callback, &udata, &extra_objs))
 	BAD_ARG();
+    if (csonpath_python_set_extra_roots(self->cp, extra_objs) < 0)
+	return NULL;
     int ret = csonpath_update_or_create_callback(self->cp, json, callback, udata);
+    csonpath_python_clear_extra_roots(self->cp);
     if (PyErr_Occurred() || ret < 0) {
         return NULL;
     }
@@ -504,13 +566,13 @@ static PyTypeObject PyCsonPathFuzzerType = {
 
 static PyMethodDef csonpath_py_method[] = {
     {"set_path", (PyCFunction)PyCsonPath_set_path, METH_VARARGS, "set_path"},
-    {"callback", (PyCFunction)callback, METH_VARARGS, "callback"},
+    {"callback", (PyCFunction)callback, METH_VARARGS | METH_KEYWORDS, "callback"},
     {"print_instructions", (PyCFunction)print_instructions, METH_NOARGS, "print_instructions"},
-    {"update_or_create_callback", (PyCFunction)update_or_create_callback, METH_VARARGS, "update_or_create_callback"},
-    {"find_first", (PyCFunction)find_first, METH_VARARGS, "find first elems"},
-    {"find_all", (PyCFunction)find_all, METH_VARARGS, "find all elems, if one found, pout it in an array"},
-    {"remove", (PyCFunction)do_remove, METH_VARARGS, "remove all elems found"},
-    {"update_or_create", (PyCFunction)update_or_create, METH_VARARGS, "update or create"},
+    {"update_or_create_callback", (PyCFunction)update_or_create_callback, METH_VARARGS | METH_KEYWORDS, "update_or_create_callback"},
+    {"find_first", (PyCFunction)find_first, METH_VARARGS | METH_KEYWORDS, "find first elems"},
+    {"find_all", (PyCFunction)find_all, METH_VARARGS | METH_KEYWORDS, "find all elems, if one found, pout it in an array"},
+    {"remove", (PyCFunction)do_remove, METH_VARARGS | METH_KEYWORDS, "remove all elems found"},
+    {"update_or_create", (PyCFunction)update_or_create, METH_VARARGS | METH_KEYWORDS, "update or create"},
     {NULL, NULL, 0, NULL}
 };
 

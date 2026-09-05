@@ -1,0 +1,44 @@
+/* Clear backend-specific hook macros so another backend can be included
+ * in the same translation unit without macro-redefinition warnings.
+ * Intentionally unguarded: include this each time you switch backends. */
+#undef CSONPATH_JSON
+#undef CSONPATH_NULL
+#undef CSONPATH_GET
+#undef CSONPATH_AT
+#undef CSONPATH_CALLBACK
+#undef CSONPATH_CALLBACK_DATA
+#undef CSONPATH_NEED_FOREACH_REDO
+#undef CSONPATH_REMOVE
+#undef CSONPATH_INREF
+#undef CSONPATH_IS_NULL
+#undef CSONPATH_IS_OBJ
+#undef CSONPATH_IS_ARRAY
+#undef CSONPATH_IS_STR
+#undef CSONPATH_IS_NUM
+#undef CSONPATH_IS_BOOL
+#undef CSONPATH_GET_BOOL
+#undef CSONPATH_GET_STR
+#undef CSONPATH_GET_NUM
+#undef CSONPATH_EQUAL_STR
+#undef CSONPATH_EQUAL_NUM
+#undef CSONPATH_CALL_CALLBACK
+#undef CSONPATH_FOREACH
+#undef CSONPATH_ARRAY_LENGTH
+#undef CSONPATH_FOREACH_ARRAY
+#undef CSONPATH_FOREACH_OBJ
+#undef CSONPATH_FOREACH_EXT
+#undef CSONPATH_OBJ_CLEAR
+#undef CSONPATH_ARRAY_CLEAR
+#undef CSONPATH_REMOVE_CHILD
+#undef CSONPATH_NEW_ARRAY
+#undef CSONPATH_NEW_OBJECT
+#undef CSONPATH_NEW_STR
+#undef CSONPATH_NEW_INT
+#undef CSONPATH_NEW_BOOL
+#undef CSONPATH_APPEND_AT
+#undef CSONPATH_ARRAY_APPEND
+#undef CSONPATH_FIND_ALL_RET_INIT
+#undef CSONPATH_FIND_ALL_RET
+#undef CSONPATH_BACKEND_CTX_FIELDS
+#undef CSONPATH_FORMAT_EXCEPTION
+#undef CSONPATH_EXCEPTION
