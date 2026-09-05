@@ -54,6 +54,7 @@ Out of the box it ships with C backends for [json-c](https://github.com/json-c/j
 - [C API Reference](#-c-api-reference)
 - [Python API Reference](#-python-api-reference)
 - [CLI](#%EF%B8%8F-cli)
+- [Using Multiple Backends](#-using-multiple-backends)
 - [Custom Backends](#-custom-backends)
 - [Running Tests](#-running-tests)
 - [Directory Structure](#-directory-structure)
@@ -346,6 +347,36 @@ echo '{"a": 1, "b": 2}' | ./csonpath -d '$.b'
 | `1` | No match found, or `--strict` delete found nothing. |
 | `EINVAL` | Usage error, JSON parse error, JSONPath compilation error, or invalid JSON value. |
 | `errno` | I/O error (e.g. `ENOENT`, `EACCES`). |
+
+---
+
+## 🧩 Using Multiple Backends
+
+You can include more than one csonpath backend in the same translation unit, provided you prefix all but one of them to avoid symbol collisions. Define `CSONPATH_USE_PREFIX` before a backend header to prefix its API with the backend name.
+
+For example, to use both json-c and the immutable yyjson backend in the same file:
+
+```c
+#define CSONPATH_USE_PREFIX
+#include "csonpath_json-c.h"
+
+#undef CSONPATH_USE_PREFIX
+#include "csonpath_yyjson_const.h"
+```
+
+To use both yyjson backends (immutable and mutable) together, include the aggregator header:
+
+```c
+#include "csonpath_yyjson.h"
+```
+
+When using the mutable yyjson backend, assign the document pointer to `backend_ctx` before mutable operations:
+
+```c
+struct csonpath *mp = yyjson_mut_csonpath_new("$.a");
+mp->backend_ctx = mdoc;
+yyjson_mut_csonpath_update_or_create(mp, mroot, new_val);
+```
 
 ---
 

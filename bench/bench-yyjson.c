@@ -122,9 +122,9 @@ int main() {
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();
 
-	p = csonpath_new(queries[i]);
+	p = yyjson_csonpath_new(queries[i]);
 	for (int j = 0; j < iters; ++j) {
-		struct find_all_ret *ret = csonpath_find_all(p, jobj);
+		struct find_all_ret *ret = yyjson_csonpath_find_all(p, jobj);
 		count = ret ? ret->i : 0;
 		free_find_all(ret);
 	}
@@ -142,7 +142,7 @@ int main() {
 
     csv_total("yyjson", total);
 
-    csonpath_destroy(p);
+    yyjson_csonpath_destroy(p);
     yyjson_doc_free(jdoc);
     return 0;
 }

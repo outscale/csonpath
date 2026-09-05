@@ -169,6 +169,22 @@ int main(void)
     free(big_key);
   }
 
+  /* extra roots: $1 refers to the first object in extra_roots */
+  {
+    struct json_object *extra = json_tokener_parse("{\"x\": \"B\"}");
+    struct json_object *extra_roots = json_object_new_array();
+    json_object_array_add(extra_roots, extra);
+
+    TRY(p = csonpath_set_path(p, "$.b[$1.x]"));
+    p->extra_roots = extra_roots;
+    ret = csonpath_find_first(p, jobj);
+    assert(ret);
+    assert(!strcmp(json_object_get_string(ret), "la y'a l'B"));
+
+    p->extra_roots = NULL;
+    json_object_put(extra_roots);
+  }
+
   json_object_put(jobj);
   csonpath_destroy(p);
 }
