@@ -146,6 +146,31 @@ int main(void)
   assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 1)), "ah"));
   json_object_put(ret);
 
+  /* 16. nested union via subpath : $[$['a','b'],'y'] -> 2 results */
+  {
+      const char *nested_json = "{\"a\":\"x\",\"b\":\"y\",\"x\":\"value_x\",\"y\":\"value_y\"}";
+      struct json_object *nested = json_tokener_parse(nested_json);
+      assert((p = csonpath_set_path(p, "$[$['a','b'],'y']")));
+      ret = csonpath_find_first(p, nested);
+      assert(ret);
+      assert(!strcmp(json_object_get_string(ret), "value_x"));
+
+      ret = csonpath_find_all(p, nested);
+      assert(ret);
+      assert(json_object_is_type(ret, json_type_array));
+      assert(json_object_array_length(ret) == 2);
+      assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 0)), "value_x"));
+      assert(!strcmp(json_object_get_string(json_object_array_get_idx(ret, 1)), "value_y"));
+      json_object_put(ret);
+      json_object_put(nested);
+  }
+
+  /* 17. direct nested bracket union is rejected by the parser */
+  {
+      p = csonpath_set_path(p, "$[['a','b'],'c']");
+      assert(p == NULL);
+  }
+
   json_object_put(jobj);
   csonpath_destroy(p);
 

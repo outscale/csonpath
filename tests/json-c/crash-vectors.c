@@ -186,6 +186,19 @@ static void test_recursive_descent_on_empty_obj(void)
     json_object_put(jobj);
 }
 
+static void test_recursive_descent_into_array(void)
+{
+    /* $..a on an array of objects must enter the array branch of
+     * csonpath_do_dotdot (line 170). */
+    struct csonpath *p = csonpath_new("$..a");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("[{\"a\": 1}, {\"a\": 2}]");
+    CSONPATH_JSON ret = csonpath_find_all(p, jobj);
+    assert(ret && json_object_array_length(ret) == 2);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
 /* -------------------------------------------------------------------- */
 /* 5.  Union edge cases                                                  */
 /* -------------------------------------------------------------------- */
@@ -204,6 +217,19 @@ static void test_union_mixed_types(void)
     struct json_object *jobj = json_tokener_parse("{\"a\":1,\"0\":2}");
     CSONPATH_JSON ret = csonpath_find_first(p, jobj);
     (void)ret;
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_union_find_all(void)
+{
+    /* UNION_END -> CSONPATH_DO_GET_ALL_OUT in find_all mode. */
+    struct csonpath *p = csonpath_new("$['a','b']");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\": 1, \"b\": 2, \"c\": 3}");
+    CSONPATH_JSON ret = csonpath_find_all(p, jobj);
+    assert(ret && json_object_array_length(ret) == 2);
     csonpath_destroy(p);
     json_object_put(jobj);
 }
@@ -230,6 +256,45 @@ static void test_get_obj_on_scalar(void)
     struct json_object *jobj = json_tokener_parse("\"hello\"");
     CSONPATH_JSON ret = csonpath_find_first(p, jobj);
     assert(ret == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+/* -------------------------------------------------------------------- */
+/* 6b. Filter and range edge cases                                       */
+/* -------------------------------------------------------------------- */
+
+static void test_filter_on_scalar(void)
+{
+    /* Filter operand on a non-array must hit CSONPATH_DO_FILTER_OUT. */
+    struct csonpath *p = csonpath_new("$.a[?(@.x)]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("{\"a\": 1}");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_range_on_non_array(void)
+{
+    struct csonpath *p = csonpath_new("$.a[1:2]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("{\"a\": {\"x\": 1}}");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_range_basic(void)
+{
+    /* A non-empty range must enter the loop body (CSONPATH_DO_FOREACH_PRE_SET). */
+    struct csonpath *p = csonpath_new("$.a[1:2]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("{\"a\": [10, 20, 30]}");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret && json_object_get_int(ret) == 20);
     csonpath_destroy(p);
     json_object_put(jobj);
 }
@@ -311,8 +376,82 @@ static void test_update_array_out_of_bounds_gaps(void)
     json_object_put(jobj);
 }
 
+static void test_update_array_big_index(void)
+{
+    /* GET_ARRAY_BIG with an existing index must reach
+     * CSONPATH_DO_POST_FIND_ARRAY. */
+    struct csonpath *p = csonpath_new("$.a[100]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("{\"a\": [0]}");
+    struct json_object *val = json_object_new_int(42);
+    int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
+    assert(ret == 1);
+    struct json_object *arr = json_object_object_get(jobj, "a");
+    assert(json_object_array_length(arr) == 101);
+    assert(json_object_get_int(json_object_array_get_idx(arr, 100)) == 42);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_update_array_element_by_subpath_index(void)
+{
+    /* GET_SUBPATH numeric branch with a valid index must reach
+     * CSONPATH_DO_POST_FIND_ARRAY in update_or_create mode. */
+    struct csonpath *p = csonpath_new("$.a[$.b]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\":[10,20,30],\"b\":1}");
+    struct json_object *val = json_object_new_int(42);
+    int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
+    assert(ret == 1);
+    assert(json_object_get_int(
+        json_object_array_get_idx(
+            json_object_object_get(jobj, "a"), 1)) == 42);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_remove_array_element_by_subpath_index(void)
+{
+    /* GET_SUBPATH numeric branch with a valid index must reach
+     * CSONPATH_DO_POST_FIND_ARRAY (remove mode). */
+    struct csonpath *p = csonpath_new("$.a[$.b]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\":[10,20,30],\"b\":1}");
+    int ret = csonpath_remove(p, jobj);
+    assert(ret == 1);
+    struct json_object *arr = json_object_object_get(jobj, "a");
+    assert(json_object_array_length(arr) == 3);
+    assert(json_object_array_get_idx(arr, 1) == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
 /* -------------------------------------------------------------------- */
-/* 8.  Mutation during callback iteration                                */
+/* 8.  Recursive descent remove                                          */
+/* -------------------------------------------------------------------- */
+
+static void test_remove_recursive_descent(void)
+{
+    struct csonpath *p = csonpath_new("$..a");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"x\": {\"a\": 1}, \"y\": {\"a\": 2}}");
+    int ret = csonpath_remove(p, jobj);
+    assert(ret == 2);
+    struct json_object *x = json_object_object_get(jobj, "x");
+    struct json_object *y = json_object_object_get(jobj, "y");
+    assert(x && json_object_object_length(x) == 0);
+    assert(y && json_object_object_length(y) == 0);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+/* -------------------------------------------------------------------- */
+/* 9.  Mutation during callback iteration                                */
 /* -------------------------------------------------------------------- */
 
 static void json_c_callback_delete_next(struct json_object *ctx,
@@ -345,7 +484,7 @@ static void test_callback_mutation_next_key(void)
 }
 
 /* -------------------------------------------------------------------- */
-/* 9.  Deep nesting / stack stress                                       */
+/* 10.  Deep nesting / stack stress                                      */
 /* -------------------------------------------------------------------- */
 
 static struct json_object *make_nested(int depth)
@@ -399,7 +538,7 @@ static void test_wide_array_get_all(void)
 }
 
 /* -------------------------------------------------------------------- */
-/* 10. csonpath_destroy / set_path double-free style                     */
+/* 11. csonpath_destroy / set_path double-free style                     */
 /* -------------------------------------------------------------------- */
 
 static void test_set_path_invalid_then_valid(void)
@@ -410,6 +549,22 @@ static void test_set_path_invalid_then_valid(void)
     struct csonpath *q = csonpath_set_path(p, "$$");
     assert(q == NULL);
     /* p is already freed by set_path; don't touch it again */
+}
+
+/* -------------------------------------------------------------------- */
+/* 12. find_first on a broken path object                               */
+/* -------------------------------------------------------------------- */
+
+static void test_find_first_on_broken_path(void)
+{
+    struct csonpath *p = csonpath_new_ex("$$", CSONPATH_NO_DETROY);
+    assert(p);
+    assert(p->compile_error);
+    struct json_object *jobj = json_tokener_parse("{}");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
 }
 
 /* -------------------------------------------------------------------- */
@@ -441,17 +596,24 @@ int main(void)
     RUN(test_array_index_on_scalar);
     RUN(test_array_index_on_null);
 
-    printf("\n-- Recursive descent on scalars --\n"); fflush(stdout);
+    printf("\n-- Recursive descent on scalars / arrays --\n"); fflush(stdout);
     RUN(test_recursive_descent_on_scalar);
     RUN(test_recursive_descent_on_empty_obj);
+    RUN(test_recursive_descent_into_array);
 
     printf("\n-- Union edge cases --\n"); fflush(stdout);
     RUN(test_empty_union);
     RUN(test_union_mixed_types);
+    RUN(test_union_find_all);
 
     printf("\n-- Getter on non-object --\n"); fflush(stdout);
     RUN(test_get_obj_on_array);
     RUN(test_get_obj_on_scalar);
+
+    printf("\n-- Filter and range edge cases --\n"); fflush(stdout);
+    RUN(test_filter_on_scalar);
+    RUN(test_range_on_non_array);
+    RUN(test_range_basic);
 
     printf("\n-- Array remove / update --\n"); fflush(stdout);
     RUN(test_remove_array_element);
@@ -459,6 +621,12 @@ int main(void)
     RUN(test_remove_array_out_of_bounds);
     RUN(test_update_array_element);
     RUN(test_update_array_out_of_bounds_gaps);
+    RUN(test_update_array_big_index);
+    RUN(test_update_array_element_by_subpath_index);
+    RUN(test_remove_array_element_by_subpath_index);
+
+    printf("\n-- Recursive descent remove --\n"); fflush(stdout);
+    RUN(test_remove_recursive_descent);
 
     printf("\n-- Mutation during callback iteration --\n"); fflush(stdout);
     RUN(test_callback_mutation_next_key);
@@ -469,6 +637,9 @@ int main(void)
 
     printf("\n-- set_path --\n"); fflush(stdout);
     RUN(test_set_path_invalid_then_valid);
+
+    printf("\n-- broken path object --\n"); fflush(stdout);
+    RUN(test_find_first_on_broken_path);
 
     printf("\n=== All crash-vector tests passed ===\n"); fflush(stdout);
     return 0;
