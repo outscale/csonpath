@@ -109,6 +109,20 @@ pub extern "C" fn rust_at(arr: *mut Value, idx: c_int) -> *mut Value {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn rust_array_length(arr: *mut Value) -> usize {
+    unsafe {
+        if arr.is_null() {
+            return 0;
+        }
+        if let Value::Array(ref a) = *arr {
+            a.len()
+        } else {
+            0
+        }
+    }
+}
+
 /* ===================================================================== */
 /*  Type checks                                                          */
 /* ===================================================================== */
