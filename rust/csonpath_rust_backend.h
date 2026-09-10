@@ -22,6 +22,7 @@ extern void  rust_array_clear(void *o);
 extern void  rust_obj_clear(void *o);
 extern void *rust_get(void *obj, const char *key);
 extern void *rust_at(void *arr, int idx);
+extern size_t rust_array_length(void *arr);
 extern int   rust_is_obj(void *o);
 extern int   rust_is_array(void *o);
 extern int   rust_is_str(void *o);
@@ -52,6 +53,7 @@ extern void  rust_obj_iter_cleanup(void *it);
 /* -- macros used by csonpath core -- */
 #define CSONPATH_GET(o, k)              rust_get((o), (k))
 #define CSONPATH_AT(o, i)               rust_at((o), (i))
+#define CSONPATH_ARRAY_LENGTH(o)        ((size_t)rust_array_length(o))
 #define CSONPATH_IS_OBJ(o)              rust_is_obj(o)
 #define CSONPATH_IS_ARRAY(o)            rust_is_array(o)
 #define CSONPATH_IS_STR(o)              rust_is_str(o)

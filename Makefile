@@ -15,7 +15,7 @@ bench:
 bench-clean:
 	make -C bench clean
 
-.PHONY: all clean tests pip-dev pip-dev bench bench-clean tests-cli
+.PHONY: all clean tests pip-dev pip-dev bench bench-clean tests-cli tests-rust cov
 
 CFLAGS+= -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 
@@ -89,8 +89,34 @@ pip-dev:
 tests-py: pip-dev
 	python -m pytest
 
-tests: tests-py tests-c
+tests-rust:
+	cargo test --manifest-path rust/Cargo.toml
+
+cov:
+	$(MAKE) clean
+	rm -rf coverage-c coverage-c.html coverage-py coverage-rust build
+	find . -name '*.gcov' -delete
+	$(MAKE) CFLAGS='--coverage -O0 -g' LDFLAGS='--coverage' tests-c
+	CFLAGS='--coverage -O0' LDFLAGS='--coverage' python setup.py build_ext --inplace --force
+	python -m coverage run -m pytest
+	python -m coverage html -d coverage-py
+	python -m gcovr -r . \
+		--gcov-object-directory "$$(ls -d build/temp.* 2>/dev/null | head -1)" \
+		--filter 'csonpath\.h' --filter 'csonpath_do\.h' --filter 'csonpath_python\.c' \
+		--html-details coverage-c.html
+	PATH="$$HOME/.cargo/bin:$$PATH" \
+		LLVM_COV="$$(find $$HOME/.rustup/toolchains -name llvm-cov -print -quit)" \
+		LLVM_PROFDATA="$$(find $$HOME/.rustup/toolchains -name llvm-profdata -print -quit)" \
+		cargo llvm-cov --manifest-path rust/Cargo.toml --html --output-dir coverage-rust
+	@echo "Coverage reports:"
+	@echo "  coverage-c.html"
+	@echo "  coverage-py/index.html"
+	@echo "  coverage-rust/html/index.html"
+
+tests: tests-py tests-c tests-cli tests-rust
 
 clean:
 	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix csonpath
+	find . -name '*.gcda' -delete
+	find . -name '*.gcno' -delete
 
