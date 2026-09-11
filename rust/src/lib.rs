@@ -13,6 +13,8 @@ pub const CSONPATH_CHILD_NONE: c_int = 0;
 pub const CSONPATH_CHILD_INTEGER: c_int = 1;
 pub const CSONPATH_CHILD_STR: c_int = 2;
 
+pub const CSONPATH_RETURN_EMPTY_ARRAY: c_int = 1 << 2;
+
 impl CsonpathChildInfo {
     pub fn is_none(&self) -> bool {
         self.type_ == CSONPATH_CHILD_NONE
@@ -140,7 +142,11 @@ impl CsonPath {
 
     pub fn set_return_empty_array(&mut self, value: bool) {
         unsafe {
-            (*self.raw).return_empty_array = value as c_int;
+            if value {
+                (*self.raw).flags |= CSONPATH_RETURN_EMPTY_ARRAY;
+            } else {
+                (*self.raw).flags &= !CSONPATH_RETURN_EMPTY_ARRAY;
+            }
         }
     }
 

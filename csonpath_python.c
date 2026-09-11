@@ -300,7 +300,11 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 		goto error;
 					 }
 
-	ret = csonpath_new_ex(s, CSONPATH_NO_DETROY);
+	int flags = CSONPATH_NO_DETROY;
+	if (return_empty_array)
+		flags |= CSONPATH_RETURN_EMPTY_ARRAY;
+
+	ret = csonpath_new_ex(s, flags);
 	if (!ret) {
 		PyErr_NoMemory();
 		goto error;
@@ -311,8 +315,6 @@ static PyObject *PyCsonPath_new(PyTypeObject *subtype, PyObject* args,
 		csonpath_destroy(ret);
 		goto error;
 	}
-
-	ret->return_empty_array = return_empty_array;
 
 	self->cp = ret;
 	return (PyObject *)self;
