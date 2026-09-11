@@ -986,6 +986,10 @@ static const char *csonpath_skipp_union_jmp(const char *walker)
 	walker = csonpath_walker_next_inst(walker);
 	if (*walker == CSONPATH_INST_GET_UNION)
 	    ++union_cnt;
+	else if (union_cnt && *walker == CSONPATH_INST_UNION_END) {
+	    --union_cnt;
+	    ++walker;
+	}
     }
     return walker;
 }
@@ -1191,13 +1195,21 @@ need_reloop_in = 0;
 
 #define CSONPATH_DO_RET_TYPE CSONPATH_JSON
 #define CSONPATH_DO_FUNC_NAME find_first
-#define CSONPATH_DO_RETURN if (end_sentinel) *end_sentinel = walker; return tmp
 
-#define CSONPATH_DO_FIND_ALL if (tret) {if (end_sentinel) *end_sentinel = walker; return tret;}
+/*  && *end_sentinel < walker is useful, because the way csonpath_do recuese on itself, the return might not be end of path */
+#define CSONPATH_DO_RETURN if (end_sentinel && *end_sentinel < walker) { \
+		*end_sentinel = walker;					\
+		;}							\
+	return tmp
 
-#define CSONPATH_DO_FILTER_FIND if (end_sentinel) *end_sentinel = owalker; return tret
+#define CSONPATH_DO_FIND_ALL if (tret) {				\
+	if (end_sentinel && *end_sentinel < walker) {			\
+			*end_sentinel = walker;				\
+		} return tret;}
 
-#define CSONPATH_DO_FIND_ALL_OUT if (end_sentinel) *end_sentinel = walker;  return CSONPATH_NULL
+#define CSONPATH_DO_FILTER_FIND if (end_sentinel && *end_sentinel < walker) *end_sentinel = owalker; return tret
+
+#define CSONPATH_DO_FIND_ALL_OUT if (end_sentinel && *end_sentinel < walker) *end_sentinel = walker;  return CSONPATH_NULL
 
 #define CSONPATH_DO_EXTRA_DECLARATION , const char **end_sentinel
 #define CSONPATH_DO_EXTRA_ARGS_IN , NULL
@@ -1586,7 +1598,7 @@ static _Bool CSONPATH_FUNC(csonpath_make_match)(const struct csonpath cjp[const 
     }
 
     if (operand_instruction == CSONPATH_INST_GET_SUBPATH) {
-	const char *end_sentinel;
+	const char *end_sentinel = *owalker;
 	*owalker = csonpath_walker_next_inst(*owalker);
 	CSONPATH_JSON jret = CSONPATH_FUNC(csonpath_find_first_internal)(
 	    cjp, origin, origin, CSONPATH_NULL, *owalker, &end_sentinel);

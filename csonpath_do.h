@@ -381,7 +381,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	}
 	case CSONPATH_INST_GET_SUBPATH:
 	{
-	    const char *end_sentinel;
+	    const char *end_sentinel = walker;
 	    const char *owalker = walker;
 	    owalker = csonpath_walker_next_inst(owalker);
 	    CSONPATH_JSON jret = CSONPATH_FUNC(csonpath_find_first_internal)(
