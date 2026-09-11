@@ -62,7 +62,9 @@ typedef regex_t csonpath_reg_t;
 
 enum {
     CSONPATH_AUTO_ROOT = 1, /* enable jq-like path, like .root.hello, so we can skipp '$' */
-    CSONPATH_NO_DETROY = (1 << 1)
+    CSONPATH_NO_DETROY = (1 << 1),
+    CSONPATH_RETURN_EMPTY_ARRAY = (1 << 2),
+    CSONPATH_REG_INCOMPLETTE = (1 << 3)
 };
 
 enum csonpath_instuction_raw {
@@ -169,7 +171,7 @@ enum {
 
 struct csonpath {
     char *compile_error;
-    int return_empty_array;
+    int flags;
     EXTRA_ROOTS_T extra_roots;
     void *backend_ctx;
 
@@ -632,6 +634,7 @@ root_again:
 		    else if (next[0] == '~') {
 			csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_REG_EQ,  inst_idx);
 			regex_idx = cjp->regex_cnt++;
+			cjp->flags |= CSONPATH_REG_INCOMPLETTE;
 			++next;
 		    }
 #endif
@@ -709,6 +712,7 @@ root_again:
 			    cjp->match_datas = malloc(sizeof *cjp->match_datas * 255);
 #  endif
 			}
+			cjp->flags &= ~CSONPATH_REG_INCOMPLETTE;
 			for (next = walker; *next && *next != end; ++next);
 			char *reg_tmp = malloc(next - walker + 1);
 			char *crawler = reg_tmp;
@@ -1025,8 +1029,9 @@ CSONPATH_STATINLINE void CSONPATH_FUNC(csonpath_destroy)(struct csonpath *cjp)
 	return;
     free(cjp->compile_error);
 #if !defined CSONPATH_NO_REGEX
-    if (cjp->regex_cnt) {
-	for (int i = 0; i < cjp->regex_cnt; ++i) {
+    int is_incomplete = !!(cjp->flags & CSONPATH_REG_INCOMPLETTE);
+    if (cjp->regex_cnt - is_incomplete > 0) {
+	for (int i = 0; i < cjp->regex_cnt - is_incomplete; ++i) {
 #  ifdef CSONPATH_PCRE2
 	    pcre2_code_free(cjp->regexs[i]);
 	    pcre2_match_data_free(cjp->match_datas[i]);
@@ -1036,9 +1041,11 @@ CSONPATH_STATINLINE void CSONPATH_FUNC(csonpath_destroy)(struct csonpath *cjp)
 	}
 
 #  ifdef CSONPATH_PCRE2
-	free(cjp->match_datas);
+	if (cjp->regex_cnt - is_incomplete > 0)
+	  free(cjp->match_datas);
 #  endif
-	free(cjp->regexs);
+	if (cjp->regex_cnt - is_incomplete > 0)
+	  free(cjp->regexs);
     }
 #endif
     free(cjp);
@@ -1058,6 +1065,7 @@ CSONPATH_STATINLINE struct csonpath *CSONPATH_FUNC(csonpath_new_ex)(const char p
 	return NULL;
     }
     memset(ret, 0, sizeof *ret);
+    ret->flags = flag;
 
     if (csonpath_compile_(ret, path, flag) < 0) {
 	if ((flag & CSONPATH_NO_DETROY))
@@ -1238,7 +1246,7 @@ need_reloop_in = 0;
 #define CSONPATH_DO_FILTER_FIND CSONPATH_DO_FIND_ALL
 
 #define CSONPATH_DO_FIND_ALL_OUT		\
-	if (!cjp->return_empty_array && !nb_res) {				\
+	if (!(cjp->flags & CSONPATH_RETURN_EMPTY_ARRAY) && !nb_res) {				\
 	return CSONPATH_NONE_FOUND_RET;		\
     }						\
     return ret_ar;
