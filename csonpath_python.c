@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define CSONPATH_MAX_ARRAY_PAD (1 << 16)
+
 #define CSONPATH_JSON PyObject *
 
 #define CSONPATH_NULL Py_None
@@ -136,10 +138,17 @@ static int python_set_or_insert_item(PyObject *array, Py_ssize_t at, PyObject *e
     }
     Py_ssize_t s = PyList_Size(array);
     if (at >= s) {
+	if (at - s > CSONPATH_MAX_ARRAY_PAD) {
+	    PyErr_SetString(PyExc_IndexError,
+			    "array index out of range (None padding too large)");
+	    return -1;
+	}
 	for (;s < at; ++s)
-	    PyList_Insert(array, s, Py_None);
+	    if (PyList_Insert(array, s, Py_None) < 0)
+		return -1;
 
-	PyList_Insert(array, at, el);
+	if (PyList_Insert(array, at, el) < 0)
+	    return -1;
     } else {
 	Py_INCREF(el);
 	if (PyList_SetItem(array, at, el) < 0) {

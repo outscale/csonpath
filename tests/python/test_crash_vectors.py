@@ -92,3 +92,24 @@ def test_find_all_refcount_uaf():
         f"BUG: only {alive}/10 objects survived GC — "
         f"find_all result list holds borrowed references"
     )
+
+
+# ---------------------------------------------------------------------------
+# update_or_create with huge array index must not hang/OOM (None-padding DoS)
+# ---------------------------------------------------------------------------
+
+def test_update_or_create_huge_array_index_raises():
+    """Creating at a humongous index pads with None in a tight loop, eating
+    unbounded CPU + memory.  Must raise IndexError immediately."""
+    p = csonpath.CsonPath("$.a[100000000000000]")
+    with pytest.raises((IndexError, MemoryError)):
+        p.update_or_create({"a": [1]}, "x")
+
+
+def test_update_or_create_array_gap_still_pads():
+    """Moderate out-of-bounds gaps must still produce the expected padded
+    array — only absurdly large gaps are rejected."""
+    p = csonpath.CsonPath("$.a[5]")
+    d = {"a": [1, 2, 3]}
+    p.update_or_create(d, 42)
+    assert d["a"] == [1, 2, 3, None, None, 42]
