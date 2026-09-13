@@ -291,6 +291,7 @@ struct csonpath_child_info {
 
 
 #define CSONPATH_BYTE_PER_INST 2
+#define CSONPATH_MAX_REGEX 127
 
 static int csonpath_compile_(struct csonpath *cjp, const char path[static 1], int);
 
@@ -632,6 +633,10 @@ root_again:
 		    }
 #ifndef CSONPATH_NO_REGEX
 		    else if (next[0] == '~') {
+			if (cjp->regex_cnt >= CSONPATH_MAX_REGEX) {
+			    CSONPATH_COMPILE_ERR(tmp, next - orig, "too many regex");
+			    goto error;
+			}
 			csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_REG_EQ,  inst_idx);
 			regex_idx = cjp->regex_cnt++;
 			cjp->flags |= CSONPATH_REG_INCOMPLETTE;
@@ -1745,6 +1750,8 @@ static _Bool CSONPATH_FUNC(csonpath_make_match)(const struct csonpath cjp[const 
 	if (CSONPATH_IS_STR(el2)) {
 	    int regex_idx = **owalker;
 	    ++*owalker;
+	    if (regex_idx < 0 || regex_idx >= cjp->regex_cnt)
+		return 0;
 	    CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(el2);
 #	if !defined CSONPATH_PCRE2
 	    match = csonpath_reg_exec(cjp->regexs[regex_idx], s);
