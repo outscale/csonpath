@@ -153,6 +153,18 @@ struct rust_obj_iter {
 
 #define CSONPATH_NEED_FOREACH_REDO(o) rust_need_foreach_redo(o)
 
+/* After creating a fresh node inside the walk context, the temporary payload
+ * is cloned into the tree and freed, so re-fetch the node as stored in the
+ * tree instead of keeping a dangling pointer (the refcounted backends keep
+ * the same allocation alive and use ctx = tmp). */
+#define CSONPATH_POST_CREATE_CTX(child_info, ctx, tmp) do {		\
+	ctx = tmp = (child_info)->type == CSONPATH_INTEGER		\
+	    ? CSONPATH_AT(ctx, (child_info)->idx)			\
+	    : CSONPATH_GET(ctx, (child_info)->key);			\
+	if (ctx == CSONPATH_NULL)					\
+	    CSONPATH_EXCEPTION("Unable to re-fetch created node\n");	\
+    } while (0)
+
 /* -- callbacks (opaque stubs) -- */
 #define CSONPATH_CALLBACK void *
 #define CSONPATH_CALLBACK_DATA void *
