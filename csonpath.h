@@ -1414,7 +1414,7 @@ again:
 	const char *tmp_wal = csonpath_walker_next_inst(walker);	\
 	int is_array = 1;						\
 	for (; *tmp_wal && !csonpath_is_endish_inst(*tmp_wal);		\
-	     tmp_wal = csonpath_walker_next_inst(walker)) {		\
+	     tmp_wal = csonpath_walker_next_inst(tmp_wal)) {		\
 	    if (*tmp_wal == CSONPATH_INST_GET_UNION)			\
 		tmp_wal = csonpath_skipp_union_jmp(tmp_wal);		\
 	    if (*tmp_wal == CSONPATH_INST_GET_OBJ ||			\

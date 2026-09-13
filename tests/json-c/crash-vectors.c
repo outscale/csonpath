@@ -57,6 +57,25 @@ static void test_compile_dot_no_key(void)
     assert(p == NULL);
 }
 
+static void test_update_or_create_get_all_then_subpath(void)
+{
+    /* update_or_create("$.a[*][$.b]") on {"a": null}: "a" is null so the
+     * getter for "a" returns it, then [*] runs in a fresh pre-loop where
+     * tmp is the null node; CSONPATH_NEW_GUESS_CNT scans ahead for the
+     * next container: GET_SUBPATH after the GET_ALL was not handled by the
+     * guesser and the loop advanced with `walker` (constant) instead of
+     * `tmp_wal`, so it never made progress -> infinite loop (hang). */
+    struct csonpath *p = csonpath_new("$.a[*][$.b]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("{\"a\":null}");
+    struct json_object *val = json_object_new_int(42);
+    int ret = csonpath_update_or_create(p, jobj, val);
+    assert(ret == 0 || ret == 1); /* must not hang */
+    json_object_put(val);
+    json_object_put(jobj);
+    csonpath_destroy(p);
+}
+
 static void test_compile_bracket_star_in_find_all(void)
 {
     /* [*] is valid as a getter but not as a FIND_ALL path */
@@ -767,6 +786,9 @@ int main(void)
 
     printf("\n-- Subpath string key not found --\n"); fflush(stdout);
     RUN(test_subpath_string_key_not_found);
+
+    printf("\n-- update_or_create GET_ALL then subpath --\n"); fflush(stdout);
+    RUN(test_update_or_create_get_all_then_subpath);
 
     printf("\n=== All crash-vector tests passed ===\n"); fflush(stdout);
     return 0;
