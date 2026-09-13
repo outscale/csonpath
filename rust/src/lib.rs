@@ -341,6 +341,46 @@ mod tests {
     }
 
     #[test]
+    fn test_update_or_create_create_nested_obj() {
+        /* Creates the whole chain $.a.b.c: the C core clones each fresh
+         * container into its parent (do_incref=1) then frees the temporary
+         * with CSONPATH_REMOVE and keeps using it as context.  Must not keep
+         * a dangling pointer into the freed temporary. */
+        let mut data = json!({});
+        let cp = CsonPath::new("$.a.b.c").unwrap();
+        cp.update_or_create(&mut data, json!(42)).unwrap();
+        assert_eq!(data, json!({"a": {"b": {"c": 42}}}));
+    }
+
+    #[test]
+    fn test_update_or_create_create_single_obj() {
+        let mut data = json!({});
+        let cp = CsonPath::new("$.a.b").unwrap();
+        cp.update_or_create(&mut data, json!(42)).unwrap();
+        assert_eq!(data, json!({"a": {"b": 42}}));
+    }
+
+    #[test]
+    fn test_update_or_create_create_after_array_pad() {
+        /* Integer lookups: the fresh object is appended at the padded array
+         * slot (index 5) while the freed temporary is still used as context. */
+        let mut data = json!({"a": [1, 2, 3]});
+        let cp = CsonPath::new("$.a[5].b").unwrap();
+        cp.update_or_create(&mut data, json!(42)).unwrap();
+        assert_eq!(data["a"], json!([1, 2, 3, null, null, {"b": 42}]));
+    }
+
+    #[test]
+    fn test_update_or_create_huge_array_index_rejected() {
+        /* Creating at a humongous index pads the array with null in a tight
+         * loop (unbounded CPU + memory, same DoS as the Python backend).  The
+         * backend must reject absurd gaps instead of allocating them. */
+        let mut data = json!({"a": [1]});
+        let cp = CsonPath::new("$.a[100000000]").unwrap();
+        assert!(cp.update_or_create(&mut data, json!(42)).is_err());
+    }
+
+    #[test]
     fn test_empty_result() {
         let data = json!({"a": []});
         let cp = CsonPath::new("$.a[*]").unwrap();
@@ -388,6 +428,46 @@ mod tests {
         let cp = CsonPath::new("$[$.a]").unwrap();
         let r = cp.find_all(&data).unwrap();
         assert_eq!(r, json!([42]));
+    }
+
+    #[test]
+    fn test_subpath_missing_prefix_does_not_crash() {
+        /* The subpath $.nope resolves to nothing, so the walker feeds the
+         * type-check accessors a NULL node.  rust_is_num/str dereference the
+         * pointer unconditionally (json-c/Python checks are NULL-safe). */
+        let data = json!({"a": "b", "b": 42});
+        let cp = CsonPath::new("$[$.nope]").unwrap();
+        let r = cp.find_all(&data).unwrap();
+        assert_eq!(r, Value::Null);
+    }
+
+    #[test]
+    fn test_remove_all_array_no_panic() {
+        /* removing a whole array in one pass: rust_remove_child shrinks the
+         * Vec (Vec::remove) while rust_array_iter_next still indexes it with
+         * the length captured at iteration start.  Shrinking mid-iteration can
+         * move the uncapped &a[i.idx] past the end -> index-out-of-bounds
+         * panic. */
+        let mut data = json!({"a": [1, 2, 3]});
+        let cp = CsonPath::new("$.a.*").unwrap();
+        let n = cp.remove(&mut data).unwrap();
+        assert_eq!(n, 3);
+        assert_eq!(data, json!({"a": []}));
+    }
+
+    #[test]
+    fn test_filter_string_with_nul_no_panic() {
+        /* a JSON string containing an embedded NUL (e.g. "\u0000") must not
+         * make rust_get_str panic: CString::new() rejects interior NULs, so
+         * the unwrap aborts the whole process through the extern "C" FFI
+         * boundary.  json-c returns the raw char* and strcmp simply stops at
+         * the first NUL; truncating to the first NUL reproduces that.
+         * (the '>=' filter is used because '==' goes through rust_equal_str,
+         * a direct Rust comparison that never touches GET_STR). */
+        let data = json!([{"name": "fo\u{0}o"}]);
+        let cp = CsonPath::new("$[?(@.name >= 'fo')]").unwrap();
+        let r = cp.find_all(&data).unwrap();
+        assert_eq!(r, json!([{"name": "fo\u{0}o"}]));
     }
 
     #[test]

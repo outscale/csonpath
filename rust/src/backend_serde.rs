@@ -3,6 +3,10 @@ use std::str;
 use serde_json::{map::Iter as MapIter, Value};
 use crate::ffi::CsonpathChildInfo;
 
+/* Same bound as the Python backend: refuse to pad an array with more than this
+ * many intermediate nulls in update_or_create (DoS protection). */
+const CSONPATH_MAX_ARRAY_PAD: usize = 1 << 16;
+
 #[cfg(test)]
 use std::sync::atomic::{AtomicIsize, Ordering};
 
@@ -129,27 +133,27 @@ pub extern "C" fn rust_array_length(arr: *mut Value) -> usize {
 
 #[no_mangle]
 pub extern "C" fn rust_is_obj(o: *mut Value) -> c_int {
-    unsafe { if let Value::Object(_) = *o { 1 } else { 0 } }
+    if o.is_null() { 0 } else { unsafe { if let Value::Object(_) = *o { 1 } else { 0 } } }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_is_array(o: *mut Value) -> c_int {
-    unsafe { if let Value::Array(_) = *o { 1 } else { 0 } }
+    if o.is_null() { 0 } else { unsafe { if let Value::Array(_) = *o { 1 } else { 0 } } }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_is_str(o: *mut Value) -> c_int {
-    unsafe { if let Value::String(_) = *o { 1 } else { 0 } }
+    if o.is_null() { 0 } else { unsafe { if let Value::String(_) = *o { 1 } else { 0 } } }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_is_num(o: *mut Value) -> c_int {
-    unsafe { if let Value::Number(_) = *o { 1 } else { 0 } }
+    if o.is_null() { 0 } else { unsafe { if let Value::Number(_) = *o { 1 } else { 0 } } }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_is_bool(o: *mut Value) -> c_int {
-    unsafe { if let Value::Bool(_) = *o { 1 } else { 0 } }
+    if o.is_null() { 0 } else { unsafe { if let Value::Bool(_) = *o { 1 } else { 0 } } }
 }
 
 #[no_mangle]
@@ -163,19 +167,24 @@ pub extern "C" fn rust_is_null(o: *mut Value) -> c_int {
 
 #[no_mangle]
 pub extern "C" fn rust_get_bool(o: *mut Value) -> c_int {
-    unsafe {
-        match *o {
-            Value::Bool(b) => if b { 1 } else { 0 },
-            _ => 0,
-        }
+    if o.is_null() { 0 } else {
+        unsafe { if let Value::Bool(b) = *o { if b { 1 } else { 0 } } else { 0 } }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_get_str(o: *mut Value) -> *const c_char {
     unsafe {
-        if let Value::String(ref s) = *o {
-            let c = CString::new(s.as_str()).unwrap();
+        if o.is_null() { std::ptr::null() } else if let Value::String(ref s) = *o {
+            /* A Rust String may contain interior NUL bytes ("\u0000"); build
+             * the C string from the part before the first NUL so CString::new
+             * cannot fail and strcmp() on the C side stops at the same place
+             * it does for the json-c backend. */
+            let head = match s.as_str().find('\u{0}') {
+                Some(i) => &s.as_str()[..i],
+                None => s.as_str(),
+            };
+            let c = CString::new(head).unwrap();
             let p = c.as_ptr();
             #[cfg(test)]
             ALLOC_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -200,33 +209,37 @@ pub extern "C" fn rust_free_str(s: *const c_char) {
 
 #[no_mangle]
 pub extern "C" fn rust_get_num(o: *mut Value) -> i64 {
-    unsafe {
-        match *o {
-            Value::Number(ref n) => n.as_i64().unwrap_or(0),
-            _ => 0,
+    if o.is_null() { 0 } else {
+        unsafe {
+            if let Value::Number(ref n) = *o {
+                n.as_i64().unwrap_or(0)
+            } else { 0 }
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_equal_num(o: *mut Value, v: i64) -> c_int {
-    unsafe {
-        match *o {
-            Value::Number(ref n) => if n.as_i64() == Some(v) { 1 } else { 0 },
-            _ => 0,
+    if o.is_null() { 0 } else {
+        unsafe {
+            if let Value::Number(ref n) = *o {
+                if n.as_i64() == Some(v) { 1 } else { 0 }
+            } else { 0 }
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_equal_str(o: *mut Value, s: *const c_char) -> c_int {
-    unsafe {
-        if let Value::String(ref os) = *o {
-            let c = CStr::from_ptr(s);
-            let cs = str::from_utf8_unchecked(c.to_bytes());
-            if os == cs { 1 } else { 0 }
-        } else {
-            0
+    if o.is_null() { 0 } else {
+        unsafe {
+            if let Value::String(ref os) = *o {
+                let c = CStr::from_ptr(s);
+                let cs = str::from_utf8_unchecked(c.to_bytes());
+                if os == cs { 1 } else { 0 }
+            } else {
+                0
+            }
         }
     }
 }
@@ -371,6 +384,9 @@ pub extern "C" fn rust_append_at_int(arr: *mut Value, idx: c_int, el: *mut Value
         match *arr {
             Value::Array(ref mut a) => {
                 let i = idx as usize;
+                if i >= a.len() && i - a.len() > CSONPATH_MAX_ARRAY_PAD {
+                    return -1;
+                }
                 while a.len() <= i {
                     a.push(Value::Null);
                 }
@@ -420,7 +436,10 @@ pub extern "C" fn rust_append_at_str(arr: *mut Value, key: *const c_char, el: *m
 #[no_mangle]
 pub extern "C" fn rust_need_foreach_redo(o: *mut Value) -> c_int {
     unsafe {
-        if let Value::Object(_) = *o { 1 } else { 0 }
+        /* object and array: mutation while iterating invalidates a captured
+         * iterator (Box<MapIter> / cached len + idx), so the core must
+         * re-loop after every modification, like the Python backend does. */
+        if let Value::Object(_) = *o { 1 } else if let Value::Array(_) = *o { 1 } else { 0 }
     }
 }
 

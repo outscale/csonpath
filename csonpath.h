@@ -1028,6 +1028,15 @@ static const char *csonpath_skipp_union_jmp(const char *walker)
 #define CSONPATH_EXCEPTION(args...) CSONPATH_GETTER_ERR(args)
 #endif
 
+/* After CSONPATH_APPEND_AT() created a fresh node inside the walk context,
+ * re-establish ctx on the node that is actually reachable from the tree.
+ * Refcounted backends keep the very same allocation alive (their REMOVE is a
+ * mere decref), so ctx = tmp is enough. Rust clones the node into the tree and
+ * frees the temporary, so it must re-fetch the stored node. */
+#ifndef CSONPATH_POST_CREATE_CTX
+#define CSONPATH_POST_CREATE_CTX(child_info, ctx, tmp) do { ctx = tmp; } while (0)
+#endif
+
 CSONPATH_STATINLINE void CSONPATH_FUNC(csonpath_destroy)(struct csonpath *cjp)
 {
     if (!cjp)
@@ -1476,7 +1485,7 @@ static int CSONPATH_FUNC(csonpath_sync_root_obj)(CSONPATH_JSON parent, CSONPATH_
 	    append_ret = CSONPATH_APPEND_AT(ctx, child_info->key, tmp, 1); \
 	CSONPATH_REMOVE(tmp);						\
 	if (append_ret < 0) return append_ret;				\
-	ctx = tmp;							\
+	CSONPATH_POST_CREATE_CTX(child_info, ctx, tmp);			\
     }
 
 #define CSONPATH_PRE_GET_OBJ(this_idx)					\
