@@ -196,7 +196,11 @@ static int python_set_or_insert_item(PyObject *array, Py_ssize_t at, PyObject *e
     for (Py_ssize_t pos_ = 0; ({					\
 		PyObject *key_;						\
 		_Bool r = PyDict_Next(obj, &pos_, &key_, &child);	\
-		if (r) key = PyUnicode_AsUTF8AndSize(key_, NULL);	\
+		if (r) {						\
+		    key = PyUnicode_AsUTF8AndSize(key_, NULL);		\
+		    if (!key)						\
+			r = 0;						\
+		}							\
 		r;							\
 	    });)
 
@@ -206,6 +210,9 @@ static int python_set_or_insert_item(PyObject *array, Py_ssize_t at, PyObject *e
     Py_ssize_t pos_ = 0;						\
     while (PyDict_Next(obj, &pos_, &key_, &el)) {			\
       const char *key_idx = PyUnicode_AsUTF8AndSize(key_, NULL);	\
+      if (!key_idx) {							\
+        break;								\
+      }									\
       (void)key_idx;							\
       code								\
 	}								\
