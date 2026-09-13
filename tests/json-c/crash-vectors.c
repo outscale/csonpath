@@ -45,6 +45,18 @@ static void test_compile_unclosed_quote_bracket(void)
     assert(p == NULL);
 }
 
+static void test_compile_filter_getter_quote_trailing(void)
+{
+    /* A filter getter whose opening quote is never closed (here: second
+     * union member, so the union pre-scan does not catch it).  The getter
+     * scan at csonpath.h:574 used to loop with
+     * `for (next = walker; *next != getter_end; ++next)` and read past the
+     * end of the input string because it lacked a NUL stop test.  The path
+     * must be rejected cleanly (return NULL), not read out of bounds. */
+    struct csonpath *p = csonpath_new("$[?@['a']==1,?@['key==val]");
+    assert(p == NULL);
+}
+
 static void test_compile_recursive_descent_no_key(void)
 {
     struct csonpath *p = csonpath_new("$..");
@@ -786,6 +798,9 @@ int main(void)
 
     printf("\n-- Subpath string key not found --\n"); fflush(stdout);
     RUN(test_subpath_string_key_not_found);
+
+    printf("\n-- Unterminated filter getter quote --\n"); fflush(stdout);
+    RUN(test_compile_filter_getter_quote_trailing);
 
     printf("\n-- update_or_create GET_ALL then subpath --\n"); fflush(stdout);
     RUN(test_update_or_create_get_all_then_subpath);

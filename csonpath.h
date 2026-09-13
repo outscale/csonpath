@@ -571,7 +571,7 @@ root_again:
 			goto error;
 		    }
 		    ++walker;
-		    for (next = walker; *next != getter_end; ++next)
+		    for (next = walker; *next && *next != getter_end; ++next)
 			CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, *next, next);
 		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, 0, next);
 		} else {
