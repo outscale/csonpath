@@ -227,6 +227,91 @@ static void test_recursive_descent_into_array(void)
     CSONPATH_JSON ret = csonpath_find_all(p, jobj);
     assert(ret && json_object_array_length(ret) == 2);
     csonpath_destroy(p);
+    json_object_put(ret);
+    json_object_put(jobj);
+}
+
+static void test_recursive_descent_find_first_array(void)
+{
+    /* $..a on an array root: csonpath_do_dotdot receives a array and
+     * executes CSONPATH_DO_FOREACH_PRE_SET in the array branch. */
+    struct csonpath *p = csonpath_new("$..a");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("[{\"a\": 42}]");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret && json_object_get_int(ret) == 42);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_recursive_descent_remove_array(void)
+{
+    /* $..a on an array of objects in remove mode. */
+    struct csonpath *p = csonpath_new("$..a");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("[{\"a\": 1}, {\"a\": 2}]");
+    int ret = csonpath_remove(p, jobj);
+    assert(ret == 2);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_recursive_descent_update_array(void)
+{
+    /* $..a on an array of objects in update_or_create mode. */
+    struct csonpath *p = csonpath_new("$..a");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("[{\"a\": 1}, {\"a\": 2}]");
+    struct json_object *val = json_object_new_int(99);
+    int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
+    assert(ret == 2);
+    struct json_object *first = json_object_array_get_idx(jobj, 0);
+    assert(json_object_get_int(json_object_object_get(first, "a")) == 99);
+    struct json_object *second = json_object_array_get_idx(jobj, 1);
+    assert(json_object_get_int(json_object_object_get(second, "a")) == 99);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_update_all_obj(void)
+{
+    /* $.* on an object in update_or_create mode.
+     * Every top-level value should be replaced. */
+    struct csonpath *p = csonpath_new("$.*");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("{\"a\": {\"b\": 1}, \"c\": [2, 3]}");
+    struct json_object *val = json_object_new_int(99);
+    int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
+    assert(ret == 2);
+    assert(json_object_get_int(json_object_object_get(jobj, "a")) == 99);
+    assert(json_object_get_int(json_object_object_get(jobj, "c")) == 99);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static int rd_callback_count = 0;
+
+static void json_c_callback_rd_count(struct json_object *ctx,
+                                     struct csonpath_child_info *child_info,
+                                     struct json_object *val, void *udata)
+{
+    (void)ctx; (void)child_info; (void)val; (void)udata;
+    ++rd_callback_count;
+}
+
+static void test_recursive_descent_callback_array(void)
+{
+    /* $..a on an array of objects in callback mode. */
+    rd_callback_count = 0;
+    struct csonpath *p = csonpath_new("$..a");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse("[{\"a\": 1}, {\"a\": 2}]");
+    int ret = csonpath_callback(p, jobj, json_c_callback_rd_count, NULL);
+    assert(ret == 2);
+    assert(rd_callback_count == 2);
+    csonpath_destroy(p);
     json_object_put(jobj);
 }
 
@@ -715,6 +800,97 @@ static void test_subpath_string_key_not_found(void)
     json_object_put(jobj);
 }
 
+static void test_subpath_string_key_found(void)
+{
+    /* GET_SUBPATH returns a string key that exists in the target object.
+     * Covers CSONPATH_PRE_GET_OBJ and CSONPATH_DO_POST_FIND_OBJ. */
+    struct csonpath *p = csonpath_new("$.a[$.key]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\":{\"x\":42}, \"key\":\"x\"}");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret && json_object_get_int(ret) == 42);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_subpath_string_key_missing(void)
+{
+    /* GET_SUBPATH returns a string key that does NOT exist in the target.
+     * Covers CSONPATH_DO_GET_NOTFOUND. */
+    struct csonpath *p = csonpath_new("$.a[$.key]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\":{\"x\":42}, \"key\":\"z\"}");
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_subpath_string_key_update_or_create(void)
+{
+    /* GET_SUBPATH string key in update_or_create mode.
+     * Covers CSONPATH_PRE_GET_OBJ (defined for this mode). */
+    struct csonpath *p = csonpath_new("$.a[$.key]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\":{\"x\":1}, \"key\":\"x\"}");
+    struct json_object *val = json_object_new_int(42);
+    int ret = csonpath_update_or_create(p, jobj, val);
+    json_object_put(val);
+    assert(ret == 1);
+    assert(json_object_get_int(
+        json_object_object_get(json_object_object_get(jobj, "a"), "x")) == 42);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_subpath_string_key_remove(void)
+{
+    /* GET_SUBPATH string key in remove mode.
+     * Covers CSONPATH_DO_POST_FIND_OBJ (defined for this mode). */
+    struct csonpath *p = csonpath_new("$.a[$.key]");
+    assert(p);
+    struct json_object *jobj = json_tokener_parse(
+        "{\"a\":{\"x\":1}, \"key\":\"x\"}");
+    int ret = csonpath_remove(p, jobj);
+    assert(ret == 1);
+    assert(json_object_object_get(
+        json_object_object_get(jobj, "a"), "x") == NULL);
+    csonpath_destroy(p);
+    json_object_put(jobj);
+}
+
+static void test_unimplemented_instruction(void)
+{
+    /* Corrupt bytecode: first instruction byte is unknown.
+     * Covers the default case in csonpath_do_internal. */
+    struct csonpath *p = calloc(1, sizeof(*p) + 2);
+    assert(p);
+    p->data[0] = 0x1a; /* > CSONPATH_INST_BROKEN, no matching case */
+    struct json_object *jobj = json_object_new_object();
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret == NULL);
+    free(p);
+    json_object_put(jobj);
+}
+
+static void test_broken_instruction(void)
+{
+    /* Corrupt bytecode: CSONPATH_INST_BROKEN at start.
+     * Covers the early error path in csonpath_do_. */
+    struct csonpath *p = calloc(1, sizeof(*p) + 2);
+    assert(p);
+    p->data[0] = CSONPATH_INST_BROKEN;
+    p->compile_error = NULL;
+    struct json_object *jobj = json_object_new_object();
+    CSONPATH_JSON ret = csonpath_find_first(p, jobj);
+    assert(ret == NULL);
+    free(p);
+    json_object_put(jobj);
+}
+
 /* -------------------------------------------------------------------- */
 /* Main                                                                */
 /* -------------------------------------------------------------------- */
@@ -748,6 +924,11 @@ int main(void)
     RUN(test_recursive_descent_on_scalar);
     RUN(test_recursive_descent_on_empty_obj);
     RUN(test_recursive_descent_into_array);
+    RUN(test_recursive_descent_find_first_array);
+    RUN(test_recursive_descent_remove_array);
+    RUN(test_recursive_descent_update_array);
+    RUN(test_update_all_obj);
+    RUN(test_recursive_descent_callback_array);
 
     printf("\n-- Union edge cases --\n"); fflush(stdout);
     RUN(test_empty_union);
@@ -796,8 +977,16 @@ int main(void)
     RUN(test_callback_basic);
     RUN(test_update_or_create_callback_missing_path);
 
-    printf("\n-- Subpath string key not found --\n"); fflush(stdout);
+    printf("\n-- Subpath string key --\n"); fflush(stdout);
     RUN(test_subpath_string_key_not_found);
+    RUN(test_subpath_string_key_found);
+    RUN(test_subpath_string_key_missing);
+    RUN(test_subpath_string_key_update_or_create);
+    RUN(test_subpath_string_key_remove);
+
+    printf("\n-- Corrupted bytecode --\n"); fflush(stdout);
+    RUN(test_unimplemented_instruction);
+    RUN(test_broken_instruction);
 
     printf("\n-- Unterminated filter getter quote --\n"); fflush(stdout);
     RUN(test_compile_filter_getter_quote_trailing);
