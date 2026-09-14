@@ -488,7 +488,6 @@ CSONPATH_STATINLINE CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static
     if (*walker == CSONPATH_INST_BROKEN) {
 	CSONPATH_GETTER_ERR("fail to compile: %s\n", cjp->compile_error ?
 			    cjp->compile_error : "(unknow error)");
-	return CSONPATH_NONE_FOUND_RET;
     }
 
     CSONPATH_DO_PRE_OPERATION;
