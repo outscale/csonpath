@@ -167,6 +167,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
 	}
     } else if (CSONPATH_IS_ARRAY(tmp)) {
 	CSONPATH_FOREACH_ARRAY(tmp, el, key_idx) {
+	    (void)key_idx;
 	    CSONPATH_DO_FOREACH_PRE_SET;
 	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
 		tret = csonpath_do_dotdot(cjp, origin, el, tmp, walker
