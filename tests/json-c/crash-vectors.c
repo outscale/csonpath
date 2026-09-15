@@ -346,6 +346,7 @@ static void test_union_find_all(void)
         "{\"a\": 1, \"b\": 2, \"c\": 3}");
     CSONPATH_JSON ret = csonpath_find_all(p, jobj);
     assert(ret && json_object_array_length(ret) == 2);
+    json_object_put(ret);
     csonpath_destroy(p);
     json_object_put(jobj);
 }
