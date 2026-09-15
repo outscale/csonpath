@@ -5,6 +5,7 @@ Usage:
     ./pivot results.csv
     ./aggregate | ./pivot
     ./aggregate | ./pivot --csv
+    ./aggregate | ./pivot --alpha
 """
 
 import csv
@@ -25,10 +26,16 @@ QUERY_MAP = {
 
 def main():
     csv_mode = False
+    alpha_sort = False
     files = []
     for a in sys.argv[1:]:
         if a == "--csv":
             csv_mode = True
+        elif a == "--alpha":
+            alpha_sort = True
+        elif a.startswith("-"):
+            print(f"unknown option: {a}", file=sys.stderr)
+            sys.exit(1)
         else:
             files.append(open(a, newline=""))
     if not files:
@@ -62,7 +69,11 @@ def main():
         else:
             data[query][category] = time_val
 
-    categories = sorted(totals.keys() | {c for q in data.values() for c in q.keys()})
+    all_categories = totals.keys() | {c for q in data.values() for c in q.keys()}
+    if alpha_sort:
+        categories = sorted(all_categories)
+    else:
+        categories = sorted(all_categories, key=lambda c: (totals.get(c, float('inf')), c))
     queries = sorted(data.keys())
 
     if not categories or not queries:

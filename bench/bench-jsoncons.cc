@@ -106,8 +106,8 @@ int main() {
 
     csv_header();
     double total = 0.0;
-    const int iters = 250;
-    const double scale = 4.0;
+    const int iters = 1000;
+    const double scale = 1.0;
 
     for (const auto& query : queries) {
         double start = now_seconds();

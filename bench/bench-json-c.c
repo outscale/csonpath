@@ -99,8 +99,8 @@ int main_(const char **queries, int query_count, const char *category) {
     struct csonpath *p;
     size_t count = 0;
     double total = 0.0;
-    const int iters = 250;
-    const double scale = 4.0;
+    const int iters = 1000;
+    const double scale = 1.0;
 
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();

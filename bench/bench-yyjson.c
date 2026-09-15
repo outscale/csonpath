@@ -115,8 +115,8 @@ int main() {
     size_t count = 0;
     double total = 0.0;
     double mut_total = 0.0;
-    const int iters = 2000;
-    const double scale = 0.5;
+    const int iters = 1000;
+    const double scale = 1;
 
     csv_header();
 
