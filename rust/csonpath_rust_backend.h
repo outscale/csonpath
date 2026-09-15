@@ -22,6 +22,7 @@ extern void  rust_array_clear(void *o);
 extern void  rust_obj_clear(void *o);
 extern void *rust_get(void *obj, const char *key);
 extern void *rust_at(void *arr, int idx);
+extern size_t rust_array_length(void *arr);
 extern int   rust_is_obj(void *o);
 extern int   rust_is_array(void *o);
 extern int   rust_is_str(void *o);
@@ -52,6 +53,7 @@ extern void  rust_obj_iter_cleanup(void *it);
 /* -- macros used by csonpath core -- */
 #define CSONPATH_GET(o, k)              rust_get((o), (k))
 #define CSONPATH_AT(o, i)               rust_at((o), (i))
+#define CSONPATH_ARRAY_LENGTH(o)        ((size_t)rust_array_length(o))
 #define CSONPATH_IS_OBJ(o)              rust_is_obj(o)
 #define CSONPATH_IS_ARRAY(o)            rust_is_array(o)
 #define CSONPATH_IS_STR(o)              rust_is_str(o)
@@ -150,6 +152,18 @@ struct rust_obj_iter {
     )((array), (at), (el), (do_incref))
 
 #define CSONPATH_NEED_FOREACH_REDO(o) rust_need_foreach_redo(o)
+
+/* After creating a fresh node inside the walk context, the temporary payload
+ * is cloned into the tree and freed, so re-fetch the node as stored in the
+ * tree instead of keeping a dangling pointer (the refcounted backends keep
+ * the same allocation alive and use ctx = tmp). */
+#define CSONPATH_POST_CREATE_CTX(child_info, ctx, tmp) do {		\
+	ctx = tmp = (child_info)->type == CSONPATH_INTEGER		\
+	    ? CSONPATH_AT(ctx, (child_info)->idx)			\
+	    : CSONPATH_GET(ctx, (child_info)->key);			\
+	if (ctx == CSONPATH_NULL)					\
+	    CSONPATH_EXCEPTION("Unable to re-fetch created node\n");	\
+    } while (0)
 
 /* -- callbacks (opaque stubs) -- */
 #define CSONPATH_CALLBACK void *

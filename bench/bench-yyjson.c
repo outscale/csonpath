@@ -59,7 +59,7 @@ static yyjson_mut_val *build_deep_mixed(yyjson_mut_doc *doc) {
     return cur;
 }
 
-static yyjson_doc *build_data(void) {
+static yyjson_mut_doc *build_data(void) {
     yyjson_mut_doc *mdoc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *root = yyjson_mut_obj(mdoc);
     yyjson_mut_val *store = yyjson_mut_obj(mdoc);
@@ -90,16 +90,16 @@ static yyjson_doc *build_data(void) {
     yyjson_mut_obj_add(root, yyjson_mut_strcpy(mdoc, "store"), store);
     yyjson_mut_doc_set_root(mdoc, root);
 
-    yyjson_doc *jdoc = yyjson_mut_doc_imut_copy(mdoc, NULL);
-    yyjson_mut_doc_free(mdoc);
-    return jdoc;
+    return mdoc;
 }
 
 int main() {
     bench_csv_mode = getenv("BENCH_CSV") != NULL;
 
-    struct yyjson_doc *jdoc = build_data();
+    yyjson_mut_doc *mdoc = build_data();
+    yyjson_doc *jdoc = yyjson_mut_doc_imut_copy(mdoc, NULL);
     yyjson_val *jobj = yyjson_doc_get_root(jdoc);
+    yyjson_mut_val *mroot = yyjson_mut_doc_get_root(mdoc);
 
     const char *queries[] = {
 	"$.store.book[?(@.price) > 20].title",
@@ -114,17 +114,19 @@ int main() {
     struct csonpath *p;
     size_t count = 0;
     double total = 0.0;
-    const int iters = 250;
-    const double scale = 4.0;
+    double mut_total = 0.0;
+    const int iters = 1000;
+    const double scale = 1;
 
     csv_header();
 
+    /* const backend */
     for (size_t i = 0; i < query_count; i++) {
         double start = now_seconds();
 
-	p = csonpath_new(queries[i]);
+	p = yyjson_csonpath_new(queries[i]);
 	for (int j = 0; j < iters; ++j) {
-		struct find_all_ret *ret = csonpath_find_all(p, jobj);
+		struct find_all_ret *ret = yyjson_csonpath_find_all(p, jobj);
 		count = ret ? ret->i : 0;
 		free_find_all(ret);
 	}
@@ -132,17 +134,45 @@ int main() {
         double elapsed = now_seconds() - start;
         total += elapsed * scale;
         if (bench_csv_mode) {
-            csv_row("yyjson", queries[i], count, elapsed * scale);
+            csv_row("yyjson const", queries[i], count, elapsed * scale);
         } else {
-            printf("recompile Query: %s\n", queries[i]);
+            printf("[yyjson const] Query: %s\n", queries[i]);
             printf("Results: %zu, in %d loop, Time: %.6f seconds\n\n", count, iters, elapsed);
         }
 
     }
 
-    csv_total("yyjson", total);
+    csv_total("yyjson const", total);
+    yyjson_csonpath_destroy(p);
 
-    csonpath_destroy(p);
+    /* mut backend */
+    for (size_t i = 0; i < query_count; i++) {
+        double start = now_seconds();
+
+	p = yyjson_mut_csonpath_new(queries[i]);
+	p->backend_ctx = mdoc;
+	for (int j = 0; j < iters; ++j) {
+		struct csonpath_yyjson_mut_find_all_ret *ret =
+		    yyjson_mut_csonpath_find_all(p, mroot);
+		count = ret ? ret->i : 0;
+		csonpath_yyjson_mut_free_find_all(ret);
+	}
+
+        double elapsed = now_seconds() - start;
+        mut_total += elapsed * scale;
+        if (bench_csv_mode) {
+            csv_row("yyjson mut", queries[i], count, elapsed * scale);
+        } else {
+            printf("[yyjson mut] Query: %s\n", queries[i]);
+            printf("Results: %zu, in %d loop, Time: %.6f seconds\n\n", count, iters, elapsed);
+        }
+
+    }
+
+    csv_total("yyjson mut", mut_total);
+
+    yyjson_mut_csonpath_destroy(p);
     yyjson_doc_free(jdoc);
+    yyjson_mut_doc_free(mdoc);
     return 0;
 }

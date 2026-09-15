@@ -4,9 +4,9 @@
 
 [![Project Sandbox](https://docs.outscale.com/fr/userguide/_images/Project-Sandbox-yellow.svg)](https://docs.outscale.com/en/userguide/Open-Source-Projects.html)
 
-**csonpath** is a partial [JSONPath](https://goessner.net/articles/JsonPath/) implementation in C, with Python bindings. It allows you to query, update, and remove data from JSON objects using path expressions.
+**csonpath** is a partial [JSONPath](https://goessner.net/articles/JsonPath/) implementation in C. It is **backend-agnostic**: the same core engine can query, update, and remove data from any value representation that supports array, object, and scalar semantics—not just JSON.
 
-Unlike many JSONPath libraries, csonpath is **backend-agnostic**: it can work with any C library or environment that manipulates array, object, and scalar types—not just JSON. Out of the box, backends for [json-c](https://github.com/json-c/json-c), [yyjson](https://github.com/ibireme/yyjson), Python and Rust (via `serde_json`) are provided.
+Out of the box it ships with C backends for [json-c](https://github.com/json-c/json-c) and [yyjson](https://github.com/ibireme/yyjson), plus language bindings for **Python** and **Rust**.
 
 ---
 
@@ -54,6 +54,7 @@ Unlike many JSONPath libraries, csonpath is **backend-agnostic**: it can work wi
 - [C API Reference](#-c-api-reference)
 - [Python API Reference](#-python-api-reference)
 - [CLI](#%EF%B8%8F-cli)
+- [Using Multiple Backends](#-using-multiple-backends)
 - [Custom Backends](#-custom-backends)
 - [Running Tests](#-running-tests)
 - [Directory Structure](#-directory-structure)
@@ -64,12 +65,12 @@ Unlike many JSONPath libraries, csonpath is **backend-agnostic**: it can work wi
 
 ## 📦 Installation
 
-### Prerequisites
-- C compiler (`gcc` or `clang`)
-- [json-c](https://github.com/json-c/json-c) library (for C usage)
-- Python 3.x (for Python bindings)
+csonpath is a C library at its core. Pick the instructions for the language you want to use it from.
 
 ### C (json-c)
+
+**Prerequisites:** C compiler (`gcc`, `clang`, or `tcc`), [json-c](https://github.com/json-c/json-c).
+
 Just include the header in your project. There is no separate install step required:
 ```c
 #include "csonpath_json-c.h"
@@ -79,21 +80,23 @@ Make sure to link against `json-c` when compiling:
 gcc myapp.c -o myapp $(pkg-config --cflags --libs json-c)
 ```
 
-### C (Rust backend)
-The Rust backend is located in `rust/`. It builds both a safe Rust API and the C glue required by the csonpath core.
+### C (yyjson)
 
-```sh
-cd rust
-cargo build
-cargo test
+**Prerequisites:** C compiler (`gcc`, `clang`, or `tcc`), [yyjson](https://github.com/ibireme/yyjson).
+
+```c
+#include "csonpath_yyjson.h"
 ```
 
-To use it from C, include the backend header and link against the produced static library:
-```c
-#include "rust/csonpath_rust_backend.h"
+Link against `yyjson` when compiling:
+```sh
+gcc myapp.c -o myapp $(pkg-config --cflags --libs yyjson)
 ```
 
 ### Python
+
+**Prerequisites:** Python 3.x.
+
 Install from PyPI:
 ```sh
 pip install csonpath
@@ -104,6 +107,23 @@ To install from source (development):
 pip install .
 # or
 make pip-dev
+```
+
+### Rust
+
+**Prerequisites:** Rust toolchain.
+
+The Rust crate is located in `rust/`. Build and test it with:
+```sh
+cd rust
+cargo build
+cargo test
+```
+
+To depend on it from another Rust project:
+```toml
+[dependencies]
+csonpath = { path = "rust" }
 ```
 
 ---
@@ -185,6 +205,8 @@ p.update_or_create_callback(dst, my_sync_fn, userdata)
 ---
 
 ## 📘 C API Reference
+
+The reference below uses the **json-c** backend as an example (`struct json_object *`). All backends expose the same functions with their own value type.
 
 ```c
 struct csonpath *csonpath_new(const char *path);
@@ -328,17 +350,47 @@ echo '{"a": 1, "b": 2}' | ./csonpath -d '$.b'
 
 ---
 
+## 🧩 Using Multiple Backends
+
+You can include more than one csonpath backend in the same translation unit, provided you prefix all but one of them to avoid symbol collisions. Define `CSONPATH_USE_PREFIX` before a backend header to prefix its API with the backend name.
+
+For example, to use both json-c and the immutable yyjson backend in the same file:
+
+```c
+#define CSONPATH_USE_PREFIX
+#include "csonpath_json-c.h"
+
+#undef CSONPATH_USE_PREFIX
+#include "csonpath_yyjson_const.h"
+```
+
+To use both yyjson backends (immutable and mutable) together, include the aggregator header:
+
+```c
+#include "csonpath_yyjson.h"
+```
+
+When using the mutable yyjson backend, assign the document pointer to `backend_ctx` before mutable operations:
+
+```c
+struct csonpath *mp = yyjson_mut_csonpath_new("$.a");
+mp->backend_ctx = mdoc;
+yyjson_mut_csonpath_update_or_create(mp, mroot, new_val);
+```
+
+---
+
 ## 🔌 Custom Backends
 
-csonpath is designed to be backend-agnostic. It can work with any data structure that supports array, object, and scalar semantics.
+csonpath is designed to be backend-agnostic. The C core manipulates opaque value pointers through a small set of macros, so it can work with any data structure that supports array, object, and scalar semantics.
 
-To create a custom backend, define the required macros and types in a header file (similar to `csonpath_json-c.h` or `csonpath_python.c`), then include your backend header before `csonpath.h`. This allows you to adapt csonpath for manipulating data in any format that supports array/object semantics, giving you full flexibility beyond just JSON.
+A backend is an adapter that implements those macros for a concrete value representation. To create a custom backend, define the required macros and types in a header file (similar to `csonpath_json-c.h` or `csonpath_yyjson.h`), then include your backend header before `csonpath.h`.
 
-For more details, see the existing backend implementations:
-- `csonpath_json-c.h` — json-c backend
-- `csonpath_yyjson.h` — yyjson backend
-- `csonpath_python.c` — Python backend
-- `rust/csonpath_rust_backend.h` — Rust / serde_json backend
+Existing backend adapters:
+- `csonpath_json-c.h` — json-c values
+- `csonpath_yyjson.h` — yyjson values
+- `csonpath_python.c` — Python C API values (used by the Python bindings)
+- `rust/csonpath_rust_backend.h` — Rust `serde_json::Value` (used by the Rust crate)
 
 ---
 
@@ -375,7 +427,7 @@ make tests
 | `csonpath_json-c.h` | json-c backend |
 | `csonpath_yyjson.h` | yyjson backend |
 | `csonpath_python.c` | Python C extension backend |
-| `rust/` | Rust backend (safe API, FFI, C glue) |
+| `rust/` | Rust crate and its C backend adapter |
 | `csonpath_my_fuzzing.h` | Fuzzer helpers (C) |
 | `tests/` | C and Python test suites |
 | `bench/` | Performance benchmarks |

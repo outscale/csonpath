@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, c_void};
 #[repr(C)]
 pub struct Csonpath {
     pub compile_error: *const c_char,
-    pub return_empty_array: c_int,
+    pub flags: c_int,
     pub regex_cnt: c_int,
     pub regexs: *mut c_void,
     /* The C struct has a flexible array member `char data[]` here.

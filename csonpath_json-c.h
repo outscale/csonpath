@@ -7,6 +7,18 @@
 #include <ctype.h>
 #include "json.h"
 
+/* Optional prefix: define CSONPATH_USE_PREFIX before including this header
+ * to get json_c_csonpath_* symbols instead of unprefixed ones. */
+#ifdef CSONPATH_USE_PREFIX
+# undef CSONPATH_API_PREFIX
+# define CSONPATH_API_PREFIX json_c_
+#else
+# undef CSONPATH_API_PREFIX
+# define CSONPATH_API_PREFIX
+#endif
+
+#include "csonpath_undef.h"
+
 #define CSONPATH_JSON struct json_object *
 
 #define CSONPATH_NULL NULL

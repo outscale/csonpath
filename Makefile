@@ -5,7 +5,7 @@ YYJSON_LDFLAGS=$(shell pkg-config --libs yyjson)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-json-my-fuzz
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-json-my-fuzz test-json-regex-overflow
 
 YYJSON_TESTS=test-yyjson
 
@@ -15,7 +15,7 @@ bench:
 bench-clean:
 	make -C bench clean
 
-.PHONY: all clean tests pip-dev pip-dev bench bench-clean tests-cli
+.PHONY: all clean tests pip-dev pip-dev bench bench-clean tests-cli tests-rust cov
 
 CFLAGS+= -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 
@@ -52,10 +52,19 @@ test-json-crash-vectors: tests/json-c/crash-vectors.c csonpath_json-c.h csonpath
 test-json-my-fuzz: tests/json-c/my_fuzz.c csonpath_json-c.h csonpath_my_fuzzing.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/my_fuzz.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-my-fuzz $(JSON_C_LDFLAGS) $(LDFLAGS)
 
-test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson.h csonpath.h csonpath_do.h
+test-json-regex-overflow: tests/json-c/regex-overflow.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/regex-overflow.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-regex-overflow $(JSON_C_LDFLAGS) $(LDFLAGS)
+
+test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson_const.h csonpath.h csonpath_do.h
 	$(CC) tests/yyjson/test-yyjson.c $(EXTRA_FILES) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-yyjson $(YYJSON_LDFLAGS) $(LDFLAGS)
 
-tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-json-my-fuzz
+test-yyjson-mixed: tests/yyjson/test-yyjson-mixed.c csonpath_yyjson.h csonpath_yyjson_const.h csonpath_yyjson_mut.h csonpath.h csonpath_do.h
+	$(CC) tests/yyjson/test-yyjson-mixed.c $(EXTRA_FILES) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-yyjson-mixed $(YYJSON_LDFLAGS) $(LDFLAGS)
+
+test-multi-backend-prefix: tests/multi-backend-prefix.c csonpath_json-c.h csonpath_yyjson.h csonpath_yyjson_const.h csonpath_yyjson_mut.h csonpath.h csonpath_do.h
+	$(CC) tests/multi-backend-prefix.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-multi-backend-prefix $(JSON_C_LDFLAGS) $(YYJSON_LDFLAGS) $(LDFLAGS)
+
+tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix test-json-regex-overflow
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
@@ -67,7 +76,10 @@ tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath t
 	./test-json-audit-bugs
 	./test-json-crash-vectors
 	./test-yyjson
+	./test-yyjson-mixed
 	./test-json-my-fuzz
+	./test-multi-backend-prefix
+	./test-json-regex-overflow
 
 csonpath: cli/csonpath_cli.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) cli/csonpath_cli.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -I./ -o csonpath $(JSON_C_LDFLAGS) $(LDFLAGS)
@@ -81,8 +93,34 @@ pip-dev:
 tests-py: pip-dev
 	python -m pytest
 
-tests: tests-py tests-c
+tests-rust:
+	cargo test --manifest-path rust/Cargo.toml
+
+cov:
+	$(MAKE) clean
+	rm -rf coverage-c coverage-c.html coverage-py coverage-rust build
+	find . -name '*.gcov' -delete
+	$(MAKE) CFLAGS='--coverage -O0 -g' LDFLAGS='--coverage' tests-c
+	CFLAGS='--coverage -O0' LDFLAGS='--coverage' python setup.py build_ext --inplace --force
+	python -m coverage run -m pytest
+	python -m coverage html -d coverage-py
+	python -m gcovr -r . \
+		--gcov-object-directory "$$(ls -d build/temp.* 2>/dev/null | head -1)" \
+		--filter 'csonpath\.h' --filter 'csonpath_do\.h' --filter 'csonpath_python\.c' \
+		--html-details coverage-c.html
+	PATH="$$HOME/.cargo/bin:$$PATH" \
+		LLVM_COV="$$(find $$HOME/.rustup/toolchains -name llvm-cov -print -quit)" \
+		LLVM_PROFDATA="$$(find $$HOME/.rustup/toolchains -name llvm-profdata -print -quit)" \
+		cargo llvm-cov --manifest-path rust/Cargo.toml --html --output-dir coverage-rust
+	@echo "Coverage reports:"
+	@echo "  coverage-c.html"
+	@echo "  coverage-py/index.html"
+	@echo "  coverage-rust/html/index.html"
+
+tests: tests-py tests-c tests-cli tests-rust
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-json-my-fuzz csonpath
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix test-json-regex-overflow csonpath
+	find . -name '*.gcda' -delete
+	find . -name '*.gcno' -delete
 
