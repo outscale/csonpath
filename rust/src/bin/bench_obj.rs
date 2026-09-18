@@ -18,7 +18,7 @@ fn main() {
         let t0 = Instant::now();
         for _ in 0..iters {
             let r = cp.find_all(&data).unwrap();
-            assert_eq!(r.as_array().map(|a| a.len()), Some(n));
+            assert_eq!(r.unwrap().as_array().map(|a| a.len()), Some(n));
         }
         println!("find_all $.* on {} keys: {} iters in {:.4}s",
                  n, iters, t0.elapsed().as_secs_f64());

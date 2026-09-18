@@ -4,6 +4,8 @@ use std::ffi::{c_char, c_int, c_void};
 pub struct Csonpath {
     pub compile_error: *const c_char,
     pub flags: c_int,
+    pub extra_roots: *mut c_void,
+    pub backend_ctx: *mut c_void,
     pub regex_cnt: c_int,
     pub regexs: *mut c_void,
     /* The C struct has a flexible array member `char data[]` here.

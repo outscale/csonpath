@@ -171,10 +171,17 @@ struct rust_obj_iter {
 #define CSONPATH_CALL_CALLBACK(callback, ctx, child_info, tmp, udata) \
     rust_call_callback((callback), (ctx), &(child_info), (tmp), (udata))
 
-/* -- exceptions / formatting -- */
-#define CSONPATH_FORMAT_EXCEPTION(args...) fprintf(stderr, args)
+/* -- exceptions / formatting --
+ * Capture runtime error messages in Rust instead of printing to stderr.
+ * The formatted string is forwarded to rust_log_error(). */
+extern void rust_log_error(const char *msg);
+#define CSONPATH_FORMAT_EXCEPTION(args...) do { \
+    char _cpr_err_buf[4096]; \
+    snprintf(_cpr_err_buf, sizeof(_cpr_err_buf), args); \
+    rust_log_error(_cpr_err_buf); \
+} while (0)
 #define CSONPATH_EXCEPTION(args...) do { \
-    fprintf(stderr, args); \
+    CSONPATH_FORMAT_EXCEPTION(args); \
     return -1; \
 } while (0)
 

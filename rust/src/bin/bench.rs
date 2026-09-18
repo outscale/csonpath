@@ -89,9 +89,9 @@ fn build_book(i: usize) -> Value {
     })
 }
 
-fn bench_csonpath(cp: &CsonPath, data: &Value, iters: usize) -> (Value, f64) {
+fn bench_csonpath(cp: &CsonPath, data: &Value, iters: usize) -> (Option<Value>, f64) {
     let t0 = Instant::now();
-    let mut result = Value::Null;
+    let mut result = None;
     for _ in 0..iters {
         result = cp.find_all(data).unwrap();
     }
@@ -228,10 +228,10 @@ fn main() {
         let t_scaled = t * scale;
         total_csonpath += t_scaled;
         if csv_mode {
-            csv_csonpath.push((escaped.clone(), result_len(&r), t_scaled));
+            csv_csonpath.push((escaped.clone(), result_len(r.as_ref().unwrap_or(&Value::Null)), t_scaled));
         } else {
             println!("csonpath rust : {} results, in {} loop, Time: {} seconds",
-                     result_len(&r), iters, t);
+                     result_len(r.as_ref().unwrap_or(&Value::Null)), iters, t);
         }
 
         let (r_pure, t_pure) = bench_pure_rust(&data, label, iters);
