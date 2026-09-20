@@ -197,6 +197,138 @@ fi
 echo "== type selector recursive descent key =="
 test "$(echo '{"a":{"truc":"hi"},"b":{"truc":1}}' | "$CLI" -a -o json '$..truc@string()')" = '["hi"]'
 
+echo "== object wildcard find all =="
+test "$(echo '{"a":1,"b":2}' | "$CLI" -a -o json '$.*')" = '[1,2]'
+
+echo "== object wildcard remove =="
+test "$(echo '{"a":1,"b":2}' | "$CLI" -d -o json '$.*')" = '{}'
+
+echo "== recursive descent with filter =="
+test "$(echo '{"items":[{"x":1},{"x":3}],"other":{"items":[{"x":5}]}}' | "$CLI" -a -o json '$..items[?x>1]')" = '[{"x":3},{"x":5}]'
+
+echo "== keys callback on wildcard =="
+test "$(echo '{"a":{"x":1,"y":2},"b":{"z":3}}' | "$CLI" -K -o json '$.*')" = '["x","y","z"]'
+
+echo "== keys callback on filter =="
+test "$(echo '[{"name":"a","tags":[1]},{"name":"b","tags":[2]}]' | "$CLI" -K -o json '$[?name=="a"].tags')" = '[0]'
+
+echo "== invalid regex compile error =="
+if echo '{"a":1}' | "$CLI" '$[?x=~"[bad"]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== regex filter on mixed operands =="
+test "$(echo '{"items":[{"id":1},{"id":"abc"}]}' | "$CLI" -a -o json '$.items[?id=~"abc"]')" = '[{"id":"abc"}]'
+
+echo "== open-ended slice find all =="
+test "$(echo '{"a":[10,20,30,40]}' | "$CLI" -a -o json '$.a[1:]')" = '[20,30,40]'
+
+echo "== open-ended slice remove =="
+test "$(echo '{"a":[10,20,30,40]}' | "$CLI" -d -o json '$.a[1:]')" = '{"a":[10,null,null,null]}'
+
+echo "== union with wildcard =="
+test "$(echo '{"a":1,"b":2}' | "$CLI" -a -o json '$[*,"a"]')" = '[1,2,1]'
+
+echo "== numeric subpath in find all =="
+test "$(echo '{"idx":1,"data":[10,20,30]}' | "$CLI" -a -o json '$.data[$.idx]')" = '[20]'
+
+echo "== or-root remove =="
+test "$(echo '{"b":1}' | "$CLI" -d -o json '$.missing|$.b')" = '{}'
+
+echo "== filter null remove =="
+test "$(echo '{"items":[{"a":"x"},{"a":null},{}]}' | "$CLI" -d -o json '$.items[?a==null]')" = '{"items":[{"a":"x"},null,null]}'
+
+echo "== recursive descent update on object =="
+test "$(echo '{"a":{"b":1},"c":{"b":2}}' | "$CLI" -o json --set 9 '$..b')" = '{"a":{"b":9},"c":{"b":9}}'
+
+echo "== filter subpath equality string =="
+test "$(echo '{"ref":"c","items":[{"name":"a"},{"name":"c"},{"name":"d"}]}' | "$CLI" -a -o json '$.items[?@.name == $.ref].name')" = '["c"]'
+
+echo "== filter subpath inequality string =="
+test "$(echo '{"ref":"c","items":[{"name":"a"},{"name":"c"},{"name":"d"}]}' | "$CLI" -a -o json '$.items[?@.name != $.ref].name')" = '["a","d"]'
+
+echo "== filter subpath equality number =="
+test "$(echo '{"ref":2,"items":[{"n":1},{"n":2},{"n":3}]}' | "$CLI" -a -o json '$.items[?@.n == $.ref].n')" = '[2]'
+
+echo "== filter subpath equality type mismatch =="
+if echo '{"ref":"x","items":[{"n":1},{"n":2}]}' | "$CLI" -a -o json '$.items[?@.n == $.ref].n'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== filter subpath equality missing key =="
+if echo '{"items":[{"name":"a"},{"name":"c"}]}' | "$CLI" -a -o json '$.items[?@.name == $.missing].name'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== filter subpath ordering string > =="
+test "$(echo '{"ref":"b","items":[{"name":"a"},{"name":"b"},{"name":"c"}]}' | "$CLI" -a -o json '$.items[?@.name > $.ref].name')" = '["c"]'
+
+echo "== filter subpath ordering string >= =="
+test "$(echo '{"ref":"b","items":[{"name":"a"},{"name":"b"},{"name":"c"}]}' | "$CLI" -a -o json '$.items[?@.name >= $.ref].name')" = '["b","c"]'
+
+echo "== filter subpath ordering string < =="
+test "$(echo '{"ref":"d","items":[{"name":"a"},{"name":"c"},{"name":"d"}]}' | "$CLI" -a -o json '$.items[?@.name < $.ref].name')" = '["a","c"]'
+
+echo "== filter subpath ordering string <= =="
+test "$(echo '{"ref":"c","items":[{"name":"a"},{"name":"c"},{"name":"d"}]}' | "$CLI" -a -o json '$.items[?@.name <= $.ref].name')" = '["a","c"]'
+
+echo "== filter subpath ordering number > =="
+test "$(echo '{"ref":2,"items":[{"n":1},{"n":2},{"n":3}]}' | "$CLI" -a -o json '$.items[?@.n > $.ref].n')" = '[3]'
+
+echo "== filter subpath ordering number <= =="
+test "$(echo '{"ref":2,"items":[{"n":1},{"n":2},{"n":3}]}' | "$CLI" -a -o json '$.items[?@.n <= $.ref].n')" = '[1,2]'
+
+echo "== filter union =="
+test "$(echo '{"items":[{"a":1,"b":2},{"a":3,"b":2},{"a":1,"b":3}]}' | "$CLI" -a -o json '$.items[?(@.a == 1), ?(@.b == 2)]')" = '[{"a":1,"b":2},{"a":1,"b":3},{"a":1,"b":2},{"a":3,"b":2}]'
+
+echo "== filter whitespace before operator =="
+test "$(echo '[{"a":1},{"a":2}]' | "$CLI" -a -o json '$[?(@.a   == 1)]')" = '[{"a":1}]'
+
+echo "== filter big number literal =="
+test "$(echo '[{"n":150},{"n":50}]' | "$CLI" -a -o json '$[?@.n == 150].n')" = '[150]'
+
+echo "== regex filter non-string operand =="
+test "$(echo '[{"n":1},{"n":"abc"}]' | "$CLI" -a -o json '$[?@.n =~ ".*"]')" = '[{"n":"abc"}]'
+
+echo "== regex filter invalid pattern =="
+if echo '[{"n":"a"}]' | "$CLI" -a -o json '$[?@.n =~ "["]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== regex filter with subpath operand =="
+if echo '[{"a":"x","pat":"x"}]' | "$CLI" -a -o json '$[?@.a =~ $.pat]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== regex filter with numeric operand =="
+if echo '[{"a":"x"}]' | "$CLI" -a -o json '$[?@.a =~ 1]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== filter ordering missing key > =="
+if echo '[{"a":1}]' | "$CLI" -a -o json '$[?@.missing > 1]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== filter ordering missing key < =="
+if echo '[{"a":1}]' | "$CLI" -a -o json '$[?@.missing < 1]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== filter ordering type mismatch =="
+if echo '[{"name":"x"}]' | "$CLI" -a -o json '$[?@.name < 1]'; then
+    echo "expected failure"
+    exit 1
+fi
+
 echo "== file not found =="
 if "$CLI" -f /nonexistent '$.a'; then
     echo "expected failure"

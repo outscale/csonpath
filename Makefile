@@ -101,6 +101,8 @@ cov:
 	rm -rf coverage-c coverage-c.html coverage-py coverage-rust build
 	find . -name '*.gcov' -delete
 	$(MAKE) CFLAGS='--coverage -O0 -g' LDFLAGS='--coverage' tests-c
+	$(MAKE) CFLAGS='--coverage -O0 -g' LDFLAGS='--coverage' csonpath
+	bash tests/cli/run.sh ./csonpath
 	CFLAGS='--coverage -O0' LDFLAGS='--coverage' python setup.py build_ext --inplace --force
 	python -m coverage run -m pytest
 	python -m coverage html -d coverage-py
