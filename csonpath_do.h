@@ -415,6 +415,29 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    walker = owalker;
 	    break;
 	}
+	case CSONPATH_INST_TYPECHECK:
+	{
+	    int type = (unsigned char)walker[1];
+	    ++walker;
+	    switch (type) {
+	    case CSONPATH_STR:
+		if (!CSONPATH_IS_STR(tmp))
+		    return CSONPATH_NONE_FOUND_RET;
+		break;
+	    case CSONPATH_INTEGER:
+		if (!CSONPATH_IS_NUM(tmp))
+		    return CSONPATH_NONE_FOUND_RET;
+		break;
+	    case CSONPATH_NONE:
+		if (!CSONPATH_IS_NULL(tmp))
+		    return CSONPATH_NONE_FOUND_RET;
+		break;
+	    default:
+		CSONPATH_GETTER_ERR("unknown typecheck %d, is csonpath corrupted ?\n", type);
+		break;
+	    }
+	    break;
+	}
 	case CSONPATH_INST_GET_OBJ:
 	{
 	    CSONPATH_UNUSED const char *this_idx = &walker[1];

@@ -28,6 +28,7 @@ Out of the box it ships with C backends for [json-c](https://github.com/json-c/j
 | Multiple filters (`&`) | `$.items[?a=1 & b=2]` | Combine conditions |
 | Subpath expressions | `$.obj[$.key]` | Use JSON values as dynamic path keys |
 | `@` current object | `$.items[?@.price > 10]` | Reference the current element in filters |
+| Type selectors | `$..["@odata.id"]@string()`, `$.*@integer()` | Filter matches by JSON type (`string`, `integer`, `null`) |
 
 ### Operations
 - **Find First** — retrieve the first match.

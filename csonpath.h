@@ -89,6 +89,7 @@ enum csonpath_instuction_raw {
 	CSONPATH_INST_UNION_JMP,
 	CSONPATH_INST_UNION_END,
 	CSONPATH_INST_FIND_ALL,
+	CSONPATH_INST_TYPECHECK,
 	CSONPATH_INST_RANGE,
 	CSONPATH_INST_OR,
 	CSONPATH_INST_END,
@@ -118,6 +119,7 @@ static int csonpath_instuction_len[] = {
     1, /* E.5000 CSONPATH_INST_UNION_JMP */
     1, /* E.6 CSONPATH_INST_UNION_END */
     -1, /* F CSONPATH_INST_FIND_ALL */
+    2, /* F.1 CSONPATH_INST_TYPECHECK */
     1, /* 10 CSONPATH_INST_RANGE */
     1, /* 11 CSONPATH_INST_OR */
     1, /* 12 CSONPATH_INST_END */
@@ -149,6 +151,7 @@ CSONPATH_UNUSED static const char *csonpath_instuction_str[] = {
 	"UNION_JMP",
 	"UNION_END",
 	"FIND_ALL",
+	"TYPECHECK",
 	"RANGE",
 	"OR",
 	"END",
@@ -462,6 +465,27 @@ root_again:
 	}
 
 	switch (to_check) {
+	case '@':
+	  ++walker;
+	  if (!strncmp(walker, "string", 6)) {
+	    csonpath_push_char(cjp, CSONPATH_INST_TYPECHECK, inst_idx);
+	    csonpath_push_char(cjp, CSONPATH_STR, inst_idx);
+	    walker += 6;
+	  } else if (!strncmp(walker, "integer", 7)) {
+	    csonpath_push_char(cjp, CSONPATH_INST_TYPECHECK, inst_idx);
+	    csonpath_push_char(cjp, CSONPATH_INTEGER, inst_idx);
+	    walker += 7;
+	  } else if (!strncmp(walker, "null", 4)) {
+	    csonpath_push_char(cjp, CSONPATH_INST_TYPECHECK, inst_idx);
+	    csonpath_push_char(cjp, CSONPATH_NONE, inst_idx);
+	    walker += 4;
+	  } else {
+	    CSONPATH_COMPILE_ERR(tmp, walker - orig, "unknow type selector");
+	  }
+	  CSONPATH_SKIP('(', walker);
+	  CSONPATH_SKIP(')', walker);
+	  to_check = *walker;
+	  goto again;
 	case '[':
 	{
 	    int end;
@@ -928,7 +952,7 @@ root_again:
 	    } else if (*walker == '*') {
 		inst = CSONPATH_INST_GET_ALL;
 		++walker;
-		if (*walker != '.' && *walker != '[' && *walker != '\0') {
+		if (*walker != '.' && *walker != '[' && *walker != '\0' && *walker != '@') {
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig, "unsuported characters '%c' after '*'", *walker);
 		    goto error;
 		}

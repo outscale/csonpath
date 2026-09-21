@@ -176,6 +176,27 @@ test "$(echo '{"a":1}' | "$CLI" -o json '$')" = '{"a":1}'
 echo "== unicode =="
 test "$(echo '{"a":"éè"}' | "$CLI" -o json '$.a')" = '"éè"'
 
+echo "== type selector string =="
+test "$(echo '{"a":"hi","b":1,"c":null}' | "$CLI" -a -o json '$.*@string()')" = '["hi"]'
+
+echo "== type selector integer =="
+test "$(echo '{"a":"hi","b":1,"c":null}' | "$CLI" -a -o json '$.*@integer()')" = '[1]'
+
+echo "== type selector null =="
+test "$(echo '{"a":"hi","b":1,"c":null}' | "$CLI" -a -o json '$.*@null()')" = '[null]'
+
+echo "== type selector bracket key =="
+test "$(echo '{"@odata.id":"foo"}' | "$CLI" -o json '$["@odata.id"]@string()')" = '"foo"'
+
+echo "== type selector no match =="
+if echo '{"a":1}' | "$CLI" -o json '$.a@string()'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== type selector recursive descent key =="
+test "$(echo '{"a":{"truc":"hi"},"b":{"truc":1}}' | "$CLI" -a -o json '$..truc@string()')" = '["hi"]'
+
 echo "== file not found =="
 if "$CLI" -f /nonexistent '$.a'; then
     echo "expected failure"
