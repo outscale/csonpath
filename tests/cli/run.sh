@@ -197,6 +197,18 @@ fi
 echo "== type selector recursive descent key =="
 test "$(echo '{"a":{"truc":"hi"},"b":{"truc":1}}' | "$CLI" -a -o json '$..truc@string()')" = '["hi"]'
 
+echo "== recursive descent wildcard object =="
+test "$(echo '{"a":"hi","b":1}' | "$CLI" -a -o json '$..*')" = '["hi",1]'
+
+echo "== recursive descent wildcard nested =="
+test "$(echo '{"a":{"b":1},"c":2}' | "$CLI" -a -o json '$..*')" = '[{"b":1},1,2]'
+
+echo "== recursive descent wildcard array =="
+test "$(echo '[1,2]' | "$CLI" -a -o json '$..*')" = '[1,2]'
+
+echo "== recursive descent wildcard with type selector =="
+test "$(echo '{"a":{"b":"hi"}}' | "$CLI" -a -o json '$..*@string()')" = '["hi"]'
+
 echo "== object wildcard find all =="
 test "$(echo '{"a":1,"b":2}' | "$CLI" -a -o json '$.*')" = '[1,2]'
 

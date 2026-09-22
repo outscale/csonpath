@@ -21,6 +21,7 @@ Out of the box it ships with C backends for [json-c](https://github.com/json-c/j
 | Array index | `$.array[0]` | Access by zero-based index |
 | Wildcard `[*]` | `$.array[*].field` | Iterate all array elements |
 | Recursive descent `..` | `$..name` | Search recursively for a key |
+| Recursive descent wildcard `..*` | `$..*` | Return all descendants |
 | Union `,` (inside brackets) | `$['a','b']`, `$.array[0,1]`, `$.items[?n==1, ?n==2]` | Match all listed selectors at once |
 | OR fallback `\|` | `$.a \| $.b` | Try the left path first; fall back to the right one if it does not match. Only the first successful path is used. |
 | Filters | `$.items[?price > 10]` | Filter array elements |

@@ -145,13 +145,14 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
     (void)ctx;
 
     CSONPATH_DO_FIND_ALL_PRE_LOOP;
+    const int is_wildcard = (unsigned char)walker[1] == CSONPATH_INST_GET_ALL;
     if (is_obj) {
 	const char *key;
 	CSONPATH_FOREACH_OBJ(tmp, el, key) {
 	    key_idx = (intptr_t)key;
 	    (void)key_idx;
 	    CSONPATH_DO_FOREACH_PRE_SET;
-	    if (!strcmp(key, walker + 1)) {
+	    if (is_wildcard || !strcmp(key, walker + 1)) {
 		if (!next_inst)
 		    next_inst = csonpath_walker_next_inst(walker);
 		tret = csonpath_do_internal(cjp, origin, el, tmp,
@@ -169,6 +170,14 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
 	CSONPATH_FOREACH_ARRAY(tmp, el, key_idx) {
 	    (void)key_idx;
 	    CSONPATH_DO_FOREACH_PRE_SET;
+	    if (is_wildcard) {
+		if (!next_inst)
+		    next_inst = csonpath_walker_next_inst(walker);
+		tret = csonpath_do_internal(cjp, origin, el, tmp,
+					    next_inst
+					    CSONPATH_DO_EXTRA_ARGS_NEESTED);
+		CSONPATH_DO_FIND_ALL;
+	    }
 	    if (CSONPATH_IS_OBJ(el) || CSONPATH_IS_ARRAY(el)) {
 		tret = csonpath_do_dotdot(cjp, origin, el, tmp, walker
 					  CSONPATH_DO_EXTRA_ARGS_NEESTED);

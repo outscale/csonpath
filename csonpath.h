@@ -949,6 +949,20 @@ root_again:
 	    if (*walker == '.') {
 		inst = CSONPATH_INST_FIND_ALL;
 		++walker;
+		if (*walker == '*') {
+		    ++walker;
+		    /*
+		     * Encode $..* as FIND_ALL followed by the GET_ALL byte and a NUL.
+		     * GET_ALL (0x0E) is a non-printable control character, so it can
+		     * never appear raw in a valid JSON key; this avoids collision with
+		     * real recursive-descent keys like $..name.
+		     */
+		    csonpath_push_char(cjp, CSONPATH_INST_FIND_ALL, inst_idx);
+		    csonpath_push_char(cjp, CSONPATH_INST_GET_ALL, inst_idx);
+		    csonpath_push_char(cjp, 0, inst_idx);
+		    to_check = *walker;
+		    goto again;
+		}
 	    } else if (*walker == '*') {
 		inst = CSONPATH_INST_GET_ALL;
 		++walker;
