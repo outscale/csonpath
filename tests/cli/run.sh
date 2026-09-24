@@ -347,4 +347,38 @@ if "$CLI" -f /nonexistent '$.a'; then
     exit 1
 fi
 
+echo "== type selector integer no match with empty =="
+test "$(echo '{"a":"hi"}' | "$CLI" -a -e -o json '$.*@integer()')" = '[]'
+
+echo "== invalid type selector =="
+if echo '{"a":1}' | "$CLI" '$.a@foo()'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== type selector on array =="
+test "$(echo '["a",1,null]' | "$CLI" -a -o json '$[*]@string()')" = '["a"]'
+test "$(echo '["a",1,null]' | "$CLI" -a -o json '$[*]@null()')" = '[null]'
+
+echo "== wildcard with invalid following char =="
+if echo '{"a":1}' | "$CLI" '$.a*x'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== recursive descent wildcard remove =="
+test "$(echo '{"a":{"b":1},"c":2}' | "$CLI" -d -o json '$..*')" = '{}'
+test "$(echo '{"a":1,"b":2}' | "$CLI" -d -o json '$..*')" = '{}'
+
+echo "== recursive descent wildcard set =="
+test "$(echo '{"a":{"b":1},"c":2}' | "$CLI" -o json --set 9 '$..*')" = '{"a":9,"c":9}'
+
+echo "== recursive descent wildcard with bracket key =="
+test "$(echo '{"a":{"b":"x"},"c":{"b":"y"}}' | "$CLI" -a -o json '$..["b"]')" = '["x","y"]'
+test "$(echo '{"a":{"b":"x"},"c":{"b":"y"}}' | "$CLI" -a -o json '$..["b"]@string()')" = '["x","y"]'
+
+echo "== recursive descent wildcard empty =="
+test "$(echo '{}' | "$CLI" -a -e -o json '$..*')" = '[]'
+test "$(echo '[]' | "$CLI" -a -e -o json '$..*')" = '[]'
+
 echo "== all CLI tests passed =="
