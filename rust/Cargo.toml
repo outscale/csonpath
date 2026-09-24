@@ -2,6 +2,10 @@
 name = "csonpath"
 version = "0.18.0"
 edition = "2021"
+description = "Partial JSONPath implementation in C with Rust bindings"
+license = "BSD-3-Clause"
+repository = "https://github.com/Outscale/csonpath"
+homepage = "https://github.com/Outscale/csonpath"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
