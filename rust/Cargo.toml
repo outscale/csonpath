@@ -1,6 +1,6 @@
 [package]
 name = "csonpath"
-version = "0.18.0"
+version = "0.19.0"
 edition = "2021"
 description = "Partial JSONPath implementation in C with Rust bindings"
 license = "BSD-3-Clause"
