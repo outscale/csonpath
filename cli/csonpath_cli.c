@@ -240,6 +240,7 @@ cmd_find(const struct opts *opts, struct csonpath *p)
     }
     if (!HAS_FLAG(opts, FLAG_QUIET))
         print_array(ret, opts->output);
+    json_object_put(ret);
     return 0;
 }
 
