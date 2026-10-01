@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-csonpath = "0.19"
+csonpath = "0.19.1"
 serde_json = "1"
 ```
 
