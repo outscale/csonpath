@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 /* The C core treats JSON values as opaque pointers. All access goes through
  * FFI functions implemented in Rust (backend_serde.rs). */
