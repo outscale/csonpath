@@ -40,6 +40,10 @@ jobs:
     - name: build and test python
       run: |
         make tests-py
+    - name: Cargo publish dry-run
+      working-directory: rust
+      run: cargo publish --dry-run
+
 
   build-windows:
     environment: auto-build
