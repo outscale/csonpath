@@ -15,7 +15,7 @@ fn main() {
         .file("csonpath_rust_backend.c")
         .include(root_dir)
         .include(&manifest_dir)
-        .flag("-std=c11")
+        .flag("-std=c23")
         .flag("-O2")
         .flag("-fno-strict-aliasing")
         .flag("-Wno-unused-parameter")
