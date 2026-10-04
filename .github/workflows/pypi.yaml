@@ -29,7 +29,7 @@ jobs:
         CIBW_SKIP: cp36-* *-win32
         CIBW_BEFORE_BUILD_WINDOWS: "choco install mingw -y"
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: wheels-${{ matrix.os }}
         path: ./wheelhouse/*.whl
@@ -47,7 +47,7 @@ jobs:
         python -m pip install --upgrade build setuptools
         python -m build --sdist .
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: sdist
         path: dist/*.tar.gz
