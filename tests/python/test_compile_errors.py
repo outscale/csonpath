@@ -31,7 +31,8 @@ COMPILE_ERROR_CASES = [
     ("$.a[?@.x =~ 0]", "number unsuported for regex"),
     ("$..[0]", ".. require string"),
     ("$257", "extra root index too big"),
-    ("$.arr[?['" + LONG_KEY + "']=\"y\"]", "filter key too long"),
+    ("$.arr[?['" + LONG_KEY + "']=\"y\"]", "string too long"),
+    ("$.arr[?(@" + ".x" * 300 + "==1)]", "filter key too long"),
 ]
 
 
