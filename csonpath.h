@@ -22,6 +22,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <limits.h>
 
 
 /* Backends that never allocate in GET_STR leave this empty; backends that do
@@ -248,6 +251,7 @@ struct csonpath_child_info {
 
 #define CSONPATH_ERROR_MAX_SIZE 1024
 #define CSONPATH_TMP_BUF_SIZE 256
+#define CSONPATH_MAX_STR_LEN 32767
 
 #define CSONPATH_FILTER_PUSH(dst, cnt, c, walk_ptr) do {		\
 	if ((cnt + 1) >= CSONPATH_TMP_BUF_SIZE) {			\
@@ -255,6 +259,37 @@ struct csonpath_child_info {
 	    goto error;							\
 	}								\
 	(dst)[(cnt)++] = (c);						\
+    } while (0)
+
+
+/* Encode a string into dst using a Pascal-style length prefix.
+ * max is the maximum number of payload characters (not bytes) the caller
+ * allows; the destination buffer is assumed to have room for max + 3 bytes
+ * (2-byte length prefix + NUL terminator) from __start. */
+#define CSONPATH_PUSH_STR(dst, dsti, max, next, cond, skipp)		\
+    do {								\
+	int __start = (dsti);						\
+	int __cnt = 0;							\
+	(dsti)++;							\
+	while (cond) {							\
+	    if (__cnt >= (max)) {					\
+		CSONPATH_COMPILE_ERR(tmp, walker - orig,			\
+				     "%s", "string too long");		\
+		goto error;						\
+	    }								\
+	    (dst)[(dsti)++] = *(next)++;				\
+	    ++__cnt;							\
+	    skipp;							\
+	}								\
+	if (__cnt < 128) {						\
+	    (dst)[__start] = (char)__cnt;				\
+	} else {							\
+	    memmove(&(dst)[__start + 2], &(dst)[__start + 1], __cnt);	\
+	    (dst)[__start] = (char)(0x80 | (__cnt >> 8));			\
+	    (dst)[__start + 1] = (char)(__cnt & 0xFF);			\
+	    (dsti)++;							\
+	}								\
+	(dst)[(dsti)++] = 0;						\
     } while (0)
 
 /* I'm assuming error message won't be longer than 125 */
@@ -311,12 +346,41 @@ static inline void csonpath_push_char(struct csonpath cjp[static 1], int inst, i
     cjp->data[(*inst_idx)++] = inst;
 }
 
-static const char *csonpath_walker_next_inst(const char *walker)
+/* Pascal-style length prefix for embedded C strings in the bytecode.
+ * - high bit of first byte == 0: length is encoded in that byte (0..127)
+ * - high bit of first byte == 1: length is ((byte0 & 0x7F) << 8) | byte1 (0..32767)
+ * The actual string bytes follow, terminated by a NUL for backend convenience. */
+static inline int csonpath_str_decode(const char walker[static 1], const char **data)
+{
+    unsigned char b0 = walker[0];
+    if (b0 & 0x80) {
+	unsigned char b1 = walker[1];
+	*data = walker + 2;
+	return ((b0 & 0x7F) << 8) | b1;
+    }
+    *data = walker + 1;
+    return b0;
+}
+
+static inline const char *csonpath_str_data(const char walker[static 1])
+{
+    const char *data;
+    (void)csonpath_str_decode(walker, &data);
+    return data;
+}
+
+static inline const char *csonpath_str_skip(const char walker[static 1])
+{
+    const char *data;
+    int len = csonpath_str_decode(walker, &data);
+    return data + len + 1; /* +1 for trailing NUL */
+}
+
+static const char *csonpath_walker_next_inst(const char walker[static 1])
 {
     int l = csonpath_instuction_len[(int)*walker];
-    /* skipp 2, 1 for the instruction, and another for \0 */
     if (l < 0)
-	return &walker[strlen(walker + 1) + 2];
+	return csonpath_str_skip(walker + 1);
     return &walker[l];
 }
 
@@ -595,13 +659,15 @@ root_again:
 			goto error;
 		    }
 		    ++walker;
-		    for (next = walker; *next && *next != getter_end; ++next)
-			CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, *next, next);
-		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, 0, next);
+		    next = walker;
+		    CSONPATH_PUSH_STR(filter_getter, nb_getter_inst,
+				      CSONPATH_TMP_BUF_SIZE - 3,
+				      next, *next && *next != getter_end, ;);
 		} else {
-		    for (next = walker; csonpath_is_dot_operand(*next); ++next)
-			CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, *next, next);
-		    CSONPATH_FILTER_PUSH(filter_getter, nb_getter_inst, 0, next);
+		    next = walker;
+		    CSONPATH_PUSH_STR(filter_getter, nb_getter_inst,
+				      CSONPATH_TMP_BUF_SIZE - 3,
+				      next, csonpath_is_dot_operand(*next), ;);
 		}
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
@@ -722,9 +788,9 @@ root_again:
 		    ++walker;
 		    if (regex_idx < 0) {
 			csonpath_push_char(cjp, CSONPATH_INST_GET_OBJ, inst_idx);
-			for (next = walker; *next && *next != end; ++next)
-				csonpath_push_char(cjp, *next, inst_idx);
-			csonpath_push_char(cjp, 0, inst_idx);
+			next = walker;
+			CSONPATH_PUSH_STR(cjp->data, *inst_idx, CSONPATH_MAX_STR_LEN,
+					  next, *next && *next != end, ;);
 			if (!*next) {
 			    CSONPATH_COMPILE_ERR(tmp, walker - orig,
 						 "broken filter");
@@ -911,21 +977,16 @@ root_again:
 		    inst = CSONPATH_INST_GET_OBJ;
 
 		++walker;
-		next = walker;
 		csonpath_push_char(cjp, inst, inst_idx);
-		while (*next && *next != end) {
-		    /* TODO: \" should be ignored */
-		    csonpath_push_char(cjp, *next, inst_idx);
-		    ++next;
-		    while (*next == '\\')
-			++next;
-		}
+		next = walker;
+		CSONPATH_PUSH_STR(cjp->data, *inst_idx, CSONPATH_MAX_STR_LEN,
+				  next, *next && *next != end,
+				  while (*next == '\\') ++next;);
 		if (!*next) {
 		    CSONPATH_COMPILE_ERR(tmp, walker - orig,
 					 "unclosed string in bracket");
 		}
 		++next; // skipp end
-		csonpath_push_char(cjp, 0, inst_idx);
 		if (in_union && *next == ',') {
 		    walker = next;
 		    csonpath_push_char(cjp, CSONPATH_INST_UNION_JMP, inst_idx);
@@ -942,7 +1003,6 @@ root_again:
 	    }
 	}
 	case '.':
-	{
 	    inst = CSONPATH_INST_GET_OBJ;
 
 	    ++walker;
@@ -952,12 +1012,13 @@ root_again:
 		if (*walker == '*') {
 		    ++walker;
 		    /*
-		     * Encode $..* as FIND_ALL followed by the GET_ALL byte and a NUL.
+		     * Encode $..* as FIND_ALL with a 1-byte payload: GET_ALL.
 		     * GET_ALL (0x0E) is a non-printable control character, so it can
 		     * never appear raw in a valid JSON key; this avoids collision with
 		     * real recursive-descent keys like $..name.
 		     */
 		    csonpath_push_char(cjp, CSONPATH_INST_FIND_ALL, inst_idx);
+		    csonpath_push_char(cjp, 1, inst_idx);
 		    csonpath_push_char(cjp, CSONPATH_INST_GET_ALL, inst_idx);
 		    csonpath_push_char(cjp, 0, inst_idx);
 		    to_check = *walker;
@@ -974,21 +1035,21 @@ root_again:
 		to_check = *walker;
 		goto again;
 	    }
-	    for (next = walker; csonpath_is_dot_operand(*next); ++next);
-	    if (next == walker) {
-		if (*next == '[')
-		    goto do_array;
-		CSONPATH_COMPILE_ERR(tmp, walker - orig, "empty getter");
-	    }
-	    to_check = *next;
+
+	    /* Bracket accessor after a dot: $.['x'] or $..['x']. */
+	    if (*walker == '[')
+		goto do_array;
 
 	    csonpath_push_char(cjp, inst, inst_idx);
-	    for (; walker != next; ++walker) {
-		    cjp->data[(*inst_idx)++] = *walker;
-	    }
-	    cjp->data[(*inst_idx)++] = 0;
+	    next = walker;
+	    CSONPATH_PUSH_STR(cjp->data, *inst_idx, CSONPATH_MAX_STR_LEN,
+			      next, csonpath_is_dot_operand(*next), ;);
+	    if (next == walker)
+		CSONPATH_COMPILE_ERR(tmp, walker - orig, "empty getter");
+
+	    to_check = *next;
+	    walker = next;
 	    goto again;
-	}
 	case '|':
 	    csonpath_push_char(cjp, CSONPATH_INST_OR, inst_idx);
 	    ++walker;
@@ -1190,8 +1251,9 @@ static _Bool CSONPATH_FUNC(csonpath_do_match)(int operand_instruction, CSONPATH_
     }
     case CSONPATH_INST_GET_OBJ:
     {
-	_Bool ret = CSONPATH_EQUAL_STR(el2, *owalker);
-	*owalker += strlen(*owalker) + 1;
+	const char *str = csonpath_str_data(*owalker);
+	_Bool ret = CSONPATH_EQUAL_STR(el2, str);
+	*owalker = csonpath_str_skip(*owalker);
 	return ret;
     }
     case CSONPATH_INST_GET_ARRAY_SMALL:
@@ -1224,15 +1286,17 @@ static CSONPATH_JSON CSONPATH_FUNC(csonpath_crawl_filter_el)(const struct csonpa
 	switch (**owalker) {
 	case CSONPATH_INST_GET_OBJ:
 	    ++*owalker;
-	    if (el2)
-		el2 = CSONPATH_GET(el2, *owalker);
+	    if (el2) {
+		const char *key = csonpath_str_data(*owalker);
+		el2 = CSONPATH_GET(el2, key);
+	    }
+	    *owalker = csonpath_str_skip(*owalker);
 	    break;
 	default:
 	    CSONPATH_FORMAT_EXCEPTION("unsuported %s inst",
 				      csonpath_instuction_str[(int)**owalker]);
 	    return NULL;
 	}
-	(*owalker) += (strlen(*owalker) + 1);
     }
     return el2;
 }
@@ -1788,11 +1852,12 @@ static _Bool CSONPATH_FUNC(csonpath_make_match)(const struct csonpath cjp[const 
 	    if (!CSONPATH_IS_STR(el2))
 		break;
 	    CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(el2);
+	    const char *operand = csonpath_str_data(*owalker);
 	    if (operation == CSONPATH_INST_FILTER_KEY_SUPERIOR_EQ)
-		match = strcmp(s, *owalker) >= 0;
+		match = strcmp(s, operand) >= 0;
 	    else
-		match = strcmp(s, *owalker) > 0;
-	    *owalker += strlen(*owalker) + 1;
+		match = strcmp(s, operand) > 0;
+	    *owalker = csonpath_str_skip(*owalker);
 	} else {
 	    if (!CSONPATH_IS_NUM(el2))
 		break;
@@ -1812,11 +1877,12 @@ static _Bool CSONPATH_FUNC(csonpath_make_match)(const struct csonpath cjp[const 
 	    if (!CSONPATH_IS_STR(el2))
 		break;
 	    CSONPATH_CLEANUP_STR const char *s = CSONPATH_GET_STR(el2);
+	    const char *operand = csonpath_str_data(*owalker);
 	    if (operation == CSONPATH_INST_FILTER_KEY_INFERIOR_EQ)
-		match = strcmp(s, *owalker) <= 0;
+		match = strcmp(s, operand) <= 0;
 	    else
-		match = strcmp(s, *owalker) < 0;
-	    *owalker += strlen(*owalker) + 1;
+		match = strcmp(s, operand) < 0;
+	    *owalker = csonpath_str_skip(*owalker);
 	} else {
 	    if (!CSONPATH_IS_NUM(el2))
 		break;

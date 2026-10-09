@@ -348,7 +348,7 @@ next_inst:
 
 	switch (*walker) {
 	case CSONPATH_INST_GET_OBJ: {
-		const char *key = walker + 1;
+		const char *key = csonpath_str_data(walker + 1);
 		f->saved_child_info.type = CSONPATH_STR;
 		f->saved_child_info.key = key;
 		new_cur = CSONPATH_GET(f->parent, key);
