@@ -145,14 +145,16 @@ static CSONPATH_DO_RET_TYPE csonpath_do_dotdot(const struct csonpath cjp[const s
     (void)ctx;
 
     CSONPATH_DO_FIND_ALL_PRE_LOOP;
-    const int is_wildcard = (unsigned char)walker[1] == CSONPATH_INST_GET_ALL;
+    const char *find_all_key;
+    (void)csonpath_str_decode(walker + 1, &find_all_key);
+    const int is_wildcard = (unsigned char)find_all_key[0] == CSONPATH_INST_GET_ALL;
     if (is_obj) {
 	const char *key;
 	CSONPATH_FOREACH_OBJ(tmp, el, key) {
 	    key_idx = (intptr_t)key;
 	    (void)key_idx;
 	    CSONPATH_DO_FOREACH_PRE_SET;
-	    if (is_wildcard || !strcmp(key, walker + 1)) {
+	    if (is_wildcard || !strcmp(key, find_all_key)) {
 		if (!next_inst)
 		    next_inst = csonpath_walker_next_inst(walker);
 		tret = csonpath_do_internal(cjp, origin, el, tmp,
@@ -449,14 +451,14 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	}
 	case CSONPATH_INST_GET_OBJ:
 	{
-	    CSONPATH_UNUSED const char *this_idx = &walker[1];
+	    const char *this_idx;
+	    uint16_t this_idx_len = csonpath_str_decode(walker + 1, &this_idx);
 
 	    if (tmp != CSONPATH_NULL)
 		ctx = tmp;
 	    CSONPATH_PRE_GET_OBJ(this_idx);
-	    ++walker;
-	    tmp = CSONPATH_GET(tmp, walker);
-	    walker += strlen(walker);
+	    tmp = CSONPATH_GET(tmp, this_idx);
+	    walker = this_idx + this_idx_len;
 	    if (tmp == CSONPATH_NULL) {
 		CSONPATH_DO_GET_NOTFOUND(this_idx);
 	    }
