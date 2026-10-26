@@ -5,7 +5,7 @@ YYJSON_LDFLAGS=$(shell pkg-config --libs yyjson)
 
 include config.mk
 
-all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-json-my-fuzz test-json-regex-overflow
+all: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-json-my-fuzz test-json-regex-overflow test-json-long-deep-keys
 
 YYJSON_TESTS=test-yyjson
 
@@ -55,6 +55,9 @@ test-json-my-fuzz: tests/json-c/my_fuzz.c csonpath_json-c.h csonpath_my_fuzzing.
 test-json-regex-overflow: tests/json-c/regex-overflow.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) tests/json-c/regex-overflow.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-regex-overflow $(JSON_C_LDFLAGS) $(LDFLAGS)
 
+test-json-long-deep-keys: tests/json-c/long-deep-keys.c csonpath_json-c.h csonpath.h csonpath_do.h
+	$(CC) tests/json-c/long-deep-keys.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-json-long-deep-keys $(JSON_C_LDFLAGS) $(LDFLAGS)
+
 test-yyjson: tests/yyjson/test-yyjson.c csonpath_yyjson_const.h csonpath.h csonpath_do.h
 	$(CC) tests/yyjson/test-yyjson.c $(EXTRA_FILES) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-yyjson $(YYJSON_LDFLAGS) $(LDFLAGS)
 
@@ -64,7 +67,7 @@ test-yyjson-mixed: tests/yyjson/test-yyjson-mixed.c csonpath_yyjson.h csonpath_y
 test-multi-backend-prefix: tests/multi-backend-prefix.c csonpath_json-c.h csonpath_yyjson.h csonpath_yyjson_const.h csonpath_yyjson_mut.h csonpath.h csonpath_do.h
 	$(CC) tests/multi-backend-prefix.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(YYJSON_CFLAGS) $(CFLAGS) -Wno-format -I./ -o test-multi-backend-prefix $(JSON_C_LDFLAGS) $(YYJSON_LDFLAGS) $(LDFLAGS)
 
-tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix test-json-regex-overflow
+tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix test-json-regex-overflow test-json-long-deep-keys
 	./test-json-c-get-a
 	./test-json-update
 	./test-json-filter
@@ -80,6 +83,7 @@ tests-c: test-json-c-get-a test-json-update test-json-filter test-json-subpath t
 	./test-json-my-fuzz
 	./test-multi-backend-prefix
 	./test-json-regex-overflow
+	./test-json-long-deep-keys
 
 csonpath: cli/csonpath_cli.c csonpath_json-c.h csonpath.h csonpath_do.h
 	$(CC) cli/csonpath_cli.c $(EXTRA_FILES) $(JSON_C_CFLAGS) $(CFLAGS) -I./ -o csonpath $(JSON_C_LDFLAGS) $(LDFLAGS)
