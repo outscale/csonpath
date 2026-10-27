@@ -24,7 +24,7 @@ jobs:
         submodules: recursive
 
     - name: Build wheels
-      uses: pypa/cibuildwheel@f03ac7617d6cff873ccf24cc0d567ef5ba5a9e6d # v4.0.0
+      uses: pypa/cibuildwheel@b9e566a2b284570af229f6c2a33673410d0389a3 # v4.3.4
       env:
         CIBW_SKIP: cp36-* *-win32
         CIBW_BEFORE_BUILD_WINDOWS: "choco install mingw -y"
