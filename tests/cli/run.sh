@@ -381,4 +381,45 @@ echo "== recursive descent wildcard empty =="
 test "$(echo '{}' | "$CLI" -a -e -o json '$..*')" = '[]'
 test "$(echo '[]' | "$CLI" -a -e -o json '$..*')" = '[]'
 
+echo "== compile error: empty subpath in filter =="
+if echo '{"a":1}' | "$CLI" '$[?a==$.]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== compile error: missing bracket after filter operand =="
+if echo '[{"a":1}]' | "$CLI" '$[?a==1x]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== compile error: bad subpath inside union =="
+if echo '{"a":1,"b":2}' | "$CLI" '$[$.a[abc],$.b]'; then
+    echo "expected failure"
+    exit 1
+fi
+
+echo "== set root object =="
+test "$(echo '{"a":1}' | "$CLI" -o json --set '{"b":2}' '$')" = '{"b":2}'
+
+echo "== filter subpath != numeric =="
+test "$(echo '{"ref":2,"items":[{"n":1},{"n":2},{"n":3}]}' \
+    | "$CLI" -a -o json '$.items[?@.n != $.ref].n')" = '[1,3]'
+
+echo "== filter subpath != type mismatch =="
+test "$(echo '{"ref":"x","items":[{"n":1}]}' \
+    | "$CLI" -a -e -o json '$.items[?@.n != $.ref].n')" = '[]'
+
+echo "== filter subpath > type mismatch =="
+test "$(echo '{"ref":"x","items":[{"n":1}]}' \
+    | "$CLI" -a -e -o json '$.items[?@.n > $.ref].n')" = '[]'
+
+echo "== filter subpath < numeric =="
+test "$(echo '{"ref":2,"items":[{"n":1},{"n":2},{"n":3}]}' \
+    | "$CLI" -a -o json '$.items[?@.n < $.ref].n')" = '[1]'
+
+echo "== filter subpath < type mismatch =="
+test "$(echo '{"ref":"x","items":[{"n":1}]}' \
+    | "$CLI" -a -e -o json '$.items[?@.n < $.ref].n')" = '[]'
+
 echo "== all CLI tests passed =="
