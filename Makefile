@@ -126,7 +126,7 @@ cov:
 tests: tests-py tests-c tests-cli tests-rust
 
 clean:
-	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix test-json-regex-overflow csonpath
+	rm -rvf test-json-c-get-a test-json-update test-json-filter test-json-subpath test-json-c-array-root test-json-filter-and-missing-key test-json-get-array-big-index test-json-union test-json-audit-bugs test-json-crash-vectors test-yyjson test-yyjson-mixed test-json-my-fuzz test-multi-backend-prefix test-json-regex-overflow test-json-long-deep-keys csonpath
 	find . -name '*.gcda' -delete
 	find . -name '*.gcno' -delete
 
