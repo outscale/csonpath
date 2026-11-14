@@ -770,6 +770,18 @@ root_again:
 		    walker = next;
 		    to_check = *walker;
 		    goto again;
+		} else if (to_check == '&') {
+		    /* ?a&&?b: implicit ?a != null, then the normal AND path. */
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ, inst_idx);
+		    csonpath_push_filter_getter(cjp, inst_idx, nb_getter_inst, filter_getter);
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EXIST, inst_idx);
+		    if (next[1] == '&')
+			++next;
+		    walker = next + 1;
+		    to_check = *walker;
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_AND, inst_idx);
+		    nb_getter_inst = 0;
+		    goto filter_again_root;
 		} else {
 		    CSONPATH_COMPILE_ERR(tmp, next - orig,
 					 "'%c': unsuported operation", to_check);

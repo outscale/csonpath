@@ -98,6 +98,11 @@ int main(void)
     expect("$[?a,?b]", 11);
     expect("$[?a,?b,?c]", 12);         /* duplicate union hits */
 
+    /* existence AND existence */
+    expect("$[?a&&?b]", 1);
+    expect("$[?(@.a&&?b)]", 1);
+    expect("$[?a&&?b&&?c]", 1);
+    expect("$[?a&&?(@.a.b)]", 1);
     release();
 
     /* --- 2. true / false operands ---------------------------------- */
@@ -124,6 +129,7 @@ int main(void)
     expect("$[?false]", 1);            /* existence of key "false" */
     expect("$[?a==true,?b]", 4);
     expect("$[?a==true&&?b]", 1);
+    expect("$[?a&&?b]", 1);
     release();
 
     /* --- 3. union containing a null operand ------------------------ */
@@ -160,11 +166,50 @@ int main(void)
     expect("$.missing[?b,?a==null]", -1);
     expect("$.missing[?(@.a==null)]", -1);
     expect("$.missing[?(@.a.b==null)]", -1);
+    expect("$.missing[?a&&?b]", -1);
     expect("$.missing[?a==true&&?b]", -1);
     expect("$.missing.x[?a]", -1);
     expect("$.missing[0][?a]", -1);
     expect("$.missing[?a].x", -1);
     expect("$.missing[?a==null].x", -1);
+    release();
+
+    /* --- 5. && is not limited to existence -------------------------- */
+    /* A bare existence filter is a plain comparison, so the right-hand
+     * side may be any filter: comparison, regex, subpath operand, chained
+     * && or a union branch. */
+    load("{\"k\":1,\"arr\":["
+         "{\"a\":1,\"b\":1,\"s\":\"x y\",\"o\":{\"n\":1}},"
+         "{\"a\":1,\"b\":2,\"s\":\"x y\",\"o\":{\"n\":2}},"
+         "{\"a\":1,\"s\":\"z\"},"
+         "{\"b\":1,\"s\":\"x y\"},"
+         "{\"a\":null,\"b\":1}"
+         "]}");
+
+    expect("$.arr[?a&&?b==1]", 1);
+    expect("$.arr[?b==1&&?a]", 1);      /* comparison first */
+    expect("$.arr[?a&&?b!=2]", 2);
+    expect("$.arr[?a&&?b<2]", 1);
+    expect("$.arr[?a&&?b>=2]", 1);
+    expect("$.arr[?a&&?b==null]", 1);   /* absent b */
+    expect("$.arr[?a&&?b!=null]", 2);
+    expect("$.arr[?a&&?s==\"x y\"]", 2);
+    expect("$.arr[?a&&?s=~\"^x\"]", 2);
+    expect("$.arr[?a&&?o.n==1]", 1);
+    expect("$.arr[?a&&?(@.o.n==1)]", 1);
+    expect("$.arr[?a&&?b==$.k]", 1);    /* subpath operand */
+    expect("$.arr[?a&&?b==1&&?s]", 1);  /* chained */
+    expect("$.arr[?a&&?b==1,?s]", 5);   /* && inside a union */
+    expect("$.arr[?s,?a&&?b==1]", 5);   /* && as second branch */
+    release();
+
+    /* same combinations while skipping over a missing parent */
+    load("{\"k\":1,\"arr\":[{\"a\":1,\"b\":1}]}");
+
+    expect("$.missing[?a&&?b==1]", -1);
+    expect("$.missing[?a&&?b==null]", -1);
+    expect("$.missing[?b==1&&?a]", -1);
+    expect("$.missing[?a&&?b==1,?s]", -1);
     release();
 
     return 0;
