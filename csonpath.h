@@ -756,9 +756,12 @@ root_again:
 		    int union_jmp = in_union && to_check == ',';
 		    if (have_parentesis > 0)
 			CSONPATH_COMPILE_ERR(tmp, next - orig, "too many open parentesis");
-		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EXIST, inst_idx);
+		    /* ?key is sugar for ?key != null: FILTER_KEY_EXIST is kept
+		     * as a 1-byte operand only, never as a filter opcode. */
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_NOT_EQ, inst_idx);
 		    for (;isblank(*next); ++next);
 		    csonpath_push_filter_getter(cjp, inst_idx, nb_getter_inst, filter_getter);
+		    csonpath_push_char(cjp, CSONPATH_INST_FILTER_KEY_EXIST, inst_idx);
 		    if (union_jmp) {
 			walker = next - 1; /* will be re-skipp hopefully :) */
 			csonpath_push_char(cjp, CSONPATH_INST_UNION_JMP, inst_idx);
@@ -1169,9 +1172,12 @@ CSONPATH_STATINLINE struct csonpath *CSONPATH_FUNC(csonpath_new_ex)(const char p
      */
     int max_inst = strlen(path) / 2 + 1;
     int extra = 0;
-    for (const char *tmp = path; *tmp; ++tmp)
+    for (const char *tmp = path; *tmp; ++tmp) {
       if (*tmp == ',')
 	++extra;
+      else if (*tmp == '?')
+	++extra;
+    }
     struct csonpath *ret = malloc(sizeof *ret + CSONPATH_BYTE_PER_INST * max_inst + strlen(path) + 1 + extra);
     if (!ret) {
 	return NULL;
@@ -1757,10 +1763,6 @@ static _Bool CSONPATH_FUNC(csonpath_make_match)(const struct csonpath cjp[const 
 				 const char **owalker, int operation)
 {
     int operand_instruction = **owalker;
-
-    if (operation == CSONPATH_INST_FILTER_KEY_EXIST) {
-	return el2 != CSONPATH_NULL;
-    }
 
     if (operand_instruction == CSONPATH_INST_GET_SUBPATH) {
 	const char *end_sentinel = *owalker;

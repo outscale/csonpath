@@ -193,12 +193,12 @@ int main(void)
   assert(json_object_array_length(ret) == 1); /* only \"x\" */
   json_object_put(ret);
 
-  /* ? (existence) matches JSON null too */
+  /* ? (existence) is ? != null: JSON null and absent do not match */
   assert((p = csonpath_set_path(p, "$.items[?(@.a)]")));
   ret = csonpath_find_all(p, jobj);
   assert(ret);
   assert(json_object_is_type(ret, json_type_array));
-  assert(json_object_array_length(ret) > 0); /* \"x\" and JSON null */
+  assert(json_object_array_length(ret) == 1); /* only \"x\" */
   json_object_put(ret);
 
   json_object_put(jobj);

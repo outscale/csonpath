@@ -1,7 +1,7 @@
 #ifndef CSONPATH_DO_GET_NOTFOUND
 #define CSONPATH_DO_GET_NOTFOUND(this_idx)				\
-  do {									\
-      walker += 1;							\
+    do {								\
+	walker += 1;							\
 	while (*walker != CSONPATH_INST_END) {				\
 	    if (*walker == CSONPATH_INST_OR) {				\
 		goto next_inst;						\
@@ -234,7 +234,6 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 	    ++walker;
 	}
 	break;
-	case CSONPATH_INST_FILTER_KEY_EXIST:
 	case CSONPATH_INST_FILTER_KEY_EQ:
 	case CSONPATH_INST_FILTER_KEY_REG_EQ:
 	case CSONPATH_INST_FILTER_KEY_NOT_EQ:
