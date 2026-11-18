@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 echo category,query,results,time
-BENCH_CSV=1 ./bench-json-c-tcc
-BENCH_CSV=1 ./bench-json-c-gcc
-BENCH_CSV=1 ./bench-json-c-clang
-BENCH_CSV=1 ./bench-yyjson
-BENCH_CSV=1 ./bench-jsoncons
-BENCH_CSV=1 node bench-jsonpath.js
-BENCH_CSV=1 python3 bench-jsonpath-ng.py
-BENCH_CSV=1 ./target/release/jsonpath_benchmark
-BENCH_CSV=1 ../rust/target/release/bench
+
+run() {
+    if [ -x "$1" ]; then
+        BENCH_CSV=1 "$@"
+    else
+        echo "aggregate: skip $1 (not built)" >&2
+    fi
+}
+
+run ./bench-json-c-tcc
+run ./bench-json-c-gcc
+run ./bench-json-c-clang
+run ./bench-yyjson
+run ./bench-jsoncons
+
+if command -v node >/dev/null 2>&1 &&
+   { [ -d node_modules/jsonpath-plus ] || [ -d ../node_modules/jsonpath-plus ]; }; then
+    BENCH_CSV=1 node bench-jsonpath.js
+else
+    echo "aggregate: skip node bench-jsonpath.js (jsonpath-plus not installed)" >&2
+fi
+
+if python3 -c 'import jsonpath_ng' >/dev/null 2>&1; then
+    BENCH_CSV=1 python3 bench-jsonpath-ng.py
+else
+    echo "aggregate: skip python3 bench-jsonpath-ng.py (jsonpath_ng not installed)" >&2
+fi
+
+run ./target/release/jsonpath_benchmark
+run ../rust/target/release/bench

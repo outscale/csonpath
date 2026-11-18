@@ -12,10 +12,13 @@ YYJSON_TESTS=test-yyjson
 bench:
 	make -C bench
 
+bench-collect:
+	./bench/collect
+
 bench-clean:
 	make -C bench clean
 
-.PHONY: all clean tests pip-dev pip-dev bench bench-clean tests-cli tests-rust cov
+.PHONY: all clean tests pip-dev pip-dev bench bench-collect bench-clean tests-cli tests-rust cov
 
 CFLAGS+= -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -O0 -g
 
