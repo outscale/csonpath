@@ -33,7 +33,7 @@ bench-long-deep-keys: bench-long-deep-keys.c
 	gcc bench-long-deep-keys.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-long-deep-keys $(shell pkg-config --libs json-c)
 
 bench-json-c-tcc: bench-json-c.c
-	tcc bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-tcc $(shell pkg-config --libs json-c)
+	tcc bench-json-c.c -O3 -g -D__STDC_NO_VLA__ -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-tcc $(shell pkg-config --libs json-c)
 
 bench-json-c-gcc: bench-json-c.c
 	gcc bench-json-c.c -O3 -g -I../ $(shell pkg-config --cflags json-c) -o bench-json-c-gcc $(shell pkg-config --libs json-c)
@@ -54,8 +54,5 @@ bench-yyjson: bench-yyjson.c
 	gcc bench-yyjson.c -O3 -g -I../ $(shell pkg-config --cflags yyjson) -o bench-yyjson $(shell pkg-config --libs yyjson)
 
 
-jsoncons/:
-	git clone https://github.com/danielaparker/jsoncons.git
-
-bench-jsoncons: jsoncons/
-	 g++ -std=c++17 -O3 bench-jsoncons.cc -I./jsoncons/include -o bench-jsoncons
+bench-jsoncons: bench-jsoncons.cc
+	g++ -std=c++17 -O3 bench-jsoncons.cc -o bench-jsoncons

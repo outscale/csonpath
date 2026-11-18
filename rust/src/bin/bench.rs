@@ -176,6 +176,7 @@ fn result_len(r: &Value) -> usize {
 fn main() {
     let csv_mode = std::env::var("BENCH_CSV").is_ok();
     let csv_header = std::env::var("BENCH_CSV_HEADER").is_ok();
+    let only_csonpath = std::env::var("BENCH_ONLY").map(|v| v == "csonpath").unwrap_or(false);
 
     let data = json!({"a": "hello"});
     let cp = CsonPath::new("$.a").unwrap();
@@ -234,19 +235,21 @@ fn main() {
                      result_len(r.as_ref().unwrap_or(&Value::Null)), iters, t);
         }
 
-        let (r_pure, t_pure) = bench_pure_rust(&data, label, iters);
-        let t_pure_scaled = t_pure * scale;
-        total_pure += t_pure_scaled;
-        if csv_mode {
-            csv_pure.push((escaped, result_len(&r_pure), t_pure_scaled));
-        } else {
-            println!("pure rust     : {} results, in {} loop, Time: {} seconds",
-                     result_len(&r_pure), iters, t_pure);
-        }
+        if !only_csonpath {
+            let (r_pure, t_pure) = bench_pure_rust(&data, label, iters);
+            let t_pure_scaled = t_pure * scale;
+            total_pure += t_pure_scaled;
+            if csv_mode {
+                csv_pure.push((escaped, result_len(&r_pure), t_pure_scaled));
+            } else {
+                println!("pure rust     : {} results, in {} loop, Time: {} seconds",
+                         result_len(&r_pure), iters, t_pure);
+            }
 
-        if !csv_mode {
-            let ratio = if t > 0.0 { t_pure / t } else { 0.0 };
-            println!("speedup       : {:.2}x\n", ratio);
+            if !csv_mode {
+                let ratio = if t > 0.0 { t_pure / t } else { 0.0 };
+                println!("speedup       : {:.2}x\n", ratio);
+            }
         }
     }
 
@@ -256,9 +259,11 @@ fn main() {
         }
         println!("csonpath-rust,TOTAL,0,{:.6}", total_csonpath);
 
-        for (q, r, t) in csv_pure {
-            println!("pure-rust,\"{}\",{},{:.6}", q, r, t);
+        if !only_csonpath {
+            for (q, r, t) in csv_pure {
+                println!("pure-rust,\"{}\",{},{:.6}", q, r, t);
+            }
+            println!("pure-rust,TOTAL,0,{:.6}", total_pure);
         }
-        println!("pure-rust,TOTAL,0,{:.6}", total_pure);
     }
 }

@@ -2,8 +2,13 @@ import json
 import time
 import re
 import os
-from jsonpath_ng.ext import parse
 import csonpath
+
+# BENCH_ONLY=csonpath runs only the csonpath measurements, without the
+# reference implementations and without the jsonpath-ng dependency.
+only_csonpath = os.environ.get("BENCH_ONLY") == "csonpath"
+if not only_csonpath:
+    from jsonpath_ng.ext import parse
 
 # Create a large test dataset
 def build_book(i):
@@ -124,18 +129,19 @@ total_pure_python = 0.0
 
 # Benchmark
 for query in queries:
-    expr = parse(query)
-    iters, scale = ng_iters_scale(query)
-    start = time.perf_counter()
-    for x in range(iters):
-        result = expr.find(data)
-    elapsed = (time.perf_counter() - start) * scale
-    total_jsonpath_ng += elapsed
-    if bench_csv_mode:
-        csv_ng.append((query, len(result), elapsed))
-    else:
-        print(f"jsonpath-ng Query: {query}")
-        print(f"jsonpath-ng Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
+    if not only_csonpath:
+        expr = parse(query)
+        iters, scale = ng_iters_scale(query)
+        start = time.perf_counter()
+        for x in range(iters):
+            result = expr.find(data)
+        elapsed = (time.perf_counter() - start) * scale
+        total_jsonpath_ng += elapsed
+        if bench_csv_mode:
+            csv_ng.append((query, len(result), elapsed))
+        else:
+            print(f"jsonpath-ng Query: {query}")
+            print(f"jsonpath-ng Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
 
     start = time.perf_counter()
     cp = csonpath.CsonPath(query)
@@ -150,6 +156,9 @@ for query in queries:
     else:
         print(f"csonpath python Query: {query}")
         print(f"csonpath python Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
+
+    if only_csonpath:
+        continue
 
     start = time.perf_counter()
     iters = 100
@@ -210,14 +219,16 @@ for query in queries:
         print(f"pure python Results: {len(result)}, Time: {elapsed:.6f} seconds\n")
 
 if bench_csv_mode:
-    for query, results, elapsed in csv_ng:
-        csv_row("jsonpath-ng", query, results, elapsed)
-    csv_total("jsonpath-ng", total_jsonpath_ng)
+    if not only_csonpath:
+        for query, results, elapsed in csv_ng:
+            csv_row("jsonpath-ng", query, results, elapsed)
+        csv_total("jsonpath-ng", total_jsonpath_ng)
 
     for query, results, elapsed in csv_csonpath:
         csv_row("csonpath-python", query, results, elapsed)
     csv_total("csonpath-python", total_csonpath_python)
 
-    for query, results, elapsed in csv_pure:
-        csv_row("pure-python", query, results, elapsed)
-    csv_total("pure-python", total_pure_python)
+    if not only_csonpath:
+        for query, results, elapsed in csv_pure:
+            csv_row("pure-python", query, results, elapsed)
+        csv_total("pure-python", total_pure_python)

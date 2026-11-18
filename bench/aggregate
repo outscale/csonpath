@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
+set -eu
 echo category,query,results,time
+if [ "${BENCH_ONLY:-}" = csonpath ]; then
+    BENCH_CSV=1 ./bench-json-c-tcc
+    BENCH_CSV=1 ./bench-json-c-gcc
+    BENCH_CSV=1 ./bench-json-c-clang
+    BENCH_CSV=1 ./bench-yyjson
+    BENCH_CSV=1 python3 bench-jsonpath-ng.py
+    BENCH_CSV=1 ../rust/target/release/bench
+    exit 0
+fi
 BENCH_CSV=1 ./bench-json-c-tcc
 BENCH_CSV=1 ./bench-json-c-gcc
 BENCH_CSV=1 ./bench-json-c-clang

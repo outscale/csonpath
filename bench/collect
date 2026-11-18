@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")"
+
+version=$(sed -n 's/^version = "\(.*\)"/\1/p' ../pyproject.toml | head -1)
+out="results/v$version"
+mkdir -p "$out"
+
+meta() { printf '%s: %s\n' "$1" "$2"; }
+ver() { command -v "$1" >/dev/null 2>&1 && "$@" 2>&1 | head -1; }
+
+{
+  meta date "$(date -u +%FT%TZ)"
+  meta version "$version"
+  meta commit "$(git rev-parse --short HEAD)"
+  meta os "$(uname -srm)"
+  meta cpu "$(sysctl -n machdep.cpu.brand_string 2>/dev/null || awk -F: '/model name/{print $2; exit}' /proc/cpuinfo)"
+  meta memory "$(sysctl -n hw.memsize 2>/dev/null || awk '/MemTotal/{print $2*1024}' /proc/meminfo)"
+  meta cc "$(ver cc --version)"
+  meta gcc "$(ver gcc --version)"
+  meta clang "$(ver clang --version)"
+  meta tcc "$(ver tcc -v)"
+  meta python "$(ver python3 --version)"
+  meta node "$(ver node --version)"
+  meta rustc "$(ver rustc --version)"
+  meta json-c "$(pkg-config --modversion json-c 2>/dev/null)"
+  meta yyjson "$(pkg-config --modversion yyjson 2>/dev/null)"
+} > "$out/meta.txt"
+
+BENCH_CSV=1 ./aggregate > "$out/results.csv"
+echo "results: $out"
