@@ -1,0 +1,59 @@
+name: bench
+
+on:
+  workflow_call:
+    inputs:
+      baseline:
+        description: generate the baseline artifact instead of checking regressions
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    environment: auto-build
+    runs-on: ubuntu-26.04
+    env:
+      # Only the csonpath suites: no reference implementation and no filter
+      # of the collected results.
+      BENCH_ONLY: csonpath
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        submodules: recursive
+    - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      with:
+        # Pinned: bench/baseline.meta records the exact version, so a bump
+        # invalidates the baseline.
+        python-version: '3.15.2'
+    - name: install dependencies
+      run: |
+        sudo apt-get update --fix-missing
+        sudo apt-get install -y -f -o Acquire::Retries=3 \
+          libjson-c-dev libyyjson-dev pkg-config miller tcc clang make
+    - name: install python dependencies
+      run: python -m pip install -e .
+    - name: build benchmarks
+      run: |
+        make -C bench bench-json-c-tcc bench-json-c-gcc bench-json-c-clang bench-yyjson
+        cargo build --release --manifest-path rust/Cargo.toml --bin bench
+    - name: collect
+      run: ./bench/collect
+    - name: generate baseline
+      if: ${{ inputs.baseline }}
+      run: ./bench/make-baseline
+    - name: check and render
+      if: ${{ !inputs.baseline }}
+      run: |
+        ./bench/check
+        ./bench/render
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      if: ${{ inputs.baseline }}
+      with:
+        name: bench-baseline
+        path: |
+          bench/baseline.csv
+          bench/baseline.meta
+        if-no-files-found: error

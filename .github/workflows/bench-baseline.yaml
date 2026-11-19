@@ -1,0 +1,11 @@
+name: bench baseline
+
+on:
+  push:
+    branches: [ bench-baseline ]
+
+jobs:
+  baseline:
+    uses: ./.github/workflows/bench.yml
+    with:
+      baseline: true

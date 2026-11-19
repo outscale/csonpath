@@ -45,6 +45,11 @@ jobs:
       run: cargo publish --dry-run
 
 
+  bench:
+    if: github.head_ref != 'bench-baseline'
+    uses: ./.github/workflows/bench.yml
+
+
   build-windows:
     environment: auto-build
     runs-on: windows-latest
