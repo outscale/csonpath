@@ -1,141 +1,61 @@
-Still WIP
+# Benchmarks
 
-# usage
+## Usage
+
 ```sh
-make bench
+make bench          # build and run every suite
+./bench/collect     # build, run and store results/v<version>/{meta.txt,results.csv}
+./bench/render      # write results/v<version>/table.md
+./bench/check       # check the latest run against the baseline (10 %)
 ```
 
-# dependancies
+`aggregate` runs every suite and prints CSV; `pivot` turns those rows into a
+comparison table (or CSV with `--csv`). `collect` and `render` just call them.
+The Python suites use `python3` from `PATH`, so activate the project virtualenv
+first.
 
-Each benchmark have it's own dependancies.
-you need npm for nodejs
-jsonpath-ng for python
-cargo for rust
+## Dependencies
 
+Each benchmark has its own dependencies:
 
-# bench result (26/08/2025) on macos
+- a Python virtualenv with the local extension and `jsonpath-ng`:
+  ```sh
+  python3 -m venv venv
+  . venv/bin/activate
+  pip install -e . jsonpath-ng
+  ```
+- `npm install --prefix bench` for jsonpath-plus
+- `cargo` for the Rust benchmarks
+- `libjson-c`, `yyjson`, `jsoncons` for the C/C++ benchmarks
+- `miller` for `bench/render`
 
-```
-python bench-jsonpath-ng.py
-jsonpath-ng Query: $.store.book[*].title
-jsonpath-ng Results: 5000, Time: 8.190528 seconds
+## Comparing runs
 
-csonpath python Query: $.store.book[*].title
-csonpath python Results: 5000, Time: 0.198578 seconds
+`bench/check` only compares a run with `bench/baseline.csv` when
+`bench/baseline.meta` matches the run's `meta.txt` for OS, CPU, memory,
+compilers and library versions. Results from different machines are not
+comparable, so a metadata mismatch is an error.
 
-jsonpath-ng Query: $..title
-jsonpath-ng Results: 5000, Time: 30.959582 seconds
+To create or replace the baseline, push the `bench-baseline` branch. Its CI
+job runs the benchmarks and uploads `bench/baseline.csv` and
+`bench/baseline.meta` as an artifact. Commit those files on `main`; the branch
+itself is not merged.
 
-csonpath python Query: $..title
-csonpath python Results: 5000, Time: 0.149349 seconds
+## Results
 
-node bench-jsonpath.js
-Query: $.store.book[*].title
-Results: 5000, Time: 0.881951 seconds
+v0.21.0, 2026-11-19, Apple M1, 16 GiB, macOS Darwin 25.6.0 arm64,
+Apple clang 17.0.0, rustc 1.85.1, json-c 0.19, yyjson 0.12.0.
 
-Query: $..title
-Results: 5000, Time: 1.605545 seconds
+Times are in seconds. Rows are sorted by query, columns by total time
+(fastest first). Lower is better.
 
-cargo run --release
-Query: $.store.book[*].title
-Results: 5000, Time: 1.18956625s
-
-Query: $..title
-Results: 5000, Time: 3.42593s
-
-./bench-jsoncons
-Query: $.store.book[*].title
-Results: 5000, Time: 0.159977 seconds
-
-Query: $..title
-Results: 5000, Time: 0.244324 seconds
-
-./bench-json-c-tcc
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.156014 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.239929 seconds
-
-./bench-json-c-gcc
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.129898 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.156560 seconds
-
-./bench-json-c-clang
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.464044 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.823912 seconds
-
-./bench-yyjson
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.038708 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.074619 seconds
-```
-
-# bench result (19/08/2025) on Arch Linux BTW
-clang version 20.1.8
-gcc (GCC) 15.1.1 20250729
-```
-jsonpath-ng Query: $.store.book[*].title
-jsonpath-ng Results: 5000, Time: 13.279904 seconds
-
-csonpath python Query: $.store.book[*].title
-csonpath python Results: 5000, Time: 0.394685 seconds
-
-jsonpath-ng Query: $..title
-jsonpath-ng Results: 5000, Time: 51.131575 seconds
-
-csonpath python Query: $..title
-csonpath python Results: 5000, Time: 0.245051 seconds
-
-node bench-jsonpath.js
-Query: $.store.book[*].title
-Results: 5000, Time: 1.955359 seconds
-
-Query: $..title
-Results: 5000, Time: 4.007358 seconds
-
-cargo run --release
-    Finished `release` profile [optimized] target(s) in 0.03s
-     Running `target/release/jsonpath_benchmark`
-Query: $.store.book[*].title
-Results: 5000, Time: 1.945419007s
-
-Query: $..title
-Results: 5000, Time: 5.851153824s
-
-./bench-jsoncons
-Query: $.store.book[*].title
-Results: 5000, Time: 0.325564 seconds
-
-Query: $..title
-Results: 5000, Time: 0.456741 seconds
-
-./bench-json-c-tcc
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.493680 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.582695 seconds
-
-./bench-json-c-gcc
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.421294 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.445293 seconds
-
-./bench-json-c-clang
-recompile Query: $.store.book[*].title
-Results: 5000, in 1000 loop, Time: 0.399849 seconds
-
-recompile Query: $..title
-Results: 5000, in 1000 loop, Time: 0.425791 seconds
-```
+| query | yyjson const | yyjson mut | json-c-gcc | json-c-clang | jsoncons | json-c-tcc | csonpath-python | pure-rust | pure-python | csonpath-rust | jsonpath-plus | jsonpath-rust | jsonpath-ng |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| $..title | 0.889507s | 1.232188s | 1.592109s | 1.600270s | 3.013270s | 3.905455s | 3.101552s | 16.944650s | 23.836152s | 20.622704s | 26.943513s | 106.125927s | 265.847036s |
+| $.store.book[*].deep_mixed.a.b.c[0].d.e.f[0].g.h.i[0].j.k.l | 0.504687s | 0.531636s | 1.333324s | 1.308789s | 1.547757s | 2.296362s | 3.418387s | 6.009498s | 3.682296s | 6.251309s | 11.352487s | 25.084700s | 185.885449s |
+| $.store.book[*].deep_obj.a.b.c.d.e.f.g.h.i.j.k.l | 0.474287s | 0.513127s | 1.079866s | 1.154001s | 1.380706s | 2.236568s | 4.650710s | 7.118896s | 4.762336s | 8.572580s | 9.292324s | 24.067444s | 195.831935s |
+| $.store.book[*].title | 0.058054s | 0.059945s | 0.151841s | 0.154894s | 0.189380s | 0.182801s | 0.273502s | 0.713900s | 0.350677s | 0.957579s | 1.824634s | 2.491967s | 17.126497s |
+| $.store.book[*]['title','category'] | 0.164315s | 0.177054s | 0.355671s | 0.341316s | 0.442140s | 0.551924s | 0.658637s | 1.263828s | 0.614160s | 1.461142s |  | 3.913863s | 21.853570s |
+| $.store.book[?(@.price > 20)].title | 0.118028s | 0.143158s | 0.273027s | 0.277232s | 0.711942s | 0.396383s | 0.549492s | 0.816972s | 0.617292s | 0.869105s | 2.842914s | 3.471420s | 26.648087s |
+| $.store.book[?(@.title =~ /Book/)].title | 0.624325s | 0.675731s | 0.860739s | 0.844254s | 0.975418s | 1.059988s | 1.217965s | 1.071755s | 0.981474s | 1.849479s | 3.740393s |  | 31.867933s |
+| TOTAL | 2.833203s | 3.332839s | 5.646577s | 5.680756s | 8.260612s | 10.629481s | 13.870245s | 33.939500s | 34.844387s | 40.583897s | 55.996265s | 165.155322s | 745.060506s |
