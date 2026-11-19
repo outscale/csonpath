@@ -62,6 +62,7 @@ merging; the branch itself is not merged.
 
 ## Results
 
+<!-- bench:start -->
 v0.21.0, 2026-11-19, Apple M1, 16 GiB, macOS Darwin 25.6.0 arm64,
 Apple clang 17.0.0, rustc 1.85.1, json-c 0.19, yyjson 0.12.0.
 
@@ -78,3 +79,4 @@ Times are in seconds. Rows are sorted by query, columns by total time
 | $.store.book[?(@.price > 20)].title | 0.118028s | 0.143158s | 0.273027s | 0.277232s | 0.711942s | 0.396383s | 0.549492s | 0.816972s | 0.617292s | 0.869105s | 2.842914s | 3.471420s | 26.648087s |
 | $.store.book[?(@.title =~ /Book/)].title | 0.624325s | 0.675731s | 0.860739s | 0.844254s | 0.975418s | 1.059988s | 1.217965s | 1.071755s | 0.981474s | 1.849479s | 3.740393s |  | 31.867933s |
 | TOTAL | 2.833203s | 3.332839s | 5.646577s | 5.680756s | 8.260612s | 10.629481s | 13.870245s | 33.939500s | 34.844387s | 40.583897s | 55.996265s | 165.155322s | 745.060506s |
+<!-- bench:end -->
