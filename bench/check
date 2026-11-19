@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")"
+
+out=${1:-results/v$(sed -n 's/^version = "\(.*\)"/\1/p' ../pyproject.toml)}
+
+if [ ! -f baseline.csv ] || [ ! -f baseline.meta ]; then
+    echo "check: missing bench/baseline.csv or bench/baseline.meta" >&2
+    echo "check: generate them on the bench-baseline branch, then commit the artifact" >&2
+    exit 2
+fi
+
+fields="os cpu memory cc gcc clang rustc python json-c yyjson"
+mismatch=0
+for key in $fields; do
+    want=$(sed -n "s/^$key: //p" baseline.meta)
+    have=$(sed -n "s/^$key: //p" "$out/meta.txt")
+    if [ "$want" != "$have" ]; then
+        printf 'check: %s: baseline=%s run=%s\n' "$key" "$want" "$have" >&2
+        mismatch=1
+    fi
+done
+if [ "$mismatch" -ne 0 ]; then
+    echo "check: metadata mismatch, results are not comparable" >&2
+    exit 2
+fi
+
+awk -F, -v tol=0.10 '
+  FILENAME == ARGV[1] { if ($1 != "category") base[$1] = $2; next }
+  $2 == "TOTAL" { total[$1] = $4 }
+  END {
+    ref = total["json-c-gcc"]
+    if (!ref) { print "check: no json-c-gcc TOTAL" > "/dev/stderr"; exit 2 }
+    status = 0
+    for (cat in base) {
+      if (!(cat in total)) { print cat ": skipped (no data)"; continue }
+      ratio = total[cat] / ref
+      limit = base[cat] * (1 + tol)
+      if (ratio >= limit) {
+        printf "%s: %.2fx (baseline %.2fx, limit %.2fx) REGRESSION\n", cat, ratio, base[cat], limit
+        status = 1
+      } else {
+        printf "%s: %.2fx (baseline %.2fx) ok\n", cat, ratio, base[cat]
+      }
+    }
+    exit status
+  }' baseline.csv "$out/results.csv"
