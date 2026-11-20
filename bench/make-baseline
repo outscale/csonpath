@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")"
+
+out=${1:-results/v$(sed -n 's/^version = "\(.*\)"/\1/p' ../pyproject.toml)}
+cp "$out/meta.txt" baseline.meta
+{
+    echo "category,ratio"
+    awk -F, '
+      $2 == "TOTAL" { total[$1] = $4 }
+      END {
+        ref = total["json-c-gcc"]
+        if (!ref) { print "make-baseline: no json-c-gcc TOTAL" > "/dev/stderr"; exit 2 }
+        for (cat in total)
+          if (cat ~ /^csonpath-/) printf "%s,%.4f\n", cat, total[cat] / ref
+      }' "$out/results.csv" | sort
+} > baseline.csv
+echo "baseline: bench/baseline.csv and bench/baseline.meta"
