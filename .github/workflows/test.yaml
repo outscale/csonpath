@@ -45,6 +45,34 @@ jobs:
       run: cargo publish --dry-run
 
 
+  bench:
+    environment: auto-build
+    runs-on: ubuntu-26.04
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        submodules: recursive
+    - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      with:
+        python-version: '3.x'
+    - name: install dependencies
+      run: |
+        sudo apt-get update --fix-missing
+        sudo apt-get install -y -f -o Acquire::Retries=3 libjson-c-dev pkg-config miller
+    - name: install python dependencies
+      run: python -m pip install -e . jsonpath-ng
+    - name: build benchmarks
+      run: |
+        make -C bench bench-json-c-gcc
+        cargo build --release --manifest-path bench/Cargo.toml
+        cargo build --release --manifest-path rust/Cargo.toml --bin bench
+    - name: collect, check and render
+      run: |
+        ./bench/collect
+        ./bench/check
+        ./bench/render
+
+
   build-windows:
     environment: auto-build
     runs-on: windows-latest

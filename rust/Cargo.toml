@@ -5,7 +5,6 @@ edition = "2021"
 description = "Partial JSONPath implementation in C with Rust bindings"
 license = "BSD-3-Clause"
 repository = "https://github.com/Outscale/csonpath"
-homepage = "https://github.com/Outscale/csonpath"
 readme = "README.md"
 
 [dependencies]

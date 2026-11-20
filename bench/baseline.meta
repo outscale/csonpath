@@ -1,0 +1,15 @@
+date: 2026-11-19T14:44:21Z
+version: 0.21.0
+commit: a7d66f1
+os: Darwin 25.6.0 arm64
+cpu: Apple M1
+memory: 17179869184
+cc: Apple clang version 17.0.0 (clang-1700.6.3.2)
+gcc: Apple clang version 17.0.0 (clang-1700.6.3.2)
+clang: Apple clang version 17.0.0 (clang-1700.6.3.2)
+tcc: 
+python: Python 3.13.11
+node: v26.8.1
+rustc: rustc 1.85.1 (4eb161250 2025-03-15) (Homebrew)
+json-c: 0.19
+yyjson: 0.12.0
