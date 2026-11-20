@@ -368,7 +368,7 @@ static inline const char *csonpath_str_data(const char walker[static 1])
     return data;
 }
 
-static inline const char *csonpath_str_skip(const char walker[static 1])
+static inline const char *csonpath_str_skip(const char *walker)
 {
     const char *data;
     int len = csonpath_str_decode(walker, &data);
@@ -469,7 +469,7 @@ static int csonpath_compile_(struct csonpath *cjp, const char path[static 1], in
 }
 
 static void csonpath_push_filter_getter(struct csonpath *cjp, int *inst_idx, int nb_getter_inst,
-			       char filter_getter[static nb_getter_inst])
+			       char filter_getter[static 1])
 {
   char *filter_end = &cjp->data[(*inst_idx)++];
   for (int i = 0; i < nb_getter_inst; ++i) {

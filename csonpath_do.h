@@ -512,7 +512,7 @@ static CSONPATH_DO_RET_TYPE csonpath_do_internal(const struct csonpath cjp[const
 #define csonpath_do__(name) CAT(CSONPATH_FUNC(csonpath_), name)
 #define csonpath_do_ csonpath_do__(CSONPATH_DO_FUNC_NAME)
 
-CSONPATH_STATINLINE CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath cjp[static 1],
+CSONPATH_STATINLINE CSONPATH_DO_RET_TYPE csonpath_do_(struct csonpath *cjp,
 					 CSONPATH_JSON value CSONPATH_DO_EXTRA_ARGS)
 {
     char *walker = cjp->data;
