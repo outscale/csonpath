@@ -368,7 +368,7 @@ static inline const char *csonpath_str_data(const char walker[static 1])
     return data;
 }
 
-static inline const char *csonpath_str_skip(const char walker[static 1])
+static inline const char *csonpath_str_skip(const char *walker)
 {
     const char *data;
     int len = csonpath_str_decode(walker, &data);
